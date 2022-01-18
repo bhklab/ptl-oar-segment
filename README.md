@@ -2,6 +2,8 @@
 
 Original Repo for "Evaluating clinical acceptability of organ-at-risk segmentation In head & neck cancer using a compendium of open-source 3D convolutional neural networks" (Marsilla et. al, 2022)
 
+## Inference Tutorial Using Colab Pro GPUs coming soon...
+
 ## 1. Setup Environment
 More instructions [here](https://stackoverflow.com/questions/41274007/anaconda-export-environment-file).
 
