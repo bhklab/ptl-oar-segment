@@ -14,9 +14,9 @@ In order to run the pre-trained WOLNET network on your own dataset, certain aspe
 You can use the slurm templates (wol-oar-test-1.sh ... wol-oar-test-5.sh) as base bash scripts for inference. The only things that need to be edited in this file are:
 
 1. Clone repo.
-2. Update local path to model weights (Download them [here](https://drive.google.com/drive/folders/15yc--RfBaxuxKTEHaQ3OwbPdCqTOZdgH?usp=sharing))
+2. Update local path to model weights (Download them [here](https://drive.google.com/drive/folders/15yc--RfBaxuxKTEHaQ3OwbPdCqTOZdgH?usp=sharing)) in wol-oar-test-1.sh (repeat for other .sh test scripts)
 
-3. Update local path to test.py file.
+3. Update local path to test.py file in wol-oar-test-1.sh (repeat for other .sh test scripts)
 4. If you havn't done so already use custom pre-processing scripts (/process) or our [med-imagetools package](https://github.com/bhklab/med-imagetools) to extract raw data from .dicom images
 5. Create a custom .csv with two columns - one for image and one for corresponding mask (if you have avaliable; if un-avaliable use image-path again in the second column). Easy to do in python:
 
