@@ -64,7 +64,7 @@ PyTorch Lightning has been specifically engineered to optimize training across l
 
 ## Citation information
 
-@article {Marsilla2022.01.15.22269276,
+``` @article {Marsilla2022.01.15.22269276,
 	author = {Marsilla, Joseph and Won Kim, Jun and Kim, Sejin and Tkachuck, Denis and Rey-McIntyre, Katrina and Patel, Tirth and Tadic, Tony and Liu, Fei-Fei and Bratman, Scott and Hope, Andrew and Haibe-Kains, Benjamin},
 	title = {Evaluating clinical acceptability of organ-at-risk segmentation In head \& neck cancer using a compendium of open-source 3D convolutional neural networks},
 	elocation-id = {2022.01.15.22269276},
@@ -75,4 +75,4 @@ PyTorch Lightning has been specifically engineered to optimize training across l
 	URL = {https://www.medrxiv.org/content/early/2022/01/25/2022.01.15.22269276},
 	eprint = {https://www.medrxiv.org/content/early/2022/01/25/2022.01.15.22269276.full.pdf},
 	journal = {medRxiv}
-}
+}```
