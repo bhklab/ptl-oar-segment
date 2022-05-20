@@ -12,34 +12,6 @@ def swi(image, net, n_classes):
     shape = image.size()
     warnings.warn(f'Image shape is {image.size()}')
 
-    ###########
-    # Version 1
-    ###########
-    # # Z ...
-    # start = [0, shape[2]//4, shape[2]-112]
-    # end = [112, shape[2]//4+112, shape[2]]
-    # # Y
-    # start_y = [0, shape[3]-176, shape[3]//6]
-    # end_y = [176, shape[3], shape[3]//6 + 176]
-    # # X
-    # start_x = [0, shape[4]-176, shape[4]//6]
-    # end_x = [176, shape[4], shape[4]//6 + 176]
-
-    ###########
-    # Version 2
-    ###########
-    # start = [0, shape[2]//4, shape[2]//3, shape[2]//8, shape[2]-112]
-    # end = [112, shape[2]//4+112, shape[2]//3+112, shape[2]//8+112, shape[2]]
-    # # Y
-    # start_y = [0, shape[3]-176, shape[3]//24, shape[3]//12, shape[3]//6, shape[3] - shape[3]//4 - 176, shape[3] - shape[3]//6 - 176]
-    # end_y = [176, shape[3], shape[3]//24+176, shape[3]//12 + 176, shape[3]//6 + 176, shape[3] - shape[3]//4, shape[3] - shape[3]//6]
-    # # X
-    # start_x = [0, shape[4]-176, shape[4]//4, shape[4]//6, shape[4] - shape[4]//4 - 176, shape[4] - shape[4]//6 - 176]
-    # end_x = [176, shape[4],  shape[4]//4+176, shape[4]//6 + 176, shape[4] - shape[4]//4, shape[4] - shape[4]//6]
-
-    ###########
-    # Version 3
-    ###########
     # Z ...
     start = [0, shape[2]//4, shape[2]-shape[2]//4 - 112, shape[2]-112]
     end = [112, shape[2]//4+112, shape[2]-shape[2]//4, shape[2]]
@@ -102,7 +74,7 @@ def get_contours(img, num_classes, level):
 #     [(x, y, zn), (x, y, zn), (x, y, zn), (x, y, zn)] # slice n
 #   ]
 # }
-#Test notebook is on local
+# Test notebook is on local
 
 def numpy_to_contour(arr, num_classes, level, label_names):
     #create empty dict

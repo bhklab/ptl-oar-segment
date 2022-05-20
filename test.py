@@ -1,9 +1,6 @@
 """
-Runs a model on a single node across N-gpus.
-
-See
-https://williamfalcon.github.io/pytorch-lightning/
-
+Runs a presaved model on a single node across N-gpus.
+See https://williamfalcon.github.io/pytorch-lightning/
 """
 import os, torch, warnings
 import numpy as np
@@ -21,32 +18,34 @@ np.random.seed(SEED)
 # print('__CUDNN VERSION:', torch.backends.cudnn.version())
 # print('__Number CUDA Devices:', torch.cuda.device_count())
 def main(args):
+
     """
-    Main training routine specific for this project
-    :param hparams:
+    Main training routine specific for this project.
+    Participents can define modify the base SegmentationModule that will be
+    given in the offical repo for the challenge (utils - modules.py).
+    Checkpointing is built into boilerplate, weights must be loaded into your
+    custom SegmentationModule object. Please provide your code in the format
+    given in the repo. You are cable to add/change any part of the code given
+    in the repo including losses, models and optimizers.
+    Please zip your utils folder and send it along with your model weights saved
+    duirng checkpointing.
+
+    For your reference following script will be used for inference. This will be
+    using test_step function in modules.py. NOTE: Adaptive sliding window(s) will
+    be used during evaluation, something similar to swi() in utils.py.
+
+    Note: empty boilerplate will be delivered before challenge begins
+    on the offical project repo.
+
+    :param hparams: weights_path
     """
     assert args.weights_path is not None
     warnings.warn('Using presaved weights...')
     warnings.warn(f'Loading save model from {args.weights_path}.')
     model = SegmentationModule.load_from_checkpoint(checkpoint_path=args.weights_path) #, strict=False) #,
 
-    # put this true if loading from previously saved networks...
-    # checkpoint_callback = callbacks.ModelCheckpoint( monitor="val_loss",
-                                                     # mode="min",
-                                                     # save_last=True,
-                                                     # save_top_k=3,
-                                                     # verbose=False)
-
     trainer = Trainer(gpus=1, strategy='ddp')
-            # distributed_backend=args.backend,
-            # default_root_dir=model.hparams.root,
-            # max_epochs=model.hparams.n_epochs,
-            # weights_summary='top',
-            # log_gpu_memory='min_max',
-            # callbacks=[checkpoint_callback])
-            # resume_from_checkpoint=args.weights_path)
-
-    trainer.test(model) # , ckpt_path=args.weights_path)
+    trainer.test(model)
 
 if __name__ == '__main__':
     root_dir = os.path.dirname(os.path.realpath(__file__))

@@ -38,7 +38,6 @@ class SegmentationModule(pl.LightningModule):
         self.save_hyperparameters(hparams) # 1.3+
         # self.hparams = hparams # < 1.3 able to do this in older versions...
         self.get_model_root_dir()
-
         # self.prepare_data()
         if self.hparams.oar_version == 1:
             self.__get_gtv_data()
@@ -48,12 +47,9 @@ class SegmentationModule(pl.LightningModule):
         self.__build_model()
         self.__get_loss()
 
-    # def prepare_data(self):
-    # def setup(self, stage=None):
     # ---------------------
     # MODEL SETUP
     # ---------------------
-
     def __build_model(self):
 
         """
@@ -347,13 +343,11 @@ class SegmentationModule(pl.LightningModule):
     # ------------------
     # Assign Loss
     # ------------------
-
     def __get_loss(self):
-
+        # self.class_weights this must be provided and calculated separately...
+        # usually this will be the amount of voxels given for any OAR class...
         if self.class_weights is not None:
-            # this proved to be a better weighting scheme??
             weight = torch.tensor(self.class_weights) # *.01
-
             if self.hparams.volume_type=='targets':
                 pass
             else:
@@ -362,19 +356,6 @@ class SegmentationModule(pl.LightningModule):
                 weight /= weight.sum() + 1e-4
                 weight *= 100
                 weight[0] = 1e-4
-
-                # weight -= weight.min() - 1e-4 # bring the lower range to 0
-                # weight /= weight.max() + 1e-4 # + weight.min())
-                # weight[0] = 0.0001
-                # for i,val in enumerate(weight):
-                #     if val == 1.:
-                #         weight[i] = 0.9999
-                #
-                # weight[1:] *= 10
-
-            # make sure all weights are between zero to one
-            # weight /= weight.sum()
-            # weight
 
             self.class_weights = ( weight * self.hparams.scale_weights).float()
             print(f"Weights are now: {self.class_weights}")
@@ -500,9 +481,6 @@ class SegmentationModule(pl.LightningModule):
             out = out_pic
 
         return in_, out, targ
-
-        # plot and save targets...
-        # plt doesnt really work well in multi-threading scenarios...
 
     def save_figs(self, in_, out, targ, name="train", step=None):
 
@@ -630,17 +608,20 @@ class SegmentationModule(pl.LightningModule):
         self.step_type = "valid"
         inputs, targets = batch
         shape = inputs.size()
+
         if batch_idx == 0:
             print(inputs.max(), inputs.size())
             print(targets.max(), targets.size())
 
         if inputs.shape != targets.shape:
             warnings.warn("Input Shape Not Same size as label...")
+
         # change this to incorporate sliding window...
         # roi_size = (int(shape[1]), 192, 192) # (64, 192, 192)
         # sw_batch_size = 1 # second sliding window inference
         # outputs = sliding_window_inference(inputs, roi_size, sw_batch_size, self.forward)
         # evaluation using sliding window inference only (really) required during testing.
+
         outputs = self.forward(inputs)
         if type(outputs) == tuple:
             outputs = outputs[0]
@@ -934,17 +915,14 @@ class SegmentationModule(pl.LightningModule):
          # path = '/cluster/projects/radiomics/Temp/joe/OAR-TESTING/AI_HNSCC-3DCT-RT2'
          # path = '/cluster/projects/radiomics/Temp/joe/OAR-TESTING/AI_RADIOMICS_HN1'
          # path = "/cluster/projects/radiomics/Temp/joe/OAR-TESTING/AI_TCIA_HNSCC"
-         path = "/cluster/projects/radiomics/Temp/joe/OAR-TESTING/AI_STRUCTSEG_19"
+         # path = "/cluster/projects/radiomics/Temp/joe/OAR-TESTING/AI_STRUCTSEG_19"
          # path = '/cluster/projects/radiomics/EXTERNAL/PDDCA/AI_'
          # path = '/cluster/projects/radiomics/EXTERNAL/OAR-TESTING/AI_PDDCA_2'
          # path = '/cluster/projects/radiomics/EXTERNAL/STRUCTSEG19/HaN_OAR/AI_'
+         ###############
 
          targ_fold = path + '/RAW/'
          path += f'/FOLD_{self.hparams.fold}'
-         ##############
-         # idx=131 # for mastro
-         # idx = 46 # for manifest...
-         # idx = 473
          idx=0
          os.makedirs(path, exist_ok=True)
          os.makedirs(targ_fold, exist_ok=True)
@@ -965,41 +943,38 @@ class SegmentationModule(pl.LightningModule):
          nrrd.write(f"{path}/outs_{batch_idx+idx}_RAW.nrrd", outs_raw)
          nrrd.write(f"{path}/outs_{batch_idx+idx}_FULL.nrrd", outs_.astype('uint8'), compression_level=9)
          np.save( f"{path}/center_{batch_idx+idx}.npy", np.array([cropz[0], cropz[1], center[0], center[1]]))
-         # np.save( f"{path}/outs_{batch_idx+idx}_RAW.npy", outs_raw) # used for ensemble... # NO SOFTMAX OR ARGMAX...
-         # np.save( f"{path}/outs_{batch_idx+idx}_FULL.npy", out_full) # saved for predictions..
-         # nrrd.write(f"{path}/outs_{batch_idx+idx}_RAW.nrrd", in_)
 
-#####################################
-# USE TO AVERAGE PREDICTIONS FROM ENSEMBLE
-# import torch, os, glob, nrrd
-# import numpy as np
-# os.mkdir('FINAL_')
-# folders=glob.glob('./FOLD_*')
-# folders.sort()
-# imgs = glob.glob(folders[0]+'/*_RAW*')
-# for b in range(len(imgs)):
-#     im = None
-#     for i, fold in enumerate(folders):
-#         # img_ = torch.tensor(np.load(fold+f'/outs_{b}_RAW.npy'))
-#         img_=torch.tensor(nrrd.read(fold+f'/outs_{b}_RAW.nrrd')[0])
-#         if im is None:
-#             im = img_
-#         else:
-#             im = torch.stack([im, img_])
-#             im = torch.mean(im, dim=0)
-#         print(f'LOADED {i}')
-#     print(im.size())
-#     im = torch.argmax(im, dim=0)
-#     print(im.size()) # correlate to original input size
-#     center = np.load(fold+f'/center_{b}.npy')
-#     # orig = np.load('./RAW/'+f'/input_{b}_FULL.npy')
-#     orig = nrrd.read('./RAW/'+f'/input_{b}_FULL.nrrd')[0]
-#     orig = torch.zeros(orig.shape)
-#     orig[center[0]:center[1], center[2]:center[2]+292,center[3]:center[3]+292] = im
-#     orig = orig.cpu().numpy() # np.save(f'./FINAL_/outs_{b}_FULL.npy', orig)
-#     nrrd.write(f'./FINAL_/outs_{b}_FULL.nrrd', orig)
-#     print(f'Done {b}')
-#######################################
+        #####################################
+        # USE TO AVERAGE PREDICTIONS FROM ENSEMBLE
+        # import torch, os, glob, nrrd
+        # import numpy as np
+        # os.mkdir('FINAL_')
+        # folders=glob.glob('./FOLD_*')
+        # folders.sort()
+        # imgs = glob.glob(folders[0]+'/*_RAW*')
+        # for b in range(len(imgs)):
+        #     im = None
+        #     for i, fold in enumerate(folders):
+        #         # img_ = torch.tensor(np.load(fold+f'/outs_{b}_RAW.npy'))
+        #         img_=torch.tensor(nrrd.read(fold+f'/outs_{b}_RAW.nrrd')[0])
+        #         if im is None:
+        #             im = img_
+        #         else:
+        #             im = torch.stack([im, img_])
+        #             im = torch.mean(im, dim=0)
+        #         print(f'LOADED {i}')
+        #     print(im.size())
+        #     im = torch.argmax(im, dim=0)
+        #     print(im.size()) # correlate to original input size
+        #     center = np.load(fold+f'/center_{b}.npy')
+        #     # orig = np.load('./RAW/'+f'/input_{b}_FULL.npy')
+        #     orig = nrrd.read('./RAW/'+f'/input_{b}_FULL.nrrd')[0]
+        #     orig = torch.zeros(orig.shape)
+        #     orig[center[0]:center[1], center[2]:center[2]+292,center[3]:center[3]+292] = im
+        #     orig = orig.cpu().numpy() # np.save(f'./FINAL_/outs_{b}_FULL.npy', orig)
+        #     nrrd.write(f'./FINAL_/outs_{b}_FULL.nrrd', orig)
+        #     print(f'Done {b}')
+        #######################################
 
     def configure_optimizers(self):
 
