@@ -14,6 +14,11 @@ def add_args(return_="parser"):
         help="supports three options dp, ddp, ddp2")
     arg("--use-16bit", type=bool, default=False,
         help="if true uses 16 bit precision")
+    arg("--home-path", type=str, default="/cluster/home/jmarsill",help='root location of SegmentHN folder')
+    arg("--model-path", type=str, default="/h/jmarsilla/models")
+    arg("--data-path", type=str, default="/storage/data/ml2022/RADCURE_VECTOR")
+    arg("--config-path", type=str, default="/h/jmarsilla/config")
+    arg("--is-config", type=bool, default=False)
 
     # model specific parameters
     arg("--root", default="models/unet", help="checkpoint root")
@@ -80,7 +85,6 @@ def add_args(return_="parser"):
     arg("--new-loss", type=bool, default=False)
     arg("--fold", type=int, help="fold", default=0)
     arg("--single-loss", type=str, default="both")  # all dices at once..
-    arg("--model-path", type=str, default="/home/gpudual/bhklab/private/jmarsill/models")
     arg("--mask-path", type=str, default="/home/gpudual/bhklab/private/jmarsill/masks")
     arg("--img-path",type=str, default="/home/gpudual/bhklab/private/jmarsill/img")
     arg( "--device-ids", type=str, default="0,1,2,3",

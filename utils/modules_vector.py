@@ -75,21 +75,36 @@ class SegmentationModule(pl.LightningModule):
         # fall within the following ranges... -390 < meanHU < -420; 205 < stdHU < 245
 
         fold = self.hparams.fold
-        train_csv_path = str(self.home_path) + f"/train_fold_{fold}.csv"
-        valid_csv_path = str(self.home_path) + f"/valid_fold_{fold}.csv"
-        test_csv_path = str(self.home_path) + f"/test_fold.csv"
+        if self.hparams.home_path[-1] != "/":
+            self.hparams.home_path += "/"
+        # load dataset paths...
+        train_csv_path = str(self.hparams.home_path) + f"/wolnet-sample/new_train_fold_{fold}.csv"
+        valid_csv_path = str(self.hparams.home_path) + f"/wolnet-sample/new_valid_fold_{fold}.csv"
+        test_csv_path = str(self.hparams.home_path) + f"/wolnet-sample/ew_test_fold.csv"
+        # load corresponding .csv(s) for training fold...
         assert os.path.isfile(train_csv_path) is True
         self.train_data = pd.read_csv(train_csv_path)
         self.valid_data = pd.read_csv(valid_csv_path)
         self.test_data  = pd.read_csv(test_csv_path)
         try:
-            if self.hparams.image_processing_config_path is not None:
-                self.data_config = getJson(self.hparams.image_processing_config)[self.hparams.fold]
+            if self.hparams.is_config is not True:
+                # ideally this should be a .json file in the format of self.data_config
+                # produced by __getDataHparam() below...
+                self.config = getJson(self.hparams.config_path)[self.hparams.fold]
             else:
-                self.data_config = self.__getDataHparam(self.train_data)
+                # configurations should always be based on the training dataset for each fold...
+                self.config = self.__getDataHparam(self.train_data)
         except Exception:
             warnings.warn("Path to .json file cannot be read.")
-            self.data_config = self.__getDataHparam(self.train_data)
+            self.config = self.__getDataHparam(self.train_data)
+
+        # other values can be loaded in here as well...
+        # ideally the data_config would be saved
+        self.mean = self.config["meanHU"]
+        self.std = self.config["stdHU"]
+        # setup custom_order, loaded in with utils.py...
+        self.config["roi_order"] = custom_order
+        self.config["data_path"] = self.hparams.data_path
 
         self.__get_loss()
 
@@ -445,10 +460,15 @@ class SegmentationModule(pl.LightningModule):
         This will define data_config dictionaries based on a dataframe of images
         and structures...
         '''
-        self.data_config = {}
-        folders = data[""]
-        # takes in folder paths...
-        pass
+
+        folders = list(data["NEWID"])
+        if self.hparams.data_path[-1] != "/":
+            self.hparams.data_path += "/"
+        folders = [self.hparams.data_path + fold for fold in folders]
+        config = getHeaderData(folders)
+        # vocel info for dataset by OAR
+        self.voxel_info = config["VOXELINFO"]
+        return config["IMGINFO"]
 
     # ---------------------
     # MODEL SETUP
@@ -572,11 +592,7 @@ class SegmentationModule(pl.LightningModule):
     def get_dataloader( self, df, mode="valid", transform=None, resample=None,
                         shuffle=False, transform2=None, batch_size=None):
 
-        dataset = LoadPatientVolumes(
-            df=df, transform=transform, transform2=transform2, window=self.hparams.window, # ,
-            root=self.root, mode=mode, to_filter=self.hparams.filter, spacing=self.hparams.spacing,
-            volume_type=self.hparams.volume_type, oar_version=self.hparams.oar_version,
-            external=False,)
+        dataset = LoadPatientVolumes(df=df, config=self.config)
 
         batch_size = self.hparams.batch_size if batch_size is None else batch_size
         # best practices to turn shuffling off during validation...

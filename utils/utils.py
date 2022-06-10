@@ -16,7 +16,19 @@ ROIS = ["External", "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
         "Brain", "Glnd_Pituitary", "OralCavity", "Musc_Constrict_I",
         "Musc_Constrict_S", "Musc_Constrict_M"]
 
-def getROIOrder(custom_order=None, rois=ROIS):
+# this was the original order used for the OG segmentation study...
+custom_order = [4,5,6,7,8,10,11,12,13,18,19,20,21,22,23,24,25,28,29]
+
+#################################
+# original ROI standardization...
+# rois = ["GTV", "BRAIN","BSTEM","SPCOR","ESOPH","LARYNX","MAND",
+#     "POSTCRI","LPAR","RPAR","LACOU","RACOU","LLAC","RLAC","RRETRO",
+#     "LRETRO","RPLEX","LPLEX","LLENS","RLENS","LEYE","REYE","LOPTIC",
+#     "ROPTIC","LSMAN","RSMAN","CHIASM","LIPS","OCAV","IPCM","SPCM",
+#     "MPCM"]
+#################################
+
+def getROIOrder(custom_order=custom_order, rois=ROIS):
     # ideally this ordering has to be consistent to make inference easy...
     if custom_order is None:
         order_dic = {roi:i for i, roi in enumerate(ROIS)}

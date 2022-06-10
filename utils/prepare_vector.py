@@ -57,7 +57,7 @@ class LoadPatientVolumes(Dataset):
         self.structure_path = self.config["data_path"] + f'/{self.patient}/structures/'
         # can write your own custom finction to load in structures here...
         # assumes directory structure where patient name is enclosing folder...
-        custom_order = self.config['custom_order']
+        custom_order = self.config['roi_order']
         self.order_dic = getROIOrder(custom_order=custom_order)
         self.load_nrrd()
 
