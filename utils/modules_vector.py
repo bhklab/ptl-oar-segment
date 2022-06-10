@@ -20,7 +20,7 @@ from .loss import *
 from .optimizers import *
 from .models import *
 from .transform import *
-from .utils import swi
+from .utils import *
 
 def cuda(x):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -72,13 +72,12 @@ class SegmentationModule(pl.LightningModule):
         # the voxel counts for each class are given in the meta header of each .nrrd in the structure folder...
         # the unwindowed meanHU and stdHU are saved in the meta header for each image...
         # for clipped image(s) from -500 to 1000; expect mean/std values to
-        # fall within the following ranges...
-        # -390 < meanHU < -420; 205 < stdHU < 245
+        # fall within the following ranges... -390 < meanHU < -420; 205 < stdHU < 245
 
         fold = self.hparams.fold
-        train_csv_path = str(self.root) + f"/train_fold_{fold}.csv"
-        valid_csv_path = str(self.root) + f"/valid_fold_{fold}.csv"
-        test_csv_path = str(self.root) + f"/test_fold.csv"
+        train_csv_path = str(self.home_path) + f"/train_fold_{fold}.csv"
+        valid_csv_path = str(self.home_path) + f"/valid_fold_{fold}.csv"
+        test_csv_path = str(self.home_path) + f"/test_fold.csv"
         assert os.path.isfile(train_csv_path) is True
         self.train_data = pd.read_csv(train_csv_path)
         self.valid_data = pd.read_csv(valid_csv_path)
@@ -446,6 +445,9 @@ class SegmentationModule(pl.LightningModule):
         This will define data_config dictionaries based on a dataframe of images
         and structures...
         '''
+        self.data_config = {}
+        folders = data[""]
+        # takes in folder paths...
         pass
 
     # ---------------------
@@ -630,242 +632,3 @@ class SegmentationModule(pl.LightningModule):
                                     transform2=None, resample=self.hparams.resample,
                                     batch_size=self.hparams.batch_size,
         )
-
-    # ---------------------
-    # SAVE Figures : Plot to Tensorboard
-    # ---------------------
-    # def save_metrics(self, batch_idx, loss, dices, hus, name="train"):
-    #
-    #     if batch_idx % 5 == 0:
-    #         # logging during training
-    #         step = self.trainer.global_step
-    #         # try:
-    #         self.logger.experiment.add_scalar(f"{name}/loss", loss, step)
-    #         self.logger.experiment.add_scalars(f"{name}/dices", dices, step)
-    #         self.logger.experiment.add_scalars(f"{name}/hausd", hus, step)
-    #
-    # def export_figs(self, inputs, outputs, targets):
-    #
-    #     # plt.switch_backend('agg')
-    #     # assume sigmoid applied to outputs
-    #     shape = outputs.shape  # size of outputs
-    #
-    #     if shape[0] != 1:
-    #         # choose random image in batch
-    #         a = np.arange(1, shape[0])
-    #         a = np.random.choice(a)
-    #     else:
-    #         # satisfies case when only one image in batch
-    #         a = 0
-    #
-    #     in_pic = inputs[a]
-    #     out_pic = outputs[a]
-    #     targ_pic = targets[a]
-    #
-    #     # should be the same dimensions
-    #     assert out_pic.shape == targ_pic.shape
-    #
-    #     in_ = in_pic[self.hparams.window]
-    #
-    #     if len(targ_pic.shape) == 3:
-    #         # plt.imshow(np.sum(targ_pic, axis=0), cmap='jet', alpha=0.5)
-    #         targ = np.sum(targ_pic, axis=0)
-    #     else:
-    #         # targets already in n_classes - 1 (0 background: 1 CTV, 2 GTV)
-    #         # plt.imshow(targ_pic, cmap='jet', alpha=0.5)
-    #         targ = targ_pic
-    #
-    #     if len(out_pic.shape) == 3:
-    #         # plt.imshow(np.sum(out_pic, axis=0), cmap='jet', alpha=0.5)
-    #         out = np.sum(out_pic, axis=0)
-    #     else:
-    #         # targets already in n_classes - 1 (0 background: 1 CTV, 2 GTV)
-    #         # plt.imshow(out_pic, cmap='jet', alpha=0.5)
-    #         out = out_pic
-    #
-    #     return in_, out, targ
-    #
-    # def save_figs(self, in_, out, targ, name="train", step=None):
-    #
-    #     if step is None:
-    #         step = self.trainer.global_step
-    #
-    #     plt.switch_backend("agg")
-    #     # plot & save ground truth targets
-    #     fig1 = plt.figure(1)
-    #     plt.axis("off")
-    #     plt.imshow(in_, cmap="gray", interpolation="none")
-    #     plt.imshow(targ, cmap="jet", alpha=0.5)
-    #     # save targets
-    #     self.logger.experiment.add_figure(f"{name}/ground_truth", fig1, step)
-    #     plt.close()
-    #
-    #     # plot and save predicated masks
-    #     fig2 = plt.figure(2)
-    #     plt.axis("off")
-    #     plt.imshow(in_, cmap="gray", interpolation="none")
-    #     plt.imshow(out, cmap="jet", alpha=0.5)
-    #     # save model predictions
-    #     self.logger.experiment.add_figure(f"{name}/prediction", fig2, step)
-    #     plt.close()
-    #
-    # def metrics(self, outs, targ, outputs=None):
-    #     # Metrics requiring one hot encoded targets, pass through sigmoid or softmax
-    #     # convert to one hot encoded target...
-    #     shape = targ.size()
-    #     batch = shape[0]
-    #     # calculate argmax...
-    #     outputs = torch.argmax(outs, dim=1)
-    #     if len(shape) == 4:
-    #         # 3D OUTPUT ARRAY HAS TO BE 5D IF ONE HOT ENCODED
-    #         # see what you do when you initialize a new tensor
-    #         # https://pytorch-lightning.readthedocs.io/en/latest/lightning-module.html
-    #         sh = (batch, self.hparams.n_classes + 1, shape[1], shape[2], shape[3])
-    #         targets_dice = torch.zeros(sh, dtype=torch.float) # .type_as(outs)
-    #         targets_out = torch.zeros(sh, dtype=torch.float) # .type_as(targ)
-    #
-    #     for i in range(self.hparams.n_classes + 1):
-    #
-    #         targets_dice[:, i][targ == i] = 1
-    #         targets_out[:, i][outputs == i] = 1
-    #
-    #     # calculate distance accuracy metrics
-    #     losses = ['ANATOMY', 'COMBINEDFOCAL']
-    #
-    #     if self.hparams.loss in losses:
-    #         # assert outs without argmax...
-    #         loss = (self.criterion2(outs, targets_dice) if self.criterion2 is not None else 0)
-    #     else:
-    #         loss = (self.criterion2(targets_out, targets_dice) if self.criterion2 is not None else 0)
-    #
-    #     # if self.criterion3 is not None:
-    #     loss += (self.criterion3(targets_out, targets_dice) if self.criterion3 is not None else 0)
-    #
-    #     dices, hauss = getMetrics(targets_out.detach().numpy(), targets_dice.detach().numpy(), multi=True)
-    #
-    #     #retrun all metrics including argmaxed outputs...
-    #     return dices, hauss, loss, outputs
-
-    # Modify if image logging required after validation completed....
-    # can do fancy things here like plot bar graphs of exports, not necessary
-    # but nice if you'd like to visualize your progress across all OARs
-    # simultaneously...
-    # def validation_epoch_end(self, outputs):
-    #
-    #     # average validation loss
-    #     avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
-    #     print(
-    #         f"Average validation loss for Epoch: {self.trainer.current_epoch} is :",
-    #         avg_loss.item(),
-    #     )
-    #     # print('Validation outputs: ', outputs)
-    #     # save to progress bar to plot metrics
-    #     self.val_loss = avg_loss
-    #     tqdm_dict = {"val_loss": avg_loss}
-    #
-    #     # save images (Should be the size of the batch?)
-    #     in_ = torch.stack([x["input"] for x in outputs])
-    #     in_ = in_.cpu().numpy()
-    #     out_ = torch.stack([x["out"] for x in outputs])
-    #     out_ = out_.cpu().numpy()
-    #     targ_ = torch.stack([x["targ"] for x in outputs])
-    #     targ_ = targ_.cpu().numpy()
-    #
-    #     shape = out_.shape  # size of outputs
-    #
-    #     if shape[0] != 1:
-    #         # decided to only choose one image from one GPU
-    #         a = np.arange(0, shape[0])
-    #         a = np.random.choice(a)
-    #     else:
-    #         a = 0
-    #
-    #     self.save_figs(in_[a], out_[a], targ_[a], name="val")
-    #
-    #     mean_dices = []
-    #     mean_hauss = []
-    #     step = self.trainer.global_step
-    #
-    #     for i in range(self.hparams.n_classes + 1):
-    #         mean_dices.append(torch.stack([x[f"val_dice_{i}"] for x in outputs]))
-    #         mean_hauss.append(torch.stack([x[f"val_haus_{i}"] for x in outputs]))
-    #     for i, dice in enumerate(mean_dices):
-    #         tqdm_dict[f"val_dice_{i}"] = dice.mean()
-    #         # .cpu().numpy()
-    #     log_dic = tqdm_dict.copy()
-    #     for i, haus in enumerate(mean_hauss):
-    #         log_dic[f"val_haus_{i}"] = haus.mean()  # .cpu().numpy()
-    #
-    #     dices = torch.stack(mean_dices).cpu().numpy()
-    #     hauss = torch.stack(mean_hauss).cpu().numpy()
-    #
-    #     if self.hparams.backend != "ddp":
-    #         shape = dices[1].shape
-    #         #used to be dices[1] for 'dp'
-    #         # print('dices', dices)
-    #         print('shape of dices tensor:', shape)
-    #         factor = shape[0] * shape[1]
-    #     else:
-    #         print('Shape of output dice tensor:', dices.shape)
-    #
-    #     # changed in new version to support multiple and/or binary...
-    #     if self.hparams.backend != "ddp":
-    #         dice_data = [dice.reshape(1, factor)[0] for i, dice in enumerate(dices)]
-    #         hu_data = [hu.reshape(1, factor)[0] for i, hu in enumerate(hauss)]
-    #     else:
-    #         dice_data = [dice for i, dice in enumerate(dices)]
-    #         hu_data = [haus for i, haus in enumerate(hauss)]
-    #
-    #     rois = ["GTV", "BRAIN","BSTEM","SPCOR","ESOPH","LARYNX","MAND",
-    #         "POSTCRI","LPAR","RPAR","LACOU","RACOU","LLAC","RLAC","RRETRO",
-    #         "LRETRO","RPLEX","LPLEX","LLENS","RLENS","LEYE","REYE","LOPTIC",
-    #         "ROPTIC","LSMAN","RSMAN","CHIASM","LIPS","OCAV","IPCM","SPCM",
-    #         "MPCM"]
-    #
-    #     if self.hparams.oar_version == 16:
-    #         idxs = [1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 22]
-    #     elif self.hparams.oar_version == 1:
-    #         idxs = [1]
-    #     elif self.hparams.oar_version == 19:
-    #         idxs = [3,4,5,6,7,9,10,11,12,17,18,19,20,21,22,23,24,27,28]
-    #
-    #     chosen = [rois[i - 1] for i in idxs]
-    #
-    #     plt.switch_backend("agg")
-    #     fig1 = plt.figure()
-    #     if self.hparams.oar_version == 1:
-    #         plt.title("VAL DICE Overlap for OAR Segmentation in HNSCC")
-    #     else:
-    #         plt.title("VAL DICE Overlap for GTV Segmentation in HNSCC")
-    #     plt.boxplot(dice_data[1:])
-    #     plt.xticks(range(1, len(idxs) + 1), chosen, rotation="vertical")
-    #     plt.ylabel("DSC")
-    #     plt.xlabel("Target Volume")
-    #     self.logger.experiment.add_figure(f"val/dice_plot", fig1, step)
-    #
-    #     # for now we need the last 3 classes excluding background
-    #     fig2 = plt.figure()
-    #     if self.hparams.oar_version == 1:
-    #         plt.title("Valid HU for GTV Segmentation in HNSCC (mm)")
-    #     else:
-    #         plt.title("Valid HU for OAR Segmentation in HNSCC (mm)")
-    #     plt.boxplot(hu_data[1:])
-    #     plt.xticks(range(1, len(idxs) + 1), chosen, rotation="vertical")
-    #     plt.ylabel("d(mm)")
-    #     plt.xlabel("Target Volume")
-    #     self.logger.experiment.add_figure(f"val/hauss_plot", fig2, step)
-    #     plt.close()
-    #
-    #     assert len(mean_dices) == self.hparams.n_classes + 1
-    #
-    #     for i, dice in enumerate(mean_dices):
-    #         print(
-    #             f"\n Max Val Dice for class {i} is {dice.mean()}"
-    #         ) if self.hparams.verbose else None
-    #         print(
-    #             f"\n Max Val HausDist for class {i} is {mean_hauss[i].mean()}"
-    #         ) if self.hparams.verbose else None
-    #
-    #     print(f"BOOYA - End of Validation for {self.trainer.current_epoch}.")
-    #
-    #     return OrderedDict( {"val_loss": avg_loss, "progress_bar": tqdm_dict, "log": log_dic})

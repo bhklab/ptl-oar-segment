@@ -3,6 +3,62 @@ import numpy as np
 from skimage import measure, morphology
 import string, random, glob
 
+# folders_ = [glob.glob(p) for p in structure_paths]
+# taken from prepare.py in utils
+
+ROIS = ["External", "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
+        "Larynx", "Cricoid_P", "OpticChiasm", "Glnd_Lacrimal_L",
+        "Glnd_Lacrimal_R", "Lens_L", "Lens_R", "Eye_L", "Eye_R",
+        "Nrv_Optic_L", "Nrv_Optic_R", "Parotid_L", "Parotid_R",
+        "Trachea", "SpinalCord", "SpinalCanal", "Mandible_Bone", "Glnd_Submand_L",
+        "Glnd_Submand_R", "Cochlea_L", "Cochlea_R", "Lips",
+        "Spc_Retrophar_R", "Spc_Retrophar_L", "BrachialPlex_R", "BrachialPlex_L",
+        "Brain", "Glnd_Pituitary", "OralCavity", "Musc_Constrict_I",
+        "Musc_Constrict_S", "Musc_Constrict_M"]
+
+def getROIOrder(custom_order=None, rois=ROIS):
+    # ideally this ordering has to be consistent to make inference easy...
+    if custom_order is None:
+        order_dic = {roi:i for i, roi in enumerate(ROIS)}
+    else:
+        roi_order = [rois[i] for i in custom_order]
+        order_dic = {roi:i for i, roi in enumerate(roi_order)}
+    return order_dic
+
+# first step get ROI order
+def getHeaderData(folders, structures=True, roi_order=getROIOrder()):
+    voxel_dic = {}
+    img_dic = {}
+    # com_dic = {}
+    for list in folders:
+        for i, p in enumerate(list):
+            oar = p.split('/')[-1].partition('.')[0]
+            class_idx = roi_order[oar]
+            header = nrrd.read_header(p)
+            voxels = header["Voxels"]
+            try:
+                data = voxel_dic[oar]
+                voxel_dic[oar] = (data + voxels)/2.
+                if i==0:
+                    mean = img_dic["meanHU"]
+                    std = img_dic["stdHU"]
+                    img_dic = {"meanHU":(mean+header["meanHU"])/2.,
+                               "stdHU":(std+header["stdHU"])/2}
+
+                # can do the same thing if com data was in mask...
+                # data = com_dic[oar]
+                # com_dic[oar] = (data + voxels)/2.
+
+            except Exception:
+                voxel_dic[oar] = voxels
+                if i==0:
+                    img_dic = {"meanHU":header["meanHU"],
+                               "stdHU":header["stdHU"]}
+
+                # com_dic[oar] = com
+
+    return {"VOXINFO":voxel_dic, "IMGINFO":img_dic}
+
 def swi(image, net, n_classes):
 
     # in our case we're looking for a 5D tensor...
