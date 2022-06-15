@@ -425,11 +425,10 @@ class SegmentationModule(pl.LightningModule):
             warnings.warn("Using ADAM as default optimizer.")
         elif self.hparams.optim == "RADAM":
             # the new RADAM optimizer as defined in https://arxiv.org/pdf/1908.03265.pdf
-            init_optimizer = RAdam(self.net.parameters(), lr=self.hparams.lr,)
+            init_optimizer = RAdam(self.net.parameters(), lr=self.hparams.lr,
                                    weight_decay=self.hparams.decay)
         elif self.hparams.optim == "RMSPROP":
-            init_optimizer = torch.optim.RMSprop(self.net.parameters(),
-                                                 lr=self.hparams.lr,
+            init_optimizer = torch.optim.RMSprop(self.net.parameters(), lr=self.hparams.lr,
                                                  weight_decay=self.hparams.decay)
         elif self.hparams.optim in ada:
             ams = True if self.hparams.optim == 'AMSBOUND' else False

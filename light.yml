@@ -1,4 +1,4 @@
-name: light8
+name: light
 channels:
   - conda-forge
   - defaults
@@ -96,4 +96,4 @@ dependencies:
     - urllib3==1.26.6
     - werkzeug==2.0.1
     - yarl==1.6.3
-prefix: /cluster/home/jmarsill/anaconda3/envs/light8
+prefix: /cluster/home/jmarsill/anaconda3/envs/light
