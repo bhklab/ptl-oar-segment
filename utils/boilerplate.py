@@ -121,7 +121,6 @@ class SegmentationModule(pl.LightningModule):
         return {'loss':loss}
         """
 
-
     # ---------------------
     # Run Validation Step, Runs after Trainning Epoch converges
     # This can be modulated in Trainer() when running train.py

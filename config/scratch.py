@@ -1,13 +1,14 @@
 import pandas as pd
 import numpy as np
 import nrrd, glob
-# given a list of paths
-paths = ["/Users/joemarsilla/Downloads/sample/RAD0001/",
-         "/Users/joemarsilla/Downloads/sample/RAD0002/"]
 
+# given a list of paths
+paths = ["/Users/joemarsilla/vector/sample/SAD0001/",
+         "/Users/joemarsilla/vector/sample/SAD0002/"]
 image_paths = [p+"CT_IMAGE.nrrd" for p in paths]
 structure_paths = [p+"structures/*" for p in paths]
 folders_ = [glob.glob(p) for p in structure_paths]
+structure_paths
 # taken from prepare.py in utils
 ROIS = ["External", "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
         "Larynx", "Cricoid_P", "OpticChiasm", "Glnd_Lacrimal_L",
@@ -61,6 +62,9 @@ def getHeaderData(folders, structures=True, roi_order=getROIOrder()):
                 # com_dic[oar] = com
 
     return {"VOXINFO":voxel_dic, "IMGINFO":img_dic}
+
+data = getHeaderData(folders_)
+data
 
 #########################
 # make dataset splits...

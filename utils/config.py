@@ -79,7 +79,7 @@ def add_args(return_="parser"):
     arg("--optim", type=str, default="SGD", help="Optimizer: ADAM v. SGD w/ Momentum")
     arg("--verbose", type=bool, default=True, help="if True, Print Various Model Outputs...")
     arg("--mode", type=str, default="train", help="Test to run with unit test...")
-    arg("--model-name", type=str, default=None, help="To continue at previously saved model...")
+    arg("--model-name", type=str, default="WOLNET", help="To continue at previously saved model...")
     arg("--site", type=str, default="Oropharynx", help="Oropharynx, Larynx, or Nasopharynx ...")
     arg( "--pkl-name", type=str, default="RADGTV_full", help="Use databunch.py to create dictionary to iterate through...")
     arg("--data", type=str, default="RADCURE", help="RADCURE or OTHER, OTHER USES SEGMENTHN19 DATA")
