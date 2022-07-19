@@ -14,20 +14,20 @@ Hi Everyone! This is the official repo describing the base boilerplate that will
 
 #### Update: 19/07/2022
 
-self.CalcEvaluationMetric(outs, targets, batch_idx) was added to SegmentationModule in modules_vector.py, the goal of this function is to record the evaluation metrics for each test set patient and save to a global csv from which the final mean evaluation metric will be calculated. Our test set like the dataset will have variable ground truth labels for each patient. To ensure you have an example of what the LHS of this equation will look like, please see added notebook that makes use of data extracted from the original study.
+self.CalcEvaluationMetric(outs, targets, batch_idx) has been added to SegmentationModule in modules_vector.py. The goal of this function is to record the evaluation metrics for each patient in the test set into a global csv. This will be used to calculate the final mean evaluation metric.  To better understand the equation, please check the added notebook that makes use of data extracted from the original study.
 
-Some things you should note to make your life and the life of the evaluators easier.
+Below are some suggestions, which would be useful to keep the evaluation process efficient.
 
-1. Please template and package your model **using the boilerplate provided to ensure your model can be run out of the box without issues.**
-2. self.CalcEvaluationMetric used in test_step() module requires outputs to be **both softmaxed AND argmaxed before evaluation can occur**. Outputs should be in the format of **BxCxZxWxH**.
-3. For results to be clinically acceptable, model has to be applied to the ** entire depth/width/height of the patient**. In order to do this, in the original study, we conducted adaptive sliding window inference using swi() defined in utils.py. Over 200 different crops were passed through the final trained network, resulting outputs were averaged, and that final result was saved to be used in evaluation. If you will be using a network ensemble, please ensure predictions are averaged before final outputs tensor is passed to CalcEvaluationMetric. (ie. you'd have to load in all networks to ensure test_step() can evaluate each in sequential order).
+1. Please create a template of your model and package it **using the boilerplate provided to ensure that we can run your model without issues.**
+2. self.CalcEvaluationMetric used in test_step() module requires outputs to be **both softmaxed AND argmaxed prior to the evaluation process**. Outputs should be in the format of **BxCxZxWxH**.
+3. For results to be clinically acceptable, model has to be applied to the ** entire depth/width/height of the patient**. (If you would like more details on how we did this for the original study, please reach out.)
 4. If your template uses modules like nn-UNET as your base, **please ensure you build an api that enables evaluation using pytorch-lightning.**
-5. **Ensure that order of classes used during training MATCHES THE ORDER GIVEN IN the ROIS list outlined in utils.py.**
-6. Be sure to have fun as you develop your networks! :)
+5. **Please ensure that the order of classes used during training MATCHES THE ORDER GIVEN IN the ROIS list provided in utils.py.**
+6. While developing your networks, make sure to explore and enjoy. Happy networking!
 
 #### IMPORTANT NOTE
 
-Your network should be trained end-to-end and be able to export all 34 ROI classes simultaneously, to mimic requirement(s) of clinical environments. Models that combine predictions from individual networks will be disqualified from the competition. Any questions can be sent to the challenge administrators via the participant slack channel!
+Your network should be trained end-to-end and be able to export all 34 ROI classes simultaneously, to mimic requirement(s) of clinical environments. Any questions can be sent to the challenge administrators via the participant slack channel!
 
 ### Base Tutorials running pre-packaged models coming soon...
 ### Inference Tutorial Using Colab Pro GPUs coming soon...
