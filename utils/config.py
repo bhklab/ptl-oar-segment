@@ -8,6 +8,7 @@ def add_args(return_="parser"):
     arg("--overfit", type=bool, default=False, help="Set TRUE to turn AUG off during training.")
     arg("--gpus", type=str, default='4', help="how many gpus")
     arg("--dir-path", type=str, default="/cluster/home/jmarsill", help='root location of SegmentHN folder')
+    arg("--test-csv", type=str, default="/cluster/home/jmarsill", help='custom file of test .csv in format of train csv.')
     arg("--backend", type=str, default="dp", help="supports three options dp, ddp, ddp2")
     arg("--use-16bit", type=bool, default=False, help="if true uses 16 bit precision")
     arg("--home-path", type=str, default="/cluster/home/jmarsill",help='root location of SegmentHN folder')

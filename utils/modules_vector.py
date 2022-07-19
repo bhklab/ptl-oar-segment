@@ -751,6 +751,9 @@ class SegmentationModule(pl.LightningModule):
     def test_dataloader(self):
         # during inference we will run each model on the test sets according to
         # the data_config which you will provide which each model...
+        # should be able to load in own test_csv with folder names just like for trianing/validation...
+        if os.path.isfile(self.hparams.test_csv) is not True:
+            self.test_data = pd.read_csv(self.hparams.test_csv, index_col=0)
         transform = Compose([ HistogramClipping(min_hu=self.hparams.clip_min,
                                                 max_hu=self.hparams.clip_max),
                               NormBabe(mean=self.mean, std=self.std,
