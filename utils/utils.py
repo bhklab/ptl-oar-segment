@@ -1,4 +1,4 @@
-import torch, warnings
+import torch, warnings, nrrd
 import numpy as np
 from skimage import measure, morphology
 import string, random, glob
@@ -6,18 +6,36 @@ import string, random, glob
 # folders_ = [glob.glob(p) for p in structure_paths]
 # taken from prepare.py in utils
 
+# These are the ROIs that must be segmented
+# ROIS= [ "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
+#         "Larynx", "Cricoid_P", "OpticChiasm", "Glnd_Lacrimal_L",
+#         "Glnd_Lacrimal_R", "Lens_L", "Lens_R", "Eye_L", "Eye_R",
+#         "Nrv_Optic_L", "Nrv_Optic_R", "Parotid_L", "Parotid_R",
+#         "SpinalCord",  "Mandible_Bone", "Glnd_Submand_L",
+#         "Glnd_Submand_R", "Cochlea_L", "Cochlea_R", "Lips",
+#         "Spc_Retrophar_R", "Spc_Retrophar_L", "BrachialPlex_R", "BrachialPlex_L",
+#         "Brain",  "OralCavity", "Musc_Constrict_I",
+#         "Musc_Constrict_S", "Musc_Constrict_M"]
+
+# Currently, these ROIS can be used for testing
+# The parotids and optic nerve contours will be uploaded shortly
+
 ROIS = ["External", "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
         "Larynx", "Cricoid_P", "OpticChiasm", "Glnd_Lacrimal_L",
         "Glnd_Lacrimal_R", "Lens_L", "Lens_R", "Eye_L", "Eye_R",
         "Nrv_Optic_L", "Nrv_Optic_R", "Parotid_L", "Parotid_R",
-        "Trachea", "SpinalCord", "SpinalCanal", "Mandible_Bone", "Glnd_Submand_L",
+        "SpinalCord", "Mandible_Bone", "Glnd_Submand_L",
         "Glnd_Submand_R", "Cochlea_L", "Cochlea_R", "Lips",
-        "Spc_Retrophar_R", "Spc_Retrophar_L", "BrachialPlex_R", "BrachialPlex_L",
-        "Brain", "Glnd_Pituitary", "OralCavity", "Musc_Constrict_I",
+        "Spc_Retrophar_R", "Spc_Retrophar_L", "BrachialPlex_R",
+        "BrachialPlex_L", "BRAIN", "OralCavity", "Musc_Constrict_I",
         "Musc_Constrict_S", "Musc_Constrict_M"]
 
 # this was the original order used for the OG segmentation study...
-custom_order = [4,5,6,7,8,10,11,12,13,18,19,20,21,22,23,24,25,28,29]
+# custom_order = [4,5,6,8,11,12,13,14,15,16,17,18,20,22,25,26,27,30,31]
+# using the commented out ROIS list
+
+# for purposes of testing
+custom_order = [1,2,3,4,5,6,7,8,9,10,11,12,13]
 
 #################################
 # original ROI standardization...
@@ -39,34 +57,37 @@ def getROIOrder(custom_order=custom_order, rois=ROIS):
 
 # first step get ROI order
 def getHeaderData(folders, structures=True, roi_order=getROIOrder()):
+    assert len(folders) > 1
     voxel_dic = {}
     img_dic = {}
     # com_dic = {}
-    for list in folders:
-        for i, p in enumerate(list):
+    oars_used = list(roi_order.keys())
+    for list_ in folders:
+        for i, p in enumerate(list_):
             oar = p.split('/')[-1].partition('.')[0]
-            class_idx = roi_order[oar]
-            header = nrrd.read_header(p)
-            voxels = header["Voxels"]
-            try:
-                data = voxel_dic[oar]
-                voxel_dic[oar] = (data + voxels)/2.
-                if i==0:
-                    mean = img_dic["meanHU"]
-                    std = img_dic["stdHU"]
-                    img_dic = {"meanHU":(mean+header["meanHU"])/2.,
-                               "stdHU":(std+header["stdHU"])/2}
+            if oar in oars_used:
+                class_idx = roi_order[oar]
+                header = nrrd.read_header(p)
+                voxels = header["Voxels"]
+                try:
+                    data = voxel_dic[oar]
+                    voxel_dic[oar] = (data + voxels)/2.
+                    if i==0:
+                        mean = img_dic["meanHU"]
+                        std = img_dic["stdHU"]
+                        img_dic = {"meanHU":(mean+header["meanHU"])/2.,
+                                   "stdHU":(std+header["stdHU"])/2}
 
                 # can do the same thing if com data was in mask...
                 # data = com_dic[oar]
                 # com_dic[oar] = (data + voxels)/2.
-
-            except Exception:
-                voxel_dic[oar] = voxels
-                if i==0:
+                except Exception:
+                    voxel_dic[oar] = voxels
                     img_dic = {"meanHU":header["meanHU"],
                                "stdHU":header["stdHU"]}
-
+            else:
+                warnings.warn(f"{oar} not in list of chosen ROIS. If this is a mistake please update roi_order.")
+                pass
                 # com_dic[oar] = com
 
     return {"VOXINFO":voxel_dic, "IMGINFO":img_dic}

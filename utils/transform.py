@@ -803,8 +803,8 @@ class NormBabe(MTTransform):
 
     def __init__(self, mean=False, std=False, min=-196.0, max=296.0, type="standard"):
 
-        self.mean = mean
-        self.std = std
+        self.mean = np.float(mean)
+        self.std = np.float(std)
         self.min = min
         self.max = max
         self.type = type

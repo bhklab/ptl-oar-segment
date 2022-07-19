@@ -42,12 +42,12 @@ def main(args):
                                                      save_last=True,
                                                      save_top_k=3,)
     trainer = Trainer(
-            gpus='0,1,2,3',
-            accelerator='ddp', # should be same as args.backend...
-            stochastic_weight_avg=True,
+            gpus=args.gpus, # set to -1 to use all avaliable gpus...
+            strategy='ddp', # should be same as args.backend...
+            # stochastic_weight_avg=True, # pass to callbacks if required...
             default_root_dir=model.hparams.root,
             max_epochs=model.hparams.n_epochs,
-            log_gpu_memory='min_max',
+            # log_gpu_memory='min_max',
             sync_batchnorm=True,
             # precision=16,
             accumulate_grad_batches={75:2, 150:4},#2, # changing this parameter affects outputs
