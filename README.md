@@ -7,7 +7,7 @@ Original Repo for "[Evaluating clinical acceptability of organ-at-risk segmentat
 ## 1. Setup Environment
 More instructions [here](https://stackoverflow.com/questions/41274007/anaconda-export-environment-file).
 
-    conda env create -f utils/environment.yml
+    conda env create -f light.yml
 
 ## 2. Running WOLNET ensemble on custom dataset (no-finetuning required).
 
