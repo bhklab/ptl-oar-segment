@@ -8,16 +8,17 @@ https://williamfalcon.github.io/pytorch-lightning/
 import os, torch, warnings
 import numpy as np
 from utils import SegmentationModule, config
-from pytorch_lightning import Trainer, callbacks#, seed_everything
+from pytorch_lightning import Trainer, callbacks, seed_everything
 
 """
 .. warning:: `logging` package has been renamed to `loggers` since v0.7.0.
  The deprecated package name will be removed in v0.9.0.
 """
 
-SEED = 2334
-torch.manual_seed(SEED)
-np.random.seed(SEED)
+SEED = 234
+# torch.manual_seed(SEED)
+# np.random.seed(SEED)
+seed_everything(SEED, workers=True)
 # print('__CUDNN VERSION:', torch.backends.cudnn.version())
 # print('__Number CUDA Devices:', torch.cuda.device_count())
 
@@ -44,10 +45,10 @@ def main(args):
     trainer = Trainer(
             gpus='0,1,2,3',
             accelerator='ddp', # should be same as args.backend...
-            stochastic_weight_avg=True,
+            # stochastic_weight_avg=True,
             default_root_dir=model.hparams.root,
             max_epochs=model.hparams.n_epochs,
-            log_gpu_memory='min_max',
+            # log_gpu_memory='min_max',
             sync_batchnorm=True,
             # precision=16,
             accumulate_grad_batches={75:2, 150:4},#2, # changing this parameter affects outputs

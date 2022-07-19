@@ -34,7 +34,7 @@ def getROIOrder(custom_order=None, rois=ROIS):
 # v_ = getROIOrder(custom_order=custom_order)
 
 class LoadPatientVolumes(Dataset):
-    def __init__(self, folder_data, data_config, external=False):
+    def __init__(self, folder_data, data_config, transform=None, external=False):
         """
         This is the class that our Dataloader object
         will take to create batches for training.
@@ -44,6 +44,7 @@ class LoadPatientVolumes(Dataset):
         """
         self.data = folder_data
         self.config = data_config
+        self.transform = transform
 
     def __len__(self):
         return len(self.data)
@@ -59,13 +60,14 @@ class LoadPatientVolumes(Dataset):
         # assumes directory structure where patient name is enclosing folder...
         custom_order = self.config['roi_order']
         self.order_dic = getROIOrder(custom_order=custom_order)
+        self.oars = self.order_dic.keys()
         self.load_nrrd()
 
     def load_nrrd(self):
         # load image using nrrd...
         warnings.warn('Using nrrd instead of sitk.')
         self.img = nrrd.read(self.img_path)
-        self.img = self.img[0].transpose(2,0,1)
+        self.img = self.img[0]# .transpose(2,0,1)
         shape = self.img.shape
         # Loading with SITK...
         # mask = sitk.ReadImage(img_path)
@@ -86,12 +88,13 @@ class LoadPatientVolumes(Dataset):
         # self.mask = []
         for path in mask_paths:
             oar = path.split('/')[-1].partition('.')[0]
-            class_value = self.order_dic[oar]
-            mask = nrrd.read(path)
-            mask = mask.transpose(2,0,1)
-            assert mask.shape == shape
-            # version 1 > not one hot encoded
-            self.mask[mask>0] = class_value
+            if oar in self.oars:
+                class_value = self.order_dic[oar]
+                mask = nrrd.read(path)
+                mask = mask[0]# .transpose(2,0,1)
+                assert mask.shape == shape
+                # version 1 > not one hot encoded
+                self.mask[mask>0] = class_value
 
     def __getitem__(self, idx):
 
@@ -99,8 +102,8 @@ class LoadPatientVolumes(Dataset):
         if self.transform is not None:
             if self.mask.max() > 0:
                 self.img, self.mask = self.transform(self.img.copy(), self.mask.copy())
-                if self.transform2 is not None:
-                    img2, _ = self.transform2(self.img.copy(), self.mask.copy())
+                # if self.transform2 is not None:
+                    # img2, _ = self.transform2(self.img.copy(), self.mask.copy())
             else:
                 # only load if mask is zero from start...
                 warnings.warn(f'Check {self.patient}...')
@@ -111,8 +114,8 @@ class LoadPatientVolumes(Dataset):
         img = torch.from_numpy(self.img).type(torch.FloatTensor)
         mask = torch.from_numpy(self.mask).type(torch.LongTensor)
 
-        if self.transform2 is not None:
-            img2 = torch.from_numpy(img2).type(torch.FloatTensor)
-            return img2, img, mask
-        else:
-            return img, mask
+        # if self.transform2 is not None:
+        img2 = torch.from_numpy(img2).type(torch.FloatTensor)
+        return img2, img, mask
+        # else:
+            # return img, mask

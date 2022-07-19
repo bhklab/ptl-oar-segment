@@ -28,13 +28,13 @@ custom_order = [4,5,6,7,8,10,11,12,13,18,19,20,21,22,23,24,25,28,29]
 #     "MPCM"]
 #################################
 
-def getROIOrder(custom_order=custom_order, rois=ROIS):
+def getROIOrder(custom_order=custom_order, rois=ROIS, inverse=False):
     # ideally this ordering has to be consistent to make inference easy...
     if custom_order is None:
-        order_dic = {roi:i for i, roi in enumerate(ROIS)}
+        order_dic = {roi:i for i, roi in enumerate(ROIS)} if inverse is False else order_dic = {i:roi for i, roi in enumerate(ROIS)}
     else:
         roi_order = [rois[i] for i in custom_order]
-        order_dic = {roi:i for i, roi in enumerate(roi_order)}
+        order_dic = {roi:i for i, roi in enumerate(roi_order)} if inverse is False else {i:roi for i, roi in enumerate(roi_order)}
     return order_dic
 
 # first step get ROI order

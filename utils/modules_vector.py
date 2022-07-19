@@ -105,8 +105,10 @@ class SegmentationModule(pl.LightningModule):
         self.std = self.config["stdHU"]
         # setup custom_order, loaded in with utils.py...
         self.config["roi_order"] = custom_order
+        self.config["order_dic"] = getROIOrder(custom_order=custom_order, inverse=True)
+        # oars = self.order_dic.keys()
         self.config["data_path"] = self.hparams.data_path
-
+        self.eval_data = None
         self.__get_loss()
 
     @staticmethod
@@ -199,13 +201,16 @@ class SegmentationModule(pl.LightningModule):
         in_   = inputs.cpu().numpy()
         targ_ = targets.cpu().numpy()
         out_  = outputs.cpu().detach().numpy()
-        in_, out_, targ_ = self.export_figs(in_, out_, targ_)
+        # take code in modules.py to plot images, must used in sequence with on_validation_epoch_end...
+        # commented out for simplicity...
+        # in_, out_, targ_ = self.export_figs(in_, out_, targ_)
         ################
         # calculating metrics
         outputs, targets = onehot(outputs, targets, argmax=False)
         hdfds = monmet.compute_hausdorff_distance(outputs, targets, percentile=95,
-                                                  include_background=True)
+                                                   include_background=True)
         dices = monmet.compute_meandice(outputs, targets)
+        asds = monmet.compute_average_surface_distance(outputs, targets)
         print(dices.size(), hdfds.size())
         print(dices,hdfds)
 
@@ -225,12 +230,107 @@ class SegmentationModule(pl.LightningModule):
             hdfds=hdfds.mean(dim=0)
 
         for i, val in enumerate(dices):
+            # logging individual evaluation metrics...
+            # if you have the order of OAR(s) - given that they're variable, i can be replaced with ROI name...
             self.log(f'val_dice_{i}', dices[i], on_step=True, prog_bar=True, logger=True)
             self.log(f'val_haus_{i}', hdfds[i], on_step=True, logger=True)
-        #     output[f"val_dice_{i}"] = dices[i]
-        #     output[f"val_haus_{i}"] = hdfds[i]
-        #
-        # return output
+            self.log(f"val_asds_{i}", asds[i], on_step=True, logger=True)
+            # logging evaluation metrics ...
+            self.log(f"val_EVAL", dices[i]/(hdfds[i]+asds[i]), on_step=True, logger=True)
+
+    def CalcEvaluationMetric(self, outputs, targs, batch_idx):
+
+        self.patient = str(self.data.iloc[batch_idx][0])
+        roi_order = self.config["roi_order"]
+        # only do this if targets not loaded in with data
+        # however, targets will be loaded in given sample dataloader was used...
+        # structure_path = self.config["data_path"] + f'/{self.patient}/structures/'
+        # structures = glob.glob(f'{structure_path}/*')
+        oars = []
+        dice = []
+        haus = []
+        asds = []
+        eval = []
+        pats = []
+        p_idx = []
+        for j, c in enumerate(roi_order):
+            oar = roi_order[j]
+            try:
+                # ideally this should be done outside this function...
+                targ = targs.copy()
+                targ = targ.cpu().numpy()
+                targ[targ!=j+1] = 0
+                if len(targ[targ==j+1]) == 0:
+                    pass
+                else:
+                    targ[targ==j+1] = 1
+                    outs = outputs[0,j+1]
+                    ###############################
+                    dc = met.compute_meandice(outs.unsqueeze(0).unsqueeze(0), targ.unsqueeze(0).unsqueeze(0))
+                    h  = met.compute_hausdorff_distance(outs.unsqueeze(0).unsqueeze(0), targ.unsqueeze(0).unsqueeze(0), percentile=95, include_background=False)
+                    s  = met.compute_average_surface_distance(outs.unsqueeze(0).unsqueeze(0), targ.unsqueeze(0).unsqueeze(0), include_background=False)
+                    # print(self.patient, c, dc, h)
+                    # save metrics...
+                    oars.append(oar)
+                    dice.append(dc[0][0].item())
+                    haus.append(h[0][0].item())
+                    asds.append(s[0][0].item())
+                    eval.append(dc[0][0].item()/(h[0][0].item()+s[0][0].item()))
+                    pats.append(folder)
+                    p_idx.append(batch_idx)
+            except Exception as e:
+                # print(e)
+                pass
+
+        data = {"ID":p_idx,"PATIENT":pats,"OAR":oars, "DICE":dice, "95HD":haus, "ASD":asds, "EVAL":eval}
+        if self.eval_data is None:
+            self.eval_data = pd.DataFrame.from_dict({data})
+        else:
+            # this being tun on different machines, you have to account for
+            # varrying devices...
+            self.eval_data = pd.concat([pd.DataFrame.from_dict({data}), self.eval_data])
+
+        # save data after each iteration...
+        # final model score will be mean across all OARs...
+        self.eval_data.to_csv(f"{str(self.root)}/{self.model_name}_test.csv")
+
+    def CropEvalImage(self,inputs):
+        ###########################
+        # IMAGE CROPPING/PADDING if required
+        ###########################
+        to_crop = RandomCrop3D( window=self.hparams.window, mode="test",
+                                 factor=292,#self.hparams.crop_factor,
+                                 crop_as=self.hparams.crop_as)
+        # pad 3rd to last dim if below 112 with MIN value of image
+        a, diff = (None, None)
+        if og_shape[1]<112:
+            difference = 112 - og_shape[1]
+            a = difference//2
+            diff = difference-a
+            pad_ = (0,0,0,0,a,diff)
+            warnings.warn(f'Padding {inputs.size()} to 112')
+            inputs = F.pad(inputs, pad_, "constant", inputs.min())
+            warnings.warn(f'NEW size is {inputs.size()},')
+            targets=inputs.clone()
+            # og_shape[1] = 112
+
+        img, targ, center = to_crop(inputs,targets,in_)
+        # varry's depending on imgsize used to train the model...
+        roi_size = (112, 176, 176)
+        shape = img.size()
+        # assumes first and last eight of image are fluff
+        if 180<=shape[1]:
+            cropz = (shape[1]//12, shape[1]-shape[1]//12)
+        elif 165 <= shape[1] < 180:
+            diff = 180 - shape[1]
+            cropz = (shape[1]//13, shape[1]//13+152-diff)
+        else:
+            cropz = (0, shape[1])
+
+        img = img[:,cropz[0]:cropz[1]]
+
+        return img, targ, center, cropz
+
 
     def test_step(self, batch, batch_idx):
          """
@@ -246,55 +346,30 @@ class SegmentationModule(pl.LightningModule):
          os.makedirs(outputs_path, exist_ok=True)
          #######################
 
-         inputs, _  = batch
+         inputs, targets  = batch
          if batch_idx == 0:
              print(inputs.max())
+         og_shape = inputs.size()
+         if og_shape[1] == 512:
+            inputs = inputs.permute(0,3,1,2)
          in_ = inputs.cpu().numpy()
          og_shape = inputs.size()
 
-         ###########################
-         # IMAGE CROPPING/PADDING if required
-         ###########################
-         to_crop = RandomCrop3D( window=self.hparams.window, mode="test",
-                                  factor=292,#self.hparams.crop_factor,
-                                  crop_as=self.hparams.crop_as)
-         # pad 3rd to last dim if below 112 with MIN value of image
-         a, diff = (None, None)
-         if og_shape[1]<112:
-             difference = 112 - og_shape[1]
-             a = difference//2
-             diff = difference-a
-             pad_ = (0,0,0,0,a,diff)
-             warnings.warn(f'Padding {inputs.size()} to 112')
-             inputs = F.pad(inputs, pad_, "constant", inputs.min())
-             warnings.warn(f'NEW size is {inputs.size()},')
-             targets=inputs.clone()
-             # og_shape[1] = 112
-
-         img, targ, center = to_crop(inputs,targets,in_)
-         # varry's depending on imgsize used to train the model...
-         roi_size = (112, 176, 176)
          shape = img.size()
-         # assumes first and last eight of image are fluff
-         if 180<=shape[1]:
-             cropz = (shape[1]//12, shape[1]-shape[1]//12)
-         elif 165 <= shape[1] < 180:
-             diff = 180 - shape[1]
-             cropz = (shape[1]//13, shape[1]//13+152-diff)
-         else:
-             cropz = (0, shape[1])
-
-         img = img[:,cropz[0]:cropz[1]]
-         shape = img.size()
-         warnings.warn(f'First crop size is {img.size()},')
-         ##########################
-         ##########################
-
+         warnings.warn(f'First crop size is {shape},')
+         img, targ, center, cropz = self.CropEvalImage(inputs)
          ###########################
          ## SLIDING WINDOW INFERENCE EXAMPLES
          ###########################
          outputs = swi(img, self.forward, 20)
+         warnings.warn("Done iteration 1")
+         outputs_ = swi(img.permute(0,1,3,2), self.forward, 20)
+         warnings.warn("Done iteration 2")
+         outputs_ = outputs_.permute(0,1,2,4,3)
+         outputs = torch.mean(torch.stack((outputs, outputs_), dim=0), dim=0)
          warnings.warn(f'Hello size is {outputs.size()},')
+
+         ###########################
          # this is the infernece using built in MONAI...
          # to_crop = RandomCrop3D(
          #           window=self.hparams.window,
@@ -312,7 +387,7 @@ class SegmentationModule(pl.LightningModule):
          if type(outputs) == tuple:
              outputs = outputs[0]
          if self.hparams.crop_as != "3D":
-             outputs = outputs.squeeze(2)  # shouldn't this be conditional??
+             outputs = outputs.squeeze(2)
 
          ############################
          ##### This save(s) model outputs...
@@ -328,6 +403,12 @@ class SegmentationModule(pl.LightningModule):
          outs_raw = outs.cpu().numpy()
          warnings.warn(f'Hello size is {outs.size()} AFTER SOFTMAX')
          outs = torch.argmax(outs, dim=0)
+         # runs calculation of evaluation metric...
+         self.CalcEvaluationMetric(outs, targets)
+         #######################
+         # here we can compute evaluation metrics...
+         # both outputs and targets have to be one hot encoded...
+         #######################
          inp = inputs[0]
          warnings.warn(f'OUTPUT size is {outs.size()} with inputs {inp.size()}')
          # assert outs.size() == inp.size()
@@ -339,13 +420,14 @@ class SegmentationModule(pl.LightningModule):
          targ_path = outputs_path + f'targ_{batch_idx+idx}_FULL.nrrd'
          img_path =  outputs_path + f'input_{batch_idx+idx}_FULL.nrrd'
 
-         if os.path.isfile(targ_path) is True:
-             pass
-         else:
-             in_ = inp.cpu().numpy()
-             targ_ = targets.cpu().numpy()
-             nrrd.write(img_path, in_)
-             nrrd.write(targ_path, targ_[0].astype('uint8'), compression_level=9)
+         # uncomment this if you'd like to resave targets, not necessary...
+         # if os.path.isfile(targ_path) is True:
+         #     pass
+         # else:
+         #     in_ = inp.cpu().numpy()
+         #     targ_ = targets.cpu().numpy()
+         #     nrrd.write(img_path, in_)
+         #     nrrd.write(targ_path, targ_[0].astype('uint8'), compression_level=9)
 
          # save FULL outputs...
          outs_ = out_full.cpu().numpy()
@@ -535,7 +617,8 @@ class SegmentationModule(pl.LightningModule):
         # self.class_weights this must be provided and calculated separately...
         # class should be located in self.data_config...
         # usually this will be the amount of voxels given for any OAR class...
-        self.class_weights = self.data_config["weights"]
+        self.class_weights = self.config["weights"]
+
         assert len(self.class_weights) == self.hparams.n_classes + 1
         if self.hparams.loss == "FOCALDSC":
             # binary TOPK loss + DICE + HU

@@ -368,9 +368,9 @@ class SegmentationModule(pl.LightningModule):
         if self.hparams.loss == "FOCALDSC":
             # binary TOPK loss + DICE + HU
             # enables us to tackle class imbalance...
-            loss = FocalLoss(weight=self.class_weights)  # Metric from elektronn3
+            # Metric from elektronn3
+            loss = FocalLoss(weight=self.class_weights)
             dice_loss = SoftDiceLoss(weights=self.class_weights)
-
             self.criterion = loss
             self.criterion2 = dice_loss
 
@@ -423,7 +423,6 @@ class SegmentationModule(pl.LightningModule):
             self.criterion3 = dice_loss if dice_loss is not None else None
 
         else:
-
             warnings.warn("Using Standard DICE loss. One Hot encoded target required.")
             loss = SoftDiceLoss(weight=self.class_weights)
             self.criterion2 = loss
@@ -479,7 +478,6 @@ class SegmentationModule(pl.LightningModule):
             # targets already in n_classes - 1 (0 background: 1 CTV, 2 GTV)
             # plt.imshow(out_pic, cmap='jet', alpha=0.5)
             out = out_pic
-
         return in_, out, targ
 
     def save_figs(self, in_, out, targ, name="train", step=None):
