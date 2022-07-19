@@ -79,9 +79,9 @@ class SegmentationModule(pl.LightningModule):
         if self.hparams.home_path[-1] != "/":
             self.hparams.home_path += "/"
         # load dataset paths...
-        train_csv_path = str(self.hparams.home_path) + f"/wolnet-sample/new_train_fold_{fold}.csv"
-        valid_csv_path = str(self.hparams.home_path) + f"/wolnet-sample/new_valid_fold_{fold}.csv"
-        test_csv_path = str(self.hparams.home_path) + f"/wolnet-sample/ew_test_fold.csv"
+        train_csv_path = str(self.hparams.home_path) + f"wolnet-sample/new_train_fold_{fold}.csv"
+        valid_csv_path = str(self.hparams.home_path) + f"wolnet-sample/new_valid_fold_{fold}.csv"
+        test_csv_path = str(self.hparams.home_path) + f"wolnet-sample/new_test_fold.csv"
         # load corresponding .csv(s) for training fold...
         assert os.path.isfile(train_csv_path) is True
         self.train_data = pd.read_csv(train_csv_path)
@@ -91,14 +91,16 @@ class SegmentationModule(pl.LightningModule):
             if self.hparams.is_config is not True:
                 # ideally this should be a .json file in the format of self.data_config
                 # produced by __getDataHparam() below...
-                self.config = getJson(self.hparams.config_path)[self.hparams.fold]
+                config = getJson(self.hparams.config_path)[self.hparams.fold]
             else:
                 # configurations should always be based on the training dataset for each fold...
-                self.config = self.__getDataHparam(self.train_data)
+                config = self.__getDataHparam(self.train_data)
         except Exception:
             warnings.warn("Path to .json file cannot be read.")
-            self.config = self.__getDataHparam(self.train_data)
+            config = self.__getDataHparam(self.train_data)
 
+        print(config)
+        self.config = config
         # other values can be loaded in here as well...
         # ideally the data_config would be saved
         self.mean = self.config["meanHU"]
@@ -126,6 +128,8 @@ class SegmentationModule(pl.LightningModule):
         # make sure output is unsqueezed...
         x = x.unsqueeze(1)
         return self.net(x)
+
+
 
     # ---------------------
     # TRAINING
@@ -190,7 +194,7 @@ class SegmentationModule(pl.LightningModule):
         outputs = self.forward(inputs)
         if type(outputs) == tuple:
             outputs = outputs[0]
-        loss = self.criterion(outputs,targets) # (self.criterion(outputs, targets.unsqueeze(1)).cpu() if self.criterion is not None else 0)
+        loss = self.criterion(outputs, targets) # (self.criterion(outputs, targets.unsqueeze(1)).cpu() if self.criterion is not None else 0)
         self.log("val_loss", loss, on_epoch=True, prog_bar=True, logger=True)
         # apply soft/argmax to outputs...
         outputs = torch.softmax(outputs, dim=1)
@@ -201,18 +205,17 @@ class SegmentationModule(pl.LightningModule):
         in_   = inputs.cpu().numpy()
         targ_ = targets.cpu().numpy()
         out_  = outputs.cpu().detach().numpy()
-        # take code in modules.py to plot images, must used in sequence with on_validation_epoch_end...
-        # commented out for simplicity...
         # in_, out_, targ_ = self.export_figs(in_, out_, targ_)
         ################
-        # calculating metrics
+        # calculating evaluation metrics metrics
         outputs, targets = onehot(outputs, targets, argmax=False)
         hdfds = monmet.compute_hausdorff_distance(outputs, targets, percentile=95,
                                                    include_background=True)
         dices = monmet.compute_meandice(outputs, targets)
-        asds = monmet.compute_average_surface_distance(outputs, targets)
-        print(dices.size(), hdfds.size())
-        print(dices,hdfds)
+        asds = monmet.compute_average_surface_distance(outputs,targets)
+
+        print(dices.size(), hdfds.size(), asds.size())
+        print(dices,hdfds, asds)
 
         # only use if you'd like to plot example of outputs...
         # Note: Best way to do that is to define validation_epoch_end
@@ -225,9 +228,11 @@ class SegmentationModule(pl.LightningModule):
         if s[0]==1:
             dices = dices[0]
             hdfds = hdfds[0]
+            asds = asds[0]
         else:
             dices=dices.mean(dim=0)
             hdfds=hdfds.mean(dim=0)
+            asds = asds.mean(dim=0)
 
         for i, val in enumerate(dices):
             # logging individual evaluation metrics...
@@ -546,10 +551,13 @@ class SegmentationModule(pl.LightningModule):
         folders = list(data["NEWID"])
         if self.hparams.data_path[-1] != "/":
             self.hparams.data_path += "/"
-        folders = [self.hparams.data_path + fold for fold in folders]
+        # we want this to be a list of list(s)
+        # contain the paths to the structures for each patient
+        folders = [glob.glob(self.hparams.data_path + fold + "/structures/*") for fold in folders]
         config = getHeaderData(folders)
         # vocel info for dataset by OAR
-        self.voxel_info = config["VOXELINFO"]
+        self.voxel_info = config["VOXINFO"]
+        # config["IMGINFO"]["VOXINFO"] = voxel_info
         return config["IMGINFO"]
 
     # ---------------------
@@ -560,6 +568,7 @@ class SegmentationModule(pl.LightningModule):
         Please inspect individual models in utils/models ...
         Layout model :return: n_classes + 1 (because we need to include background)
         """
+
         classes = self.hparams.n_classes + 1
         if self.hparams.model == "DEEPNET":
             self.net = DeepUNet(num_classes=classes, sub_enc=self.hparams.sub_enc)
@@ -612,13 +621,33 @@ class SegmentationModule(pl.LightningModule):
     # ------------------
     # Assign Loss
     # ------------------
+    def __getWeights(self):
+
+        # self.voxel_info is an ordered dictionary with OAR name linked to voxel information for each set OAR class...
+        rois = list(self.voxel_info.keys())
+        self.config["ROIS"] = rois
+        print(rois)
+        # have to add the background class, we give very low weight to background as they far outnumber class specific pixels.
+        # define very small weight for base value(s)
+        base = np.array([1e-40])
+        values = list(self.voxel_info.values())
+        print(values)
+        values = [np.int(v) for v in values]
+        weights = np.array(values)/(np.sum(values)+1e-4)
+        weights = np.append(base, weights)
+        # take the inverse of the absolute log of the weights...
+        weights = 1/np.abs(np.log(weights))
+        self.config["weights"] = weights
+        return weights
+
     def __get_loss(self):
 
         # self.class_weights this must be provided and calculated separately...
         # class should be located in self.data_config...
         # usually this will be the amount of voxels given for any OAR class...
-        self.class_weights = self.config["weights"]
-
+        self.class_weights = self.__getWeights()
+        self.class_weights = torch.tensor(self.class_weights).float()
+        warnings.warn(f"Using weights {self.class_weights}\nWith voxel information: {self.voxel_info}")
         assert len(self.class_weights) == self.hparams.n_classes + 1
         if self.hparams.loss == "FOCALDSC":
             # binary TOPK loss + DICE + HU
@@ -675,7 +704,7 @@ class SegmentationModule(pl.LightningModule):
     def get_dataloader( self, df, mode="valid", transform=None, resample=None,
                         shuffle=False, transform2=None, batch_size=None):
 
-        dataset = LoadPatientVolumes(df=df, config=self.config)
+        dataset = LoadPatientVolumes(folder_data=df, data_config=self.config, transform=transform)
 
         batch_size = self.hparams.batch_size if batch_size is None else batch_size
         # best practices to turn shuffling off during validation...
