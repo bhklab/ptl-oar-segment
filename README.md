@@ -8,7 +8,7 @@ Hi Everyone! This is the official repo describing the base boilerplate that will
 
 ### Evaluation Function
 
-![Evaluation Function] (https://keep.google.com/u/0/media/v2/1RP2OPOEyMARmUCqT5SefyPhYWlwhfHbdq4i2bQiS1kpnauS3PmIBTD57Hsa9tf8/1WiXRuoc9gTbTCtMrYDPPIwcbmmo1Y-jS1o9Cg4rknN_3uwZNo0PAYmNcyeoRyQ?accept=image%2Fgif%2Cimage%2Fjpeg%2Cimage%2Fjpg%2Cimage%2Fpng%2Cimage%2Fwebp%2Caudio%2Faac&sz=754)
+![Evaluation Function](https://keep.google.com/u/0/media/v2/1RP2OPOEyMARmUCqT5SefyPhYWlwhfHbdq4i2bQiS1kpnauS3PmIBTD57Hsa9tf8/1WiXRuoc9gTbTCtMrYDPPIwcbmmo1Y-jS1o9Cg4rknN_3uwZNo0PAYmNcyeoRyQ?accept=image%2Fgif%2Cimage%2Fjpeg%2Cimage%2Fjpg%2Cimage%2Fpng%2Cimage%2Fwebp%2Caudio%2Faac&sz=754)
 
 ### Updates to modules_vector.py
 
