@@ -5,7 +5,6 @@ import string, random, glob
 
 # folders_ = [glob.glob(p) for p in structure_paths]
 # taken from prepare.py in utils
-
 # These are the ROIs that must be segmented
 # ROIS= [ "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
 #         "Larynx", "Cricoid_P", "OpticChiasm", "Glnd_Lacrimal_L",
@@ -14,11 +13,8 @@ import string, random, glob
 #         "SpinalCord",  "Mandible_Bone", "Glnd_Submand_L",
 #         "Glnd_Submand_R", "Cochlea_L", "Cochlea_R", "Lips",
 #         "Spc_Retrophar_R", "Spc_Retrophar_L", "BrachialPlex_R", "BrachialPlex_L",
-#         "Brain",  "OralCavity", "Musc_Constrict_I",
+#         "BRAIN",  "OralCavity", "Musc_Constrict_I",
 #         "Musc_Constrict_S", "Musc_Constrict_M"]
-
-# Currently, these ROIS can be used for testing
-# The parotids and optic nerve contours will be uploaded shortly
 
 ROIS = ["External", "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
         "Larynx", "Cricoid_P", "OpticChiasm", "Glnd_Lacrimal_L",
@@ -35,7 +31,7 @@ ROIS = ["External", "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
 # using the commented out ROIS list
 
 # for purposes of testing
-custom_order = [1,2,3,4,5,6,7,8,9,10,11,12,13]
+custom_order = [1,2,3,4,5,6,7,8,9,10,11,12,13] # None...
 
 #################################
 # original ROI standardization...

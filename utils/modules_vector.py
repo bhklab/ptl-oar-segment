@@ -42,7 +42,7 @@ class SegmentationModule(pl.LightningModule):
         super().__init__()
         # init superclass
         # super(SegmentationModule, self).__init__()
-        self.save_hyperparameters(hparams) # 1.3+
+        self.save_hyperparameters(hparams) # 1.3+ self.hparams
         self.get_model_root_dir()
         self.__build_model()
 
@@ -129,8 +129,6 @@ class SegmentationModule(pl.LightningModule):
         x = x.unsqueeze(1)
         return self.net(x)
 
-
-
     # ---------------------
     # TRAINING
     # ---------------------
@@ -146,7 +144,7 @@ class SegmentationModule(pl.LightningModule):
         if batch_idx == 0:
             print(inputs.max(), inputs.size())
             print(targets.max(), targets.size())
-        outputs = self.forward(inputs)
+        outputs = self.forward(inputs) # WOLNET
         if type(outputs) == tuple:
             outputs = outputs[0]
         loss = self.criterion(outputs, targets)
@@ -154,6 +152,7 @@ class SegmentationModule(pl.LightningModule):
         # calculate dice for logging...
         # can add other metrics here...
         dices = monmet.compute_meandice(outputs, targets)
+        # compute_hausdorff_distance # compute_average_surface_distance
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
         # get size of dice array,
         # fist dim should be that of batch...

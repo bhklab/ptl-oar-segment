@@ -44,7 +44,7 @@ class LoadPatientVolumes(Dataset):
         """
         self.data = folder_data
         self.config = data_config
-        self.transform=transform
+        self.transform = transform
 
     def __len__(self):
         return len(self.data)
