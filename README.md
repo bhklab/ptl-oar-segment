@@ -4,6 +4,8 @@ Original Repo for "[Evaluating clinical acceptability of organ-at-risk segmentat
 
 ## Updates for Vector Challenge
 
+<iframe width="560" height="315" src="https://www.youtube.com/embed/nODSJWYwJhY" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
 Hi Everyone! This is the official repo describing the base boilerplate that will be used for inference of the CDI-VECTOR Machine Learning Challenge. The following evaluation function will be used to rank performance of submissions by participants.
 
 ### Evaluation Function
