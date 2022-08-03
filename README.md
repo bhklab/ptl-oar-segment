@@ -4,6 +4,7 @@ Original Repo for "[Evaluating clinical acceptability of organ-at-risk segmentat
 
 ## Updates for Vector Challenge
 
+### Tutorial Video For 2022 CDI Vector Institute Machine Learning Challenge
 [![Video For 2022 CDI Vector Institute Machine Learning Challenge](https://img.youtube.com/vi/nODSJWYwJhY/0.jpg)](https://www.youtube.com/watch?v=nODSJWYwJhY)
 
 Hi Everyone! This is the official repo describing the base boilerplate that will be used for inference of the CDI-VECTOR Machine Learning Challenge. The following evaluation function will be used to rank performance of submissions by participants.
