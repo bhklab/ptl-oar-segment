@@ -14,7 +14,7 @@ def add_args(return_="parser"):
     arg("--home-path", type=str, default="/cluster/home/jmarsill",help='root location of SegmentHN folder')
     arg("--model-path", type=str, default="/h/jmarsilla/models")
     arg("--data-path", type=str, default="/storage/data/ml2022/RADCURE_VECTOR")
-    arg("--config-path", type=str, default="/h/jmarsilla/config")
+    arg("--config-path", type=str, default="/h/jmarsilla/config.json")
     arg("--is-config", type=bool, default=False)
 
     # model specific parameters

@@ -1,32 +1,34 @@
-import os, glob, random, warnings, pickle, cv2, nrrd
-import pandas as pd
+import ast
+import os, glob, warnings, cv2, nrrd
 import numpy as np
-from sklearn.model_selection import KFold
-import scipy.ndimage.measurements as measure
 import torch
 from torch.utils.data import Dataset
-import SimpleITK as sitk
+from .utils import *
 
-np.random.seed(7)
+# import pandas as pd, random, pickle
+# from sklearn.model_selection import KFold
+# import scipy.ndimage.measurements as measure
 
-ROIS = ["External", "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
-        "Larynx", "Cricoid_P", "OpticChiasm", "Glnd_Lacrimal_L",
-        "Glnd_Lacrimal_R", "Lens_L", "Lens_R", "Eye_L", "Eye_R",
-        "Nrv_Optic_L", "Nrv_Optic_R", "Parotid_L", "Parotid_R",
-        "SpinalCord", "Mandible_Bone", "Glnd_Submand_L",
-        "Glnd_Submand_R", "Cochlea_L", "Cochlea_R", "Lips",
-        "Spc_Retrophar_R", "Spc_Retrophar_L", "BrachialPlex_R",
-        "BrachialPlex_L", "BRAIN", "OralCavity", "Musc_Constrict_I",
-        "Musc_Constrict_S", "Musc_Constrict_M"]
+# import SimpleITK as sitk
+# np.random.seed(7)
+# ROIS = ["External", "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
+#         "Larynx", "Cricoid_P", "OpticChiasm", "Glnd_Lacrimal_L",
+#         "Glnd_Lacrimal_R", "Lens_L", "Lens_R", "Eye_L", "Eye_R",
+#         "Nrv_Optic_L", "Nrv_Optic_R", "Parotid_L", "Parotid_R",
+#         "SpinalCord", "Mandible_Bone", "Glnd_Submand_L",
+#         "Glnd_Submand_R", "Cochlea_L", "Cochlea_R", "Lips",
+#         "Spc_Retrophar_R", "Spc_Retrophar_L", "BrachialPlex_R",
+#         "BrachialPlex_L", "BRAIN", "OralCavity", "Musc_Constrict_I",
+#         "Musc_Constrict_S", "Musc_Constrict_M"]
 
-def getROIOrder(custom_order=None, rois=ROIS):
-    # ideally this ordering has to be consistent to make inference easy...
-    if custom_order is None:
-        order_dic = {roi:i for i, roi in enumerate(ROIS)}
-    else:
-        roi_order = [rois[i] for i in custom_order]
-        order_dic = {roi:i for i, roi in enumerate(roi_order)}
-    return order_dic
+# def getROIOrder(custom_order=None, rois=ROIS):
+#     # ideally this ordering has to be consistent to make inference easy...
+#     if custom_order is None:
+#         order_dic = {roi:i for i, roi in enumerate(ROIS)}
+#     else:
+#         roi_order = [rois[i] for i in custom_order]
+#         order_dic = {roi:i for i, roi in enumerate(roi_order)}
+#     return order_dic
 
 # testing the getROIOrder function > can use this to rearange ordering of mask loading...
 # this was the custom ordering used to develop the model in question...
@@ -34,7 +36,7 @@ def getROIOrder(custom_order=None, rois=ROIS):
 # v_ = getROIOrder(custom_order=custom_order)
 
 class LoadPatientVolumes(Dataset):
-    def __init__(self, folder_data, data_config, transform=None, external=False):
+    def __init__(self, folder_data, data_config, transform=None, cache_dir="/h/jmarsilla/scratch"):
         """
         This is the class that our Dataloader object
         will take to create batches for training.
@@ -44,7 +46,8 @@ class LoadPatientVolumes(Dataset):
         """
         self.data = folder_data
         self.config = data_config
-        self.transform = transform
+        self.transform=transform
+        self.cache_dir = cache_dir
 
     def __len__(self):
         return len(self.data)
@@ -54,6 +57,8 @@ class LoadPatientVolumes(Dataset):
         Loading of the data...
         """
         self.patient = str(self.data.iloc[idx][1])
+        if self.config["data_path"][-1]!="/":
+            self.config["data_path"]+= "/"
         self.img_path = self.config["data_path"] + f'{self.patient}/CT_IMAGE.nrrd'
         self.structure_path = self.config["data_path"] + f'{self.patient}/structures/'
         # can write your own custom finction to load in structures here...
@@ -66,9 +71,10 @@ class LoadPatientVolumes(Dataset):
     def load_nrrd(self):
         # load image using nrrd...
         warnings.warn('Using nrrd instead of sitk.')
-        self.img = nrrd.read(self.img_path)
-        self.img = self.img[0]#.transpose(2,0,1)
+        self.img, header = nrrd.read(self.img_path)
+        self.img = self.img # .transpose(2,0,1)
         shape = self.img.shape
+        # header = nrrd.read_header(self.img_path)
         # Loading with SITK...
         # mask = sitk.ReadImage(img_path)
         # img = sitk.ReadImage(img_path)
@@ -81,22 +87,44 @@ class LoadPatientVolumes(Dataset):
         if self.structure_path[-1] != '/':
             self.structure_path += '/'
         mask_paths = glob.glob(self.structure_path + "*")
-        # version 1 ...
-        # set empty mask... useful for weightedtopkCE loss
-        self.mask = np.zeros(shape)
         # version 2 ... for other losses one hot encoding might be required
         # self.mask = []
         # this will load in masks and set them to class value of order_dic
         # can be modified in target adaptive loss or be used to condition network to missing labels.
-        for path in mask_paths:
-            oar = path.split('/')[-1].partition('.')[0]
-            if oar in self.oars:
-                class_value = self.order_dic[oar]
-                mask = nrrd.read(path)
-                mask = mask[0]#.transpose(2,0,1)
-                assert mask.shape == shape
-                # version 1 > not one hot encoded
-                self.mask[mask>0] = class_value
+        cache_file = self.cache_dir + f"/{self.patient}_mask.nrrd"
+        cache_file = cache_file.lower().replace("-", "_")
+
+        if os.path.isfile(cache_file):
+            mask = nrrd.read(cache_file)
+            header = mask[1]
+            self.mask = mask[0]
+            # header = nrrd.read_header(cache_file)
+            self.count = ast.literal_eval(header["counts"]) # ["Count"]
+            self.count = np.array([int(float(a)) for a in self.count])
+            warnings.warn(f"Loaded {self.patient} from cache.")
+        else:
+            # version 1 ...
+            # set empty mask... useful for weightedtopkCE loss
+            self.mask = np.zeros(shape)
+            # meta = {}
+            self.count = np.zeros(len(self.oars)+1)
+            # self.count[0] = 1
+            # only the case if EXTERNAL NOT included in cases...
+            for path in mask_paths:
+                oar = path.split('/')[-1].partition('.')[0]
+                if oar in self.oars:
+                    class_value = self.order_dic[oar]
+                    mask = nrrd.read(path)
+                    mask = mask[0] # .transpose(2,0,1)
+                    warnings.warn(f"{self.patient} has {mask.shape} v. {shape}")
+                    assert mask.shape == shape
+                    # version 1 > not one hot encoded
+                    self.mask[mask>0] = class_value
+                    self.count[class_value] = 1
+            # save file to scratch folder...
+            # meta["img_header"] = header
+            # meta["count"] = self.count
+            nrrd.write(cache_file, self.mask, header={"counts": list(self.count)}) #, compression_level=9)
 
     def __getitem__(self, idx):
 
@@ -113,8 +141,7 @@ class LoadPatientVolumes(Dataset):
                 assert self.mask.max() > 0
 
         assert self.mask.max() > 0
-
         img = torch.from_numpy(self.img).type(torch.FloatTensor)
         mask = torch.from_numpy(self.mask).type(torch.LongTensor)
-
-        return img, mask
+        count = torch.from_numpy(self.count).type(torch.LongTensor)
+        return img, mask, count

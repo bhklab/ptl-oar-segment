@@ -358,24 +358,21 @@ class TverskyLoss(nn.Module):
         self.beta = 0.7
         self.weight = weight
 
-    def forward(self, x, y, loss_mask=None):
+    def forward(self, x, y, mask=None, loss_mask=None):
         shp_x = x.shape
-
         if self.batch_dice:
             axes = [0] + list(range(2, len(shp_x)))
         else:
             axes = list(range(2, len(shp_x)))
-
         if self.apply_nonlin is not None:
             x = self.apply_nonlin(x)
 
         tp, fp, fn = get_tp_fp_fn(x, y, axes, loss_mask, self.square)
-
         tversky = (tp + self.smooth) / (tp + self.alpha*fp + self.beta*fn + self.smooth)
 
         if self.weight is not None:
-            for i, val in enumerate(self.weight):
-                tversky[:,i] *= val
+            for i, val in enumerate(range(y.max())):
+                tversky[:,i] *= self.weight[i]*mask[0][i]
 
         if not self.do_bg:
             if self.batch_dice:
@@ -399,8 +396,8 @@ class FocalTversky_loss(nn.Module):
         self.gamma = gamma
         self.tversky = TverskyLoss(apply_nonlin=softmax_helper, **tversky_kwargs)
 
-    def forward(self, net_output, target):
-        tversky_loss = 1 + self.tversky(net_output, target) # = 1-tversky(net_output, target)
+    def forward(self, net_output, target, mask=None):
+        tversky_loss = 1 + self.tversky(net_output, target, mask) # = 1-tversky(net_output, target)
         focal_tversky = torch.pow(tversky_loss, self.gamma)
 
         return focal_tversky
@@ -435,11 +432,18 @@ class HD_Loss3D(nn.Module):
         self.gamma = gamma
         self.percentile = percentile
 
-    def forward(self, net_output, target):
+    def forward(self, net_output, target, mask=None):
         # one_hot_encode, pass through loss...
         net_output, target = onehot(net_output, target)
         out = monmet.compute_hausdorff_distance(net_output, target, percentile=self.percentile,
                                                 include_background=True)
+
+        # if mask is not None:
+        # # use counts to filter out which metrics to log for set OAR...
+        # counts = mask[0].cpu().numpy()
+        # bool_counts = (counts == 1)
+        # counts_ = np.where(bool_counts)[0]
+
         hd = torch.pow(out, .25) # hyperparameter, can varry...
         hd = hd[~torch.isnan(hd)]
         hd_max = hd.max()*.25
@@ -456,17 +460,17 @@ class FocalTversky_and_topk_loss(nn.Module):
         self.hd = HD_Loss3D(gamma=gamma)
         # self.ad = montran.AsDiscrete(argmax)
 
-    def forward(self, net_output, target):
+    def forward(self, net_output, target, mask=None):
 
-        ft_loss = 0
-        s = net_output.size()
-        for i in range(s[0]):
-            ft_loss += self.ft(net_output[i].unsqueeze(0),target[i].unsqueeze(0))
-        ft_loss/=s[0]
-        ft_loss = self.ft(net_output,target)
-        ce_loss = self.ce(net_output, target)
+        # ft_loss = 0
+        # s = net_output.size()
+        # for i in range(s[0]):
+        #     ft_loss += self.ft(net_output[i].unsqueeze(0), target[i].unsqueeze(0))
+        # ft_loss/=s[0]
+        ft_loss = self.ft(net_output,target, mask)
+        ce_loss = self.ce(net_output, target, mask)
         # use this instead of ft_loss in second round of finetuning...
-        hd_loss, hd_max = self.hd(net_output, target)
+        hd_loss, hd_max = self.hd(net_output, target, mask)
 
         # this was used for fold 0 (added hd_loss ONLY) ...changed parameters (version_2617993)
         # fold 1 no hd_loss added (turing test completed with this...) ...used for turing... (version_2784634)
