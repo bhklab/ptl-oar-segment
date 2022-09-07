@@ -10,7 +10,6 @@ class TALWrapper(nn.Module):
         self.class_weights = weights
         self.do_bg = do_bg
         self.class_num = class_num
-
     def forward(self, outputs, targets):
         index_ = []
         background = [0]
@@ -43,4 +42,3 @@ class TALWrapper(nn.Module):
         loss = FocalTversky_and_topk_loss(tversky_kwargs, ce_kwargs)
         loss_ = loss(outs_, targ)
         return loss_
-
