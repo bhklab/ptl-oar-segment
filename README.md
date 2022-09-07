@@ -2,7 +2,36 @@
 
 Original Repo for "[Evaluating clinical acceptability of organ-at-risk segmentation In head & neck cancer using a compendium of open-source 3D convolutional neural networks](https://www.medrxiv.org/content/10.1101/2022.01.15.22269276v1.full.pdf)" (Marsilla et. al, 2022). Pre-print of this paper was accepted to MedRxiv on January 25, 2022.
 
-## Inference Tutorial Using Colab Pro GPUs coming soon...
+## Updates for Vector Challenge
+
+### Tutorial Video For 2022 CDI Vector Institute Machine Learning Challenge
+[![Video For 2022 CDI Vector Institute Machine Learning Challenge](https://img.youtube.com/vi/nODSJWYwJhY/0.jpg)](https://www.youtube.com/watch?v=nODSJWYwJhY)
+
+Hi Everyone! This is the official repo describing the base boilerplate that will be used for inference of the CDI-VECTOR Machine Learning Challenge. The following evaluation function will be used to rank performance of submissions by participants.
+
+### Evaluation Function
+
+![Evaluation Function](https://keep.google.com/u/0/media/v2/1RP2OPOEyMARmUCqT5SefyPhYWlwhfHbdq4i2bQiS1kpnauS3PmIBTD57Hsa9tf8/1WiXRuoc9gTbTCtMrYDPPIwcbmmo1Y-jS1o9Cg4rknN_3uwZNo0PAYmNcyeoRyQ?accept=image%2Fgif%2Cimage%2Fjpeg%2Cimage%2Fjpg%2Cimage%2Fpng%2Cimage%2Fwebp%2Caudio%2Faac&sz=754)
+
+#### Update: 19/07/2022
+
+self.CalcEvaluationMetric(outs, targets, batch_idx) has been added to SegmentationModule in modules_vector.py. The goal of this function is to record the evaluation metrics for each patient in the test set into a global csv. This will be used to calculate the final mean evaluation metric.  To better understand the equation, please check the added notebook that makes use of data extracted from the original study.
+
+Below are some suggestions, which would be useful to keep the evaluation process efficient.
+
+1. Please create a template of your model and package it **using the boilerplate provided to ensure that we can run your model without issues.**
+2. self.CalcEvaluationMetric used in test_step() module requires outputs to be **both softmaxed AND argmaxed prior to the evaluation process**. Outputs should be in the format of **BxCxZxWxH**.
+3. For results to be clinically acceptable, model has to be applied to the **entire depth/width/height of the patient**. (If you would like more details on how we did this for the original study, please reach out.)
+4. If your template uses modules like nn-UNET as your base, **please ensure you build an api that enables evaluation using pytorch-lightning.**
+5. **Please ensure that the order of classes used during training MATCHES THE ORDER GIVEN IN the ROIS list provided in utils.py.**
+6. While developing your networks, make sure to explore and enjoy. Happy networking!
+
+#### IMPORTANT NOTE
+
+Your network should be trained end-to-end and be able to export all 34 ROI classes simultaneously, to mimic requirement(s) of clinical environments. Any questions can be sent to the challenge administrators via the participant slack channel!
+
+### Base Tutorials running pre-packaged models coming soon...
+### Inference Tutorial Using Colab Pro GPUs coming soon...
 
 ## 1. Setup Environment
 More instructions [here](https://stackoverflow.com/questions/41274007/anaconda-export-environment-file).

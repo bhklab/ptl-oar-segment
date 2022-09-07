@@ -42,7 +42,7 @@ class SegmentationModule(pl.LightningModule):
         super().__init__()
         # init superclass
         # super(SegmentationModule, self).__init__()
-        self.save_hyperparameters(hparams) # 1.3+
+        self.save_hyperparameters(hparams) # 1.3+ self.hparams
         self.get_model_root_dir()
         self.__build_model()
 
@@ -152,7 +152,7 @@ class SegmentationModule(pl.LightningModule):
         if batch_idx == 0:
             print(inputs.max(), inputs.size())
             print(targets.max(), targets.size())
-        outputs = self.forward(inputs)
+        outputs = self.forward(inputs) # WOLNET
         if type(outputs) == tuple:
             outputs = outputs[0]
         loss = self.criterion(outputs, targets, counts)
@@ -162,6 +162,7 @@ class SegmentationModule(pl.LightningModule):
         # calculate dice for logging...
         # can add other metrics here...
         dices = monmet.compute_meandice(outputs, targets)
+        # compute_hausdorff_distance # compute_average_surface_distance
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
         # get size of dice array,
         # fist dim should be that of batch...
@@ -285,7 +286,7 @@ class SegmentationModule(pl.LightningModule):
             # logging evaluation metrics ...
             self.log(f"val_EVAL_{oars_[i]}", val/(hdfds_[i]+asds_[i]), on_step=True, logger=True)
 
-    def CalcEvaluationMetric(self, outputs, targs, batch_idx):
+    def CalcEvaluationMetric(self, outputs, targs, batch_idx, total_time):
 
         self.patient = str(self.data.iloc[batch_idx][0])
         roi_order = self.config["roi_order"]
@@ -300,10 +301,13 @@ class SegmentationModule(pl.LightningModule):
         eval = []
         pats = []
         p_idx = []
+        time = []
         for j, c in enumerate(roi_order):
             oar = roi_order[j]
             try:
                 # ideally this should be done outside this function...
+                # some OARs will not be included in the targets...
+                # allows us to save only OARs that we have ground truth information for.
                 targ = targs.copy()
                 targ = targ.cpu().numpy()
                 targ[targ!=j+1] = 0
@@ -325,6 +329,8 @@ class SegmentationModule(pl.LightningModule):
                     eval.append(dc[0][0].item()/(h[0][0].item()+s[0][0].item()))
                     pats.append(folder)
                     p_idx.append(batch_idx)
+                    time.append(total_time)
+
             except Exception as e:
                 # print(e)
                 pass
@@ -408,9 +414,12 @@ class SegmentationModule(pl.LightningModule):
          ###########################
          ## SLIDING WINDOW INFERENCE EXAMPLES
          ###########################
+         a_time = time.time()
          outputs = swi(img, self.forward, 20)
          warnings.warn("Done iteration 1")
          outputs_ = swi(img.permute(0,1,3,2), self.forward, 20)
+         b_time = time.time()
+         total_time = b_time - a_time # total inference time in seconds...
          warnings.warn("Done iteration 2")
          outputs_ = outputs_.permute(0,1,2,4,3)
          outputs = torch.mean(torch.stack((outputs, outputs_), dim=0), dim=0)
@@ -451,7 +460,7 @@ class SegmentationModule(pl.LightningModule):
          warnings.warn(f'Hello size is {outs.size()} AFTER SOFTMAX')
          outs = torch.argmax(outs, dim=0)
          # runs calculation of evaluation metric...
-         self.CalcEvaluationMetric(outs, targets, batch_idx)
+         self.CalcEvaluationMetric(outs, targets, batch_idx, total_time)
          #######################
          # here we can compute evaluation metrics...
          # both outputs and targets have to be one hot encoded...
