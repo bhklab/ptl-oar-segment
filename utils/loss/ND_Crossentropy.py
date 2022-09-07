@@ -1,12 +1,10 @@
 """
 CrossentropyND and TopKLoss are from: https://github.com/MIC-DKFZ/nnUNet/blob/master/nnunet/training/loss_functions/ND_Crossentropy.py
 """
-
 import torch
 import torch.nn.functional as F
 from scipy.ndimage import distance_transform_edt
 import numpy as np
-
 
 class CrossentropyND(torch.nn.CrossEntropyLoss):
     """
@@ -45,7 +43,6 @@ class TopKLoss(CrossentropyND):
         num_voxels = np.prod(res.shape)
         res, _ = torch.topk(res.view((-1, )), int(num_voxels * self.k / 100), sorted=False)
         return res.mean()
-
 
 class WeightedCrossEntropyLoss(torch.nn.CrossEntropyLoss):
     """

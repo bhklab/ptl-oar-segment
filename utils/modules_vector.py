@@ -66,12 +66,12 @@ class SegmentationModule(pl.LightningModule):
         # if you are making an ensemble with multiple folds, please nest it by fold number
         # ie. for fold 0 {0: {dataset_params_for_fold_1} }
         # {"weights": np.array() > type:len(n_classes) > specifically required to mitigate class imbalance in WeightedTopKCrossEntropy Loss},
-        #  "dataset_mean": np.float(), "dataset_std": np.float(), specifically used for Z-score normalization of images...
-        #  "clip_max": 1000 (Recommended), "clip_min": -500 (Recommended)}
+        # "dataset_mean": np.float(), "dataset_std": np.float(), specifically used for Z-score normalization of images...
+        # "clip_max": 1000 (Recommended), "clip_min": -500 (Recommended)}
         # NOTE: if windowing will be applied to images, mean/std of dataset must reflect the windowed version of the image
         # for testing the following can be used... this can be calculated on the fly ...
         # the voxel counts for each class are given in the meta header of each .nrrd in the structure folder...
-        # the unwindowed meanHU and stdHU are saved in the meta header for each image...
+        # the un-windowed meanHU and stdHU are saved in the meta header for each image...
         # for clipped image(s) from -500 to 1000; expect mean/std values to
         # fall within the following ranges... -390 < meanHU < -420; 205 < stdHU < 245
 
@@ -79,28 +79,35 @@ class SegmentationModule(pl.LightningModule):
         if self.hparams.home_path[-1] != "/":
             self.hparams.home_path += "/"
         # load dataset paths...
-        train_csv_path = str(self.hparams.home_path) + f"wolnet-sample/new_train_fold_{fold}.csv"
-        valid_csv_path = str(self.hparams.home_path) + f"wolnet-sample/new_valid_fold_{fold}.csv"
-        test_csv_path = str(self.hparams.home_path) + f"wolnet-sample/new_test_fold.csv"
+        train_csv_path = str(self.hparams.home_path) + "wolnet-sample/vector_train.csv" # f"wolnet-sample/new_train_fold_{fold}.csv"
+        valid_csv_path = str(self.hparams.home_path) + "wolnet-sample/vector_test.csv" # f"wolnet-sample/new_valid_fold_{fold}.csv"
+        test_csv_path = str(self.hparams.home_path)  + "wolnet-sample/vector_test.csv" #f"wolnet-sample/new_test_fold.csv"
         # load corresponding .csv(s) for training fold...
         assert os.path.isfile(train_csv_path) is True
         self.train_data = pd.read_csv(train_csv_path)
         self.valid_data = pd.read_csv(valid_csv_path)
         self.test_data  = pd.read_csv(test_csv_path)
         try:
-            if self.hparams.is_config is not True:
+            # if os.path.isfile(self.hparams.is_config) is True:
                 # ideally this should be a .json file in the format of self.data_config
                 # produced by __getDataHparam() below...
-                config = getJson(self.hparams.config_path)[self.hparams.fold]
-            else:
-                # configurations should always be based on the training dataset for each fold...
-                config = self.__getDataHparam(self.train_data)
+            config = getJson(self.hparams.config_path) # [self.hparams.fold]
+            # else:
+            #     warnings.warn(".json file does not exist.")
+            #     # configurations should always be based on the training dataset for each fold...
+            #     config = self.__getDataHparam(self.train_data)
+            #     with open(self.hparams.config_path, "w") as f:
+            #         json.dump(config, f)
         except Exception:
             warnings.warn("Path to .json file cannot be read.")
             config = self.__getDataHparam(self.train_data)
+            with open(self.hparams.config_path, "w") as f:
+                json.dump(config,f)
 
+        # vocel info for dataset by OAR
+        self.voxel_info = config["VOXINFO"]
+        self.config = config["IMGINFO"]
         print(config)
-        self.config = config
         # other values can be loaded in here as well...
         # ideally the data_config would be saved
         self.mean = self.config["meanHU"]
@@ -108,8 +115,9 @@ class SegmentationModule(pl.LightningModule):
         # setup custom_order, loaded in with utils.py...
         self.config["roi_order"] = custom_order
         self.config["order_dic"] = getROIOrder(custom_order=custom_order, inverse=True)
-        # oars = self.order_dic.keys()
+        self.oars = list(self.config["order_dic"].values())
         self.config["data_path"] = self.hparams.data_path
+        self.config["oar_order"] = self.oars
         self.eval_data = None
         self.__get_loss()
 
@@ -129,8 +137,6 @@ class SegmentationModule(pl.LightningModule):
         x = x.unsqueeze(1)
         return self.net(x)
 
-
-
     # ---------------------
     # TRAINING
     # ---------------------
@@ -140,7 +146,7 @@ class SegmentationModule(pl.LightningModule):
         """
         print("AT TRAIN START")
         self.step_type = "train"
-        inputs, targets = batch
+        inputs, targets, counts = batch
         if inputs.shape != targets.shape:
             warnings.warn("Input Shape Not Same size as label...")
         if batch_idx == 0:
@@ -149,7 +155,9 @@ class SegmentationModule(pl.LightningModule):
         outputs = self.forward(inputs)
         if type(outputs) == tuple:
             outputs = outputs[0]
-        loss = self.criterion(outputs, targets)
+        loss = self.criterion(outputs, targets, counts)
+        max_ = targets.max()
+
         outputs, targets = onehot(outputs, targets)
         # calculate dice for logging...
         # can add other metrics here...
@@ -159,10 +167,24 @@ class SegmentationModule(pl.LightningModule):
         # fist dim should be that of batch...
         s = dices.size()
         dices = dices[0] if s[0]==1 else dices.mean(dim=0)
+        # use counts to filter out which metrics to log for set OAR...
+        counts_ = counts[0].cpu().numpy()
+        bool_counts = (counts_ == 1)
+        counts_ = np.where(bool_counts)[0]
+        # counts_2 = counts_[:max_]
+        counts_max = np.where(counts_==int(max_))[0]
+        print(counts_, len(counts_),max_, counts_max)
+        counts_ = counts[:int(counts_max)]
+        dices_ = dices[counts_]
+        # except Exception:
+        #     try:
+        #         dices_ = dices[counts_[:len(counts_)-1]]
+        oars_ = np.array(self.oars)[bool_counts]
         # Example if wanted to record 95%HD during training...
-        # hdfds = monmet.compute_hausdorff_distance(outputs, targets, percentile=95, include_background=True)
-        for i, val in enumerate(dices):
-            self.log(f'train_dice_{i}', dices[i], on_step=True, prog_bar=True, logger=True)
+        # hdfds = fmonmet.compute_hausdorff_distance(outputs, targets, percentile=95, include_background=True)
+        for i, val in enumerate(dices_):
+            # if counts[0][i] == 1:
+            self.log(f'train_dice_{oars_[i]}', val, on_step=True, prog_bar=True, logger=True)
             # be sure to log 95%HD if uncommented above
             # self.log(f'train_haus_{i}', hdfds[i], on_step=True, logger=True)
         return {'loss':loss}
@@ -176,7 +198,7 @@ class SegmentationModule(pl.LightningModule):
         Lightning calls this inside the validation loop
         """
         self.step_type = "valid"
-        inputs, targets = batch
+        inputs, targets, counts = batch
         shape = inputs.size()
 
         if batch_idx == 0:
@@ -194,7 +216,7 @@ class SegmentationModule(pl.LightningModule):
         outputs = self.forward(inputs)
         if type(outputs) == tuple:
             outputs = outputs[0]
-        loss = self.criterion(outputs, targets) # (self.criterion(outputs, targets.unsqueeze(1)).cpu() if self.criterion is not None else 0)
+        loss = self.criterion(outputs, targets, counts) # (self.criterion(outputs, targets.unsqueeze(1)).cpu() if self.criterion is not None else 0)
         self.log("val_loss", loss, on_epoch=True, prog_bar=True, logger=True)
         # apply soft/argmax to outputs...
         outputs = torch.softmax(outputs, dim=1)
@@ -202,28 +224,27 @@ class SegmentationModule(pl.LightningModule):
 
         ################
         # grab images to save during training...
-        in_   = inputs.cpu().numpy()
-        targ_ = targets.cpu().numpy()
-        out_  = outputs.cpu().detach().numpy()
+        # in_   = inputs.cpu().numpy()
+        # targ_ = targets.cpu().numpy()
+        # out_  = outputs.cpu().detach().numpy()
         # in_, out_, targ_ = self.export_figs(in_, out_, targ_)
         ################
         # calculating evaluation metrics metrics
+        max_ = targets.max()
         outputs, targets = onehot(outputs, targets, argmax=False)
+
         hdfds = monmet.compute_hausdorff_distance(outputs, targets, percentile=95,
                                                    include_background=True)
         dices = monmet.compute_meandice(outputs, targets)
-        asds = monmet.compute_average_surface_distance(outputs,targets)
-
+        asds = monmet.compute_average_surface_distance(outputs,targets, include_background=True)
         print(dices.size(), hdfds.size(), asds.size())
         print(dices,hdfds, asds)
-
         # only use if you'd like to plot example of outputs...
         # Note: Best way to do that is to define validation_epoch_end
         # output = OrderedDict( { "val_loss": loss,
         #         "input": torch.from_numpy(in_).type(torch.FloatTensor),
         #         "out": torch.from_numpy(out_).type(torch.FloatTensor),
         #         "targ": torch.from_numpy(targ_).type(torch.FloatTensor),})
-
         s = dices.size()
         if s[0]==1:
             dices = dices[0]
@@ -234,14 +255,35 @@ class SegmentationModule(pl.LightningModule):
             hdfds=hdfds.mean(dim=0)
             asds = asds.mean(dim=0)
 
-        for i, val in enumerate(dices):
+        # use counts to filter out which metrics to log for set OAR...
+        counts = counts[0].cpu().numpy()
+        bool_counts = (counts == 1)
+        counts_ = np.where(bool_counts)[0]
+        print(counts, bool_counts, counts_)
+        # counts_ = list(counts_.astype(bool))
+        # counts_2 = counts_[:max_]
+        try:
+            dices_ = dices[counts_]
+        except Exception:
+            counts_ = counts_[:len(counts_)-1]
+            dices_ = dices[counts_]
+        print(dices_)
+        hdfds_ = hdfds[counts_]
+        print(hdfds_)
+        asds_ = asds[counts_]
+        print(asds_)
+        if "BACK" not in self.oars:
+            self.oars = ["BACK"] + self.oars
+        oars_ = np.array(self.oars)[bool_counts]
+        for i, val in enumerate(dices_):
             # logging individual evaluation metrics...
             # if you have the order of OAR(s) - given that they're variable, i can be replaced with ROI name...
-            self.log(f'val_dice_{i}', dices[i], on_step=True, prog_bar=True, logger=True)
-            self.log(f'val_haus_{i}', hdfds[i], on_step=True, logger=True)
-            self.log(f"val_asds_{i}", asds[i], on_step=True, logger=True)
+            # if counts[i] == 1:
+            self.log(f'val_dice_{oars_[i]}', val, on_step=True, prog_bar=True, logger=True)
+            self.log(f'val_haus_{oars_[i]}', hdfds_[i], on_step=True, logger=True)
+            self.log(f"val_asds_{oars_[i]}", asds_[i], on_step=True, logger=True)
             # logging evaluation metrics ...
-            self.log(f"val_EVAL", dices[i]/(hdfds[i]+asds[i]), on_step=True, logger=True)
+            self.log(f"val_EVAL_{oars_[i]}", val/(hdfds_[i]+asds_[i]), on_step=True, logger=True)
 
     def CalcEvaluationMetric(self, outputs, targs, batch_idx):
 
@@ -555,10 +597,9 @@ class SegmentationModule(pl.LightningModule):
         # contain the paths to the structures for each patient
         folders = [glob.glob(self.hparams.data_path + fold + "/structures/*") for fold in folders]
         config = getHeaderData(folders)
-        # vocel info for dataset by OAR
-        self.voxel_info = config["VOXINFO"]
+
         # config["IMGINFO"]["VOXINFO"] = voxel_info
-        return config["IMGINFO"]
+        return config # ["IMGINFO"]
 
     # ---------------------
     # MODEL SETUP
@@ -683,6 +724,9 @@ class SegmentationModule(pl.LightningModule):
             tversky_kwargs = {'batch_dice':False, 'do_bg':True, 'smooth':1., 'square':False}
             # can add weight class if necessary ...
             loss = FocalTversky_and_topk_loss(tversky_kwargs, ce_kwargs)
+            self.criterion = loss
+        elif self.hparams.loss == "TAL":
+            loss = TALWrapper(weight=self.class_weights, do_bg=False)
             self.criterion = loss
         elif self.hparams.loss == "COMBINED":
             loss = CrossEntropyLoss(weight=self.class_weights)

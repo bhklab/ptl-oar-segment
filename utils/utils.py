@@ -35,7 +35,7 @@ ROIS = ["External", "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
 # using the commented out ROIS list
 
 # for purposes of testing
-custom_order = [1,2,3,4,5,6,7,8,9,10,11,12,13]
+custom_order = range(len(ROIS)) #[1,2,3,4,5,6,7,8,9,10,11,12,13]
 
 #################################
 # original ROI standardization...
@@ -46,16 +46,21 @@ custom_order = [1,2,3,4,5,6,7,8,9,10,11,12,13]
 #     "MPCM"]
 #################################
 
-def getROIOrder(custom_order=custom_order, rois=ROIS, inverse=False):
+def getROIOrder(custom_order=custom_order, rois=ROIS, inverse=False, include_external=True):
     # ideally this ordering has to be consistent to make inference easy...
     if custom_order is None:
-        order_dic = {roi:i for i, roi in enumerate(ROIS)} if inverse is False else order_dic = {i:roi for i, roi in enumerate(ROIS)}
+        if include_external is False:
+            order_dic = {roi:i for i, roi in enumerate(ROIS)} if inverse is False else {i:roi for i, roi in enumerate(ROIS)}
+        else:
+            order_dic = {roi:i+1 for i, roi in enumerate(ROIS)} if inverse is False else {i+1:roi for i, roi in enumerate(ROIS)}
     else:
         roi_order = [rois[i] for i in custom_order]
         order_dic = {roi:i for i, roi in enumerate(roi_order)} if inverse is False else {i:roi for i, roi in enumerate(roi_order)}
     return order_dic
 
+##########################
 # first step get ROI order
+##########################
 def getHeaderData(folders, structures=True, roi_order=getROIOrder()):
     assert len(folders) > 1
     voxel_dic = {}
@@ -77,7 +82,6 @@ def getHeaderData(folders, structures=True, roi_order=getROIOrder()):
                         std = img_dic["stdHU"]
                         img_dic = {"meanHU":(mean+header["meanHU"])/2.,
                                    "stdHU":(std+header["stdHU"])/2}
-
                 # can do the same thing if com data was in mask...
                 # data = com_dic[oar]
                 # com_dic[oar] = (data + voxels)/2.
@@ -89,7 +93,6 @@ def getHeaderData(folders, structures=True, roi_order=getROIOrder()):
                 warnings.warn(f"{oar} not in list of chosen ROIS. If this is a mistake please update roi_order.")
                 pass
                 # com_dic[oar] = com
-
     return {"VOXINFO":voxel_dic, "IMGINFO":img_dic}
 
 def swi(image, net, n_classes):
@@ -131,7 +134,6 @@ def swi(image, net, n_classes):
                     warnings.warn(f'NET OUTS SIZE IS {output.size()}')
                     reference[:,:, val:end[i], v:end_y[j], va:end_x[k]] += output
                     iter_ += 1
-
     warnings.warn(f'Iterated {iter_} times with sliding window.')
     return reference/reference_
 
