@@ -52,4 +52,3 @@ class TALWrapper(nn.Module):
         #     targ[targets==val] = i+1
         # warnings.warn(f"Number of labels used are {len(weight)}")
         # warnings.warn(f"{len(background)} in background were excluded.")
-
