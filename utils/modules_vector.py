@@ -73,7 +73,8 @@ class SegmentationModule(pl.LightningModule):
         # the un-windowed meanHU and stdHU are saved in the meta header for each image...
         # for clipped image(s) from -500 to 1000; expect mean/std values to
         # fall within the following ranges... -390 < meanHU < -420; 205 < stdHU < 245
-        path_ = self.hparams.root + "config.json"
+
+        path_ = self.hparams.root + "config_NECK.json"
         try:
             # if os.path.isfile(self.hparams.is_config) is True:
                 # ideally this should be a .json file in the format of self.data_config

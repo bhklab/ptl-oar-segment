@@ -36,7 +36,7 @@ from .utils import *
 # v_ = getROIOrder(custom_order=custom_order)
 
 class LoadPatientVolumes(Dataset):
-    def __init__(self, folder_data, data_config, transform=None, cache_dir="/h/jmarsilla/scratch"):
+    def __init__(self, folder_data, data_config, tag="NECK", transform=None, cache_dir="/h/jmarsilla/scratch"):
         """
         This is the class that our Dataloader object
         will take to create batches for training.
@@ -48,6 +48,7 @@ class LoadPatientVolumes(Dataset):
         self.config = data_config
         self.transform=transform
         self.cache_dir = cache_dir
+        self.tag = tag
 
     def __len__(self):
         return len(self.data)
@@ -91,7 +92,7 @@ class LoadPatientVolumes(Dataset):
         # self.mask = []
         # this will load in masks and set them to class value of order_dic
         # can be modified in target adaptive loss or be used to condition network to missing labels.
-        cache_file = self.cache_dir + f"/{self.patient}_mask.nrrd"
+        cache_file = self.cache_dir + f"/{self.patient}_{self.tag}_mask.nrrd"
         cache_file = cache_file.lower().replace("-", "_")
 
         if os.path.isfile(cache_file):
