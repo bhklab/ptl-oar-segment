@@ -57,7 +57,7 @@ class LoadPatientVolumes(Dataset):
         """
         Loading of the data...
         """
-        self.patient = str(self.data.iloc[idx][1])
+        self.patient = str(self.data.iloc[idx][0])
         if self.config["data_path"][-1]!="/":
             self.config["data_path"]+= "/"
         self.img_path = self.config["data_path"] + f'{self.patient}/CT_IMAGE.nrrd'
