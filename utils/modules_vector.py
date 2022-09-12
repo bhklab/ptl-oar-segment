@@ -105,7 +105,7 @@ class SegmentationModule(pl.LightningModule):
                 self.test_data  = pd.read_csv(test_csv_path)
 
             else:
-                data = pd.read_csv("/Users/joemarsilla/ptl-oar-segmentation/radcure_oar_summary.csv", index_col=0)
+                data = pd.read_csv(f"{self.root}/ptl-oar-segmentation/radcure_oar_summary.csv", index_col=0)
                 data_ = getROIOrder(custom_order=custom_order, inverse=True)
                 oars = list(data_.values())
                 oar_data = data[data["OAR"].isin(oars)]
