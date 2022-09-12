@@ -48,7 +48,7 @@ def add_args(return_="parser"):
     arg("--metrics-name", type=str, default="METRICSGNECK_2020_02_18_100330")
     arg("--spacing", type=str, default="1mm")
     arg("--volume-type", type=str, default="targets")
-    arg("--oar-version", type=int, default=18)
+    arg("--oar-version", type=str, default="single")
     arg("--dce-version", type=int, default=1)
 
     # Load previous model

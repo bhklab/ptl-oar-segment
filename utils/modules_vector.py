@@ -60,7 +60,6 @@ class SegmentationModule(pl.LightningModule):
         If you don’t mind loading all your datasets at once, you can set up a condition to allow for both ‘fit’ related setup and ‘test’ related setup to run whenever None is passed to stage.
         Note this runs across all GPUs and it is safe to make state assignments here.
         '''
-
         # should load in a configuration.json contaning information used to
         # pre-process images before training this should be of the following format
         # if you are making an ensemble with multiple folds, please nest it by fold number
@@ -75,23 +74,14 @@ class SegmentationModule(pl.LightningModule):
         # for clipped image(s) from -500 to 1000; expect mean/std values to
         # fall within the following ranges... -390 < meanHU < -420; 205 < stdHU < 245
 
-        fold = self.hparams.fold
-        if self.hparams.home_path[-1] != "/":
-            self.hparams.home_path += "/"
-        # load dataset paths...
-        train_csv_path = str(self.hparams.home_path) + "wolnet-sample/vector_train.csv" # f"wolnet-sample/new_train_fold_{fold}.csv"
-        valid_csv_path = str(self.hparams.home_path) + "wolnet-sample/vector_test.csv" # f"wolnet-sample/new_valid_fold_{fold}.csv"
-        test_csv_path = str(self.hparams.home_path)  + "wolnet-sample/vector_test.csv" #f"wolnet-sample/new_test_fold.csv"
-        # load corresponding .csv(s) for training fold...
-        assert os.path.isfile(train_csv_path) is True
-        self.train_data = pd.read_csv(train_csv_path)
-        self.valid_data = pd.read_csv(valid_csv_path)
-        self.test_data  = pd.read_csv(test_csv_path)
         try:
             # if os.path.isfile(self.hparams.is_config) is True:
                 # ideally this should be a .json file in the format of self.data_config
                 # produced by __getDataHparam() below...
             config = getJson(self.hparams.config_path) # [self.hparams.fold]
+            self.train_data = config["train_data"]
+            self.valid_data = config["valid_data"]
+            self.test_data = config["test_data"]
             # else:
             #     warnings.warn(".json file does not exist.")
             #     # configurations should always be based on the training dataset for each fold...
@@ -99,8 +89,38 @@ class SegmentationModule(pl.LightningModule):
             #     with open(self.hparams.config_path, "w") as f:
             #         json.dump(config, f)
         except Exception:
-            warnings.warn("Path to .json file cannot be read.")
+            warnings.warn("Path to .json file cannot be read. Creating config...")
+            if self.hparams.oar_version != "single":
+                fold = self.hparams.fold
+                if self.hparams.home_path[-1] != "/":
+                    self.hparams.home_path += "/"
+                # load dataset paths...
+                train_csv_path = str(self.hparams.home_path) + "wolnet-sample/vector_train.csv" # f"wolnet-sample/new_train_fold_{fold}.csv"
+                valid_csv_path = str(self.hparams.home_path) + "wolnet-sample/vector_test.csv" # f"wolnet-sample/new_valid_fold_{fold}.csv"
+                test_csv_path = str(self.hparams.home_path)  + "wolnet-sample/vector_test.csv" #f"wolnet-sample/new_test_fold.csv"
+                # load corresponding .csv(s) for training fold...
+                assert os.path.isfile(train_csv_path) is True
+                self.train_data = pd.read_csv(train_csv_path)
+                self.valid_data = pd.read_csv(valid_csv_path)
+                self.test_data  = pd.read_csv(test_csv_path)
+
+            else:
+                data = pd.read_csv("/Users/joemarsilla/ptl-oar-segmentation/radcure_oar_summary.csv", index_col=0)
+                data_ = getROIOrder(custom_order=custom_order, inverse=True)
+                oars = list(data_.values())
+                oar_data = data[data["OAR"].isin(oars)]
+                oar_data = pd.DataFrame.from_dict({"NEWID":list(oar_data["NEWID"].unique())})
+                self.train_data = oar_data[:int(len(oar_data)*.9)]
+                self.valid_data = oar_data[int(len(oar_data)*.9):]
+                # select random test div for sitsagiigles
+                test_csv_path = str(self.hparams.home_path)  + "wolnet-sample/vector_test.csv"
+                self.test_data  = pd.read_csv(test_csv_path)
+                warnings.warn(f"Creating model with {len(oars)} oars which are {oars}.")
+
             config = self.__getDataHparam(self.train_data)
+            config["train_data"] = self.train_data
+            config["valid_data"] = self.valid_data
+            config["test_data"] =  self.test_data
             with open(self.hparams.config_path, "w") as f:
                 json.dump(config,f)
 
@@ -155,7 +175,7 @@ class SegmentationModule(pl.LightningModule):
         outputs = self.forward(inputs) # WOLNET
         if type(outputs) == tuple:
             outputs = outputs[0]
-        loss = self.criterion(outputs, targets, counts)
+        loss = self.criterion(outputs, targets)#counts)
         max_ = targets.max()
 
         outputs, targets = onehot(outputs, targets)
@@ -284,7 +304,7 @@ class SegmentationModule(pl.LightningModule):
             self.log(f'val_haus_{oars_[i]}', hdfds_[i], on_step=True, logger=True)
             self.log(f"val_asds_{oars_[i]}", asds_[i], on_step=True, logger=True)
             # logging evaluation metrics ...
-            self.log(f"val_EVAL_{oars_[i]}", val/(hdfds_[i]+asds_[i]), on_step=True, logger=True)
+            self.log(f"val_EVAL_{oars_[i]}", val*100/(hdfds_[i]+asds_[i]), on_step=True, logger=True)
 
     def CalcEvaluationMetric(self, outputs, targs, batch_idx, total_time):
 
