@@ -237,7 +237,7 @@ class SegmentationModule(pl.LightningModule):
         outputs = self.forward(inputs)
         if type(outputs) == tuple:
             outputs = outputs[0]
-        loss = self.criterion(outputs, targets, counts) # (self.criterion(outputs, targets.unsqueeze(1)).cpu() if self.criterion is not None else 0)
+        loss = self.criterion(outputs, targets) #, counts) # (self.criterion(outputs, targets.unsqueeze(1)).cpu() if self.criterion is not None else 0)
         self.log("val_loss", loss, on_epoch=True, prog_bar=True, logger=True)
         # apply soft/argmax to outputs...
         outputs = torch.softmax(outputs, dim=1)
