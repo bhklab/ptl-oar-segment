@@ -108,7 +108,7 @@ class SegmentationModule(pl.LightningModule):
                 data = pd.read_csv(f"{self.hparams.home_path}radcure_oar_summary.csv", index_col=0)
                 data_ = getROIOrder(custom_order=custom_order, inverse=True)
                 oars = list(data_.values())
-                oar_data = data[data["OAR"].isin(oars)]
+                oar_data = data[data[""].isin(oars)]
                 oar_data = pd.DataFrame.from_dict({"NEWID":list(oar_data["NEWID"].unique())})
                 self.train_data = oar_data[:int(len(oar_data)*.9)]
                 self.valid_data = oar_data[int(len(oar_data)*.9):]
