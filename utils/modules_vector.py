@@ -80,9 +80,9 @@ class SegmentationModule(pl.LightningModule):
                 # ideally this should be a .json file in the format of self.data_config
                 # produced by __getDataHparam() below...
             config = getJson(path_) # [self.hparams.fold]
-            self.train_data = config["train_data"]
-            self.valid_data = config["valid_data"]
-            self.test_data =  config["test_data"]
+            self.train_data = pd.DataFrame.from_dict({"NEWID":config["train_data"]})
+            self.valid_data = pd.DataFrame.from_dict({"NEWID":config["valid_data"]})
+            self.test_data =  pd.DataFrame.from_dict({"NEWID":config["test_data"]})
             # else:
             #     warnings.warn(".json file does not exist.")
             #     # configurations should always be based on the training dataset for each fold...
@@ -119,9 +119,9 @@ class SegmentationModule(pl.LightningModule):
                 warnings.warn(f"Creating model with {len(oars)} oars which are {oars}.")
 
             config = self.__getDataHparam(self.train_data)
-            config["train_data"] = self.train_data
-            config["valid_data"] = self.valid_data
-            config["test_data"] =  self.test_data
+            config["train_data"] = list(self.train_data["NEWID"])
+            config["valid_data"] = list(self.valid_data["NEWID"])
+            config["test_data"] =  list(self.test_data["NEWID"])
             with open(path_, "w") as f:
                 json.dump(config,f)
 
