@@ -73,15 +73,15 @@ class SegmentationModule(pl.LightningModule):
         # the un-windowed meanHU and stdHU are saved in the meta header for each image...
         # for clipped image(s) from -500 to 1000; expect mean/std values to
         # fall within the following ranges... -390 < meanHU < -420; 205 < stdHU < 245
-
+        path_ = self.hparams.root + "config.json"
         try:
             # if os.path.isfile(self.hparams.is_config) is True:
                 # ideally this should be a .json file in the format of self.data_config
                 # produced by __getDataHparam() below...
-            config = getJson(self.hparams.config_path) # [self.hparams.fold]
+            config = getJson(path_) # [self.hparams.fold]
             self.train_data = config["train_data"]
             self.valid_data = config["valid_data"]
-            self.test_data = config["test_data"]
+            self.test_data =  config["test_data"]
             # else:
             #     warnings.warn(".json file does not exist.")
             #     # configurations should always be based on the training dataset for each fold...
@@ -105,7 +105,7 @@ class SegmentationModule(pl.LightningModule):
                 self.test_data  = pd.read_csv(test_csv_path)
 
             else:
-                data = pd.read_csv(f"{self.root}/ptl-oar-segmentation/radcure_oar_summary.csv", index_col=0)
+                data = pd.read_csv(f"{self.hparams.home_path}/ptl-oar-segmentation/radcure_oar_summary.csv", index_col=0)
                 data_ = getROIOrder(custom_order=custom_order, inverse=True)
                 oars = list(data_.values())
                 oar_data = data[data["OAR"].isin(oars)]
@@ -121,7 +121,7 @@ class SegmentationModule(pl.LightningModule):
             config["train_data"] = self.train_data
             config["valid_data"] = self.valid_data
             config["test_data"] =  self.test_data
-            with open(self.hparams.config_path, "w") as f:
+            with open(path_, "w") as f:
                 json.dump(config,f)
 
         # vocel info for dataset by OAR
