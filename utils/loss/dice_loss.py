@@ -371,8 +371,10 @@ class TverskyLoss(nn.Module):
         tversky = (tp + self.smooth) / (tp + self.alpha*fp + self.beta*fn + self.smooth)
 
         if self.weight is not None:
+            if mask is not None:
+                self.weight*=mask[0]
             for i, val in enumerate(range(y.max())):
-                tversky[:,i] *= self.weight[i]*mask[0][i]
+                tversky[:,i] *= self.weight[i] # *mask[0][i]
 
         if not self.do_bg:
             if self.batch_dice:
@@ -427,16 +429,22 @@ def onehot(outs, targ, argmax=True):
     return targets_out, targets_dice
 
 class HD_Loss3D(nn.Module):
-    def __init__(self, percentile=95, gamma=0.75):
+    def __init__(self, percentile=95, gamma=0.75, weight=None):
         super(HD_Loss3D, self).__init__()
         self.gamma = gamma
         self.percentile = percentile
+        self.weight = weight
 
     def forward(self, net_output, target, mask=None):
         # one_hot_encode, pass through loss...
         net_output, target = onehot(net_output, target)
         out = monmet.compute_hausdorff_distance(net_output, target, percentile=self.percentile,
                                                 include_background=True)
+        if self.weight is not None:
+            if mask is not None:
+                self.weight*=mask[0]
+            for i, val in enumerate(range(len(net_output[0,:]))):
+                out[:,i] *= self.weight[i] #*mask[0][i]
 
         # if mask is not None:
         # # use counts to filter out which metrics to log for set OAR...
@@ -457,7 +465,7 @@ class FocalTversky_and_topk_loss(nn.Module):
         self.aggregate = aggregate
         self.ce = TopKLoss(**ce_kwargs)
         self.ft = FocalTversky_loss(tversky_kwargs, gamma=gamma)
-        self.hd = HD_Loss3D(gamma=gamma)
+        self.hd = HD_Loss3D(gamma=gamma, weight=ce_kwargs['weight'])
         # self.ad = montran.AsDiscrete(argmax)
 
     def forward(self, net_output, target, mask=None):

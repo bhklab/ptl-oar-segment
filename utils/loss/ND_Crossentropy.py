@@ -37,7 +37,9 @@ class TopKLoss(CrossentropyND):
         self.k = k
         super(TopKLoss, self).__init__(weight, False, ignore_index, reduce=False)
 
-    def forward(self, inp, target):
+    def forward(self, inp, target, mask=None):
+        if mask is not None:
+            self.weight*=mask
         target = target.long() # [:, 0]
         res = super(TopKLoss, self).forward(inp, target)
         num_voxels = np.prod(res.shape)
