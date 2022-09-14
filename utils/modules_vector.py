@@ -176,7 +176,7 @@ class SegmentationModule(pl.LightningModule):
         outputs = self.forward(inputs) # WOLNET
         if type(outputs) == tuple:
             outputs = outputs[0]
-        loss = self.criterion(outputs, targets, counts.to(self.device))
+        loss = self.criterion(outputs, targets, counts)
         max_ = targets.max()
 
         outputs, targets = onehot(outputs, targets)
@@ -238,7 +238,7 @@ class SegmentationModule(pl.LightningModule):
         outputs = self.forward(inputs)
         if type(outputs) == tuple:
             outputs = outputs[0]
-        loss = self.criterion(outputs, targets, counts.to(self.device)) # (self.criterion(outputs, targets.unsqueeze(1)).cpu() if self.criterion is not None else 0)
+        loss = self.criterion(outputs, targets, counts) # (self.criterion(outputs, targets.unsqueeze(1)).cpu() if self.criterion is not None else 0)
         self.log("val_loss", loss, on_epoch=True, prog_bar=True, logger=True)
         # apply soft/argmax to outputs...
         outputs = torch.softmax(outputs, dim=1)
