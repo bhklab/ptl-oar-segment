@@ -372,8 +372,9 @@ class TverskyLoss(nn.Module):
 
         if self.weight is not None:
             if mask is not None:
-                weights = self.weight.type_as(mask)
-                weights*=mask[0]
+                mask = mask.type_as(self.weight)
+                weights = self.weight.copy() #.type_as(mask)
+                weights *= mask[0]
             for i, val in enumerate(range(y.max())):
                 tversky[:,i] *= weights[i] # *mask[0][i]
 
@@ -443,7 +444,8 @@ class HD_Loss3D(nn.Module):
                                                 include_background=True)
         if self.weight is not None:
             if mask is not None:
-                weights = self.weight.type_as(mask)
+                mask = mask.type_as(self.weight)
+                weights = self.weight.copy()#.type_as(mask)
                 weights*=mask[0]
             for i, val in enumerate(range(len(net_output[0,:]))):
                 out[:,i] *= weights[i] #*mask[0][i]
