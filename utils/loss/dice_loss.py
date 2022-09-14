@@ -373,10 +373,9 @@ class TverskyLoss(nn.Module):
         if self.weight is not None:
             if mask is not None:
                 mask = mask.type_as(self.weight)
-                weights = self.weight.clone() #.type_as(mask)
-                weights *= mask[0]
+                weights = self.weight.clone()
             for i, val in enumerate(range(y.max())):
-                tversky[:,i] *= weights[i] # *mask[0][i]
+                tversky[:,i] *= weights[i]*mask[0][i]
 
         if not self.do_bg:
             if self.batch_dice:
@@ -445,10 +444,9 @@ class HD_Loss3D(nn.Module):
         if self.weight is not None:
             if mask is not None:
                 mask = mask.type_as(self.weight)
-                weights = self.weight.clone()#.type_as(mask)
-                weights*=mask[0]
+                weights = self.weight.clone()
             for i, val in enumerate(range(len(net_output[0,:]))):
-                out[:,i] *= weights[i] #*mask[0][i]
+                out[:,i] *= weights[i]*mask[0][i]
 
         # if mask is not None:
         # # use counts to filter out which metrics to log for set OAR...
