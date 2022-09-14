@@ -197,14 +197,15 @@ class SegmentationModule(pl.LightningModule):
         counts_max = np.where(counts_==int(max_))[0]
         print(counts_, len(counts_),max_, counts_max)
         counts_ = counts[:int(counts_max)]
-        dices_ = dices[counts_]
+        dices = dices[counts_]
+        warnings.warn(f"Dice(s) are {dices}")
         # except Exception:
         #     try:
         #         dices_ = dices[counts_[:len(counts_)-1]]
         oars_ = np.array(self.oars)[bool_counts]
         # Example if wanted to record 95%HD during training...
         # hdfds = fmonmet.compute_hausdorff_distance(outputs, targets, percentile=95, include_background=True)
-        for i, val in enumerate(dices_):
+        for i, val in enumerate(dices):
             # if counts[0][i] == 1:
             self.log(f'train_dice_{oars_[i]}', val, on_step=True, prog_bar=True, logger=True)
             # be sure to log 95%HD if uncommented above

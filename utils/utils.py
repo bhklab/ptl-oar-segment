@@ -30,7 +30,7 @@ ROIS = ["External", "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
 # custom_order = [4,5,6,8,11,12,13,14,15,16,17,18,20,22,25,26,27,30,31]
 # using the commented out ROIS list
 # for purposes of testing
-custom_order = [2,3]
+custom_order = [1,2,3]
 # custom_order = range(len(ROIS)) #[1,2,3,4,5,6,7,8,9,10,11,12,13]
 # custom_order = [1,2,3,4,5,6,7,8,9,10,11,12,13] # None...
 
