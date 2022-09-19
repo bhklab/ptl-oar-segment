@@ -140,6 +140,7 @@ class SegmentationModule(pl.LightningModule):
         self.oars = list(self.config["order_dic"].values())
         self.config["data_path"] = self.hparams.data_path
         self.config["oar_order"] = self.oars
+        warnings.warn(f"OARs chosen are {self.oars}")
         self.eval_data = None
         self.__get_loss()
 
@@ -313,6 +314,7 @@ class SegmentationModule(pl.LightningModule):
         if "BACK" not in self.oars:
             self.oars = ["BACK"] + self.oars
         oars_ = np.array(self.oars)[bool_counts]
+        print(oars_, bool_counts)
         for i, val in enumerate(dices_):
             # logging individual evaluation metrics...
             # if you have the order of OAR(s) - given that they're variable, i can be replaced with ROI name...
