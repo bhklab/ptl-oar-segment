@@ -107,7 +107,8 @@ class SegmentationModule(pl.LightningModule):
 
             else:
                 data = pd.read_csv(f"{self.hparams.home_path}radcure_oar_summary.csv", index_col=0)
-                data_ = getROIOrder(custom_order=custom_order, inverse=True)
+                cust_ = custom_order.remove(1)
+                data_ = getROIOrder(custom_order=cust_, inverse=True)
                 oars = list(data_.values())
                 oar_data = data[data["ROI"].isin(oars)]
                 oar_data = pd.DataFrame.from_dict({"NEWID":list(oar_data["NEWID"].unique())})
