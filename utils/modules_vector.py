@@ -188,24 +188,38 @@ class SegmentationModule(pl.LightningModule):
         # get size of dice array,
         # fist dim should be that of batch...
         s = dices.size()
-        dices = dices[0] if s[0]==1 else dices.mean(dim=0)
+        if s[0]==1:
+            dices = dices[0]
+            # hdfds = hdfds[0]
+            # asds = asds[0]
+        else:
+            dices=dices.mean(dim=0)
+            # hdfds=hdfds.mean(dim=0)
+            # asds = asds.mean(dim=0)
+
         # use counts to filter out which metrics to log for set OAR...
-        counts_ = counts[0].cpu().numpy()
-        bool_counts = (counts_ == 1)
+        counts = counts[0].cpu().numpy()
+        bool_counts = (counts == 1)
         counts_ = np.where(bool_counts)[0]
+        print(counts, bool_counts, counts_)
+        # counts_ = list(counts_.astype(bool))
         # counts_2 = counts_[:max_]
-        counts_max = np.where(counts_==int(max_))[0]
-        print(counts_, len(counts_),max_, counts_max)
-        counts_ = counts[:int(counts_max)]
-        dices = dices[counts_]
-        warnings.warn(f"Dice(s) are {dices}")
-        # except Exception:
-        #     try:
-        #         dices_ = dices[counts_[:len(counts_)-1]]
+        try:
+            dices_ = dices[counts_]
+        except Exception:
+            counts_ = counts_[:len(counts_)-1]
+            dices_ = dices[counts_]
+        print(dices_)
+        # hdfds_ = hdfds[counts_]
+        # print(hdfds_)
+        # asds_ = asds[counts_]
+        # print(asds_)
+
+        if "BACK" not in self.oars:
+            self.oars = ["BACK"] + self.oars
         oars_ = np.array(self.oars)[bool_counts]
-        # Example if wanted to record 95%HD during training...
-        # hdfds = fmonmet.compute_hausdorff_distance(outputs, targets, percentile=95, include_background=True)
-        for i, val in enumerate(dices):
+
+        for i, val in enumerate(dices_):
             # if counts[0][i] == 1:
             self.log(f'train_dice_{oars_[i]}', val, on_step=True, prog_bar=True, logger=True)
             # be sure to log 95%HD if uncommented above
