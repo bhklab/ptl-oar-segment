@@ -108,8 +108,8 @@ class SegmentationModule(pl.LightningModule):
 
             else:
                 data = pd.read_csv(f"{self.hparams.home_path}radcure_oar_summary.csv", index_col=0)
-                cust_ = custom_order.remove(1)
-                data_ = getROIOrder(custom_order=cust_, inverse=True)
+                # cust_ = custom_order.remove(1)
+                data_ = getROIOrder(custom_order=custom_order, inverse=True)
                 oars = list(data_.values())
                 oar_data = data[data["ROI"].isin(oars)]
                 oar_data = pd.DataFrame.from_dict({"NEWID":list(oar_data["NEWID"].unique())})
@@ -252,7 +252,7 @@ class SegmentationModule(pl.LightningModule):
         # sw_batch_size = 1 # second sliding window inference
         # outputs = sliding_window_inference(inputs, roi_size, sw_batch_size, self.forward)
         # evaluation using sliding window inference only (really) required during testing.
-        
+
         outputs = self.forward(inputs)
         if type(outputs) == tuple:
             outputs = outputs[0]
