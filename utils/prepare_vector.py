@@ -138,7 +138,9 @@ class LoadPatientVolumes(Dataset):
                 #     img2, _ = self.transform2(self.img.copy(), self.mask.copy())
             else:
                 # only load if mask is zero from start...
-                warnings.warn(f'Check {self.patient}...')
+                self.img, self.mask = self.transform(self.img.copy(), self.mask.copy())
+                print(f"Check {self.patient}...loading in a mask with")
+                warnings.warn(f'Check {self.patient}...loading in a mask with ')
                 assert self.mask.max() > 0
 
         assert self.mask.max() > 0
