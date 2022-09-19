@@ -74,14 +74,14 @@ class SegmentationModule(pl.LightningModule):
         # for clipped image(s) from -500 to 1000; expect mean/std values to
         # fall within the following ranges... -390 < meanHU < -420; 205 < stdHU < 245
 
-        path_ = self.hparams.root + "config_NECK2.json"
+        path_ = self.hparams.root + f"{self.model_name}/config_NECK.json"
         try:
             # if os.path.isfile(self.hparams.is_config) is True:
-                # ideally this should be a .json file in the format of self.data_config
-                # produced by __getDataHparam() below...
+            # ideally this should be a .json file in the format of self.data_config
+            # produced by __getDataHparam() below...
             config = getJson(path_) # [self.hparams.fold]
             self.train_data = pd.DataFrame.from_dict({"NEWID":config["train_data"]})
-            self.train_data = self.train_data[10:]
+            # self.train_data = self.train_data[10:]
             self.valid_data = pd.DataFrame.from_dict({"NEWID":config["valid_data"]})
             self.test_data =  pd.DataFrame.from_dict({"NEWID":config["test_data"]})
             # else:
@@ -252,7 +252,7 @@ class SegmentationModule(pl.LightningModule):
         # sw_batch_size = 1 # second sliding window inference
         # outputs = sliding_window_inference(inputs, roi_size, sw_batch_size, self.forward)
         # evaluation using sliding window inference only (really) required during testing.
-
+        
         outputs = self.forward(inputs)
         if type(outputs) == tuple:
             outputs = outputs[0]

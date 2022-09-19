@@ -141,8 +141,8 @@ class LoadPatientVolumes(Dataset):
                 self.img, self.mask = self.transform(self.img.copy(), self.mask.copy())
                 print(f"Check {self.patient}...loading in a mask with")
                 warnings.warn(f'Check {self.patient}...loading in a mask with ')
-                # assert self.mask.max() > 0
-                self.count *= 0.
+                assert self.mask.max() > 0
+                # self.count *= 0.
 
         assert self.mask.max() > 0
         img = torch.from_numpy(self.img).type(torch.FloatTensor)
