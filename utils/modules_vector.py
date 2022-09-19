@@ -81,6 +81,7 @@ class SegmentationModule(pl.LightningModule):
                 # produced by __getDataHparam() below...
             config = getJson(path_) # [self.hparams.fold]
             self.train_data = pd.DataFrame.from_dict({"NEWID":config["train_data"]})
+            self.train_data = self.train_data[10:]
             self.valid_data = pd.DataFrame.from_dict({"NEWID":config["valid_data"]})
             self.test_data =  pd.DataFrame.from_dict({"NEWID":config["test_data"]})
             # else:
