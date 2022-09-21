@@ -358,7 +358,7 @@ class RandomCrop3D(MTTransform):
         # prodcues a mask, where we take COM from...
         com = measure.center_of_mass(img)
         # com = [com[0], com[1], com[2]]
-        assert len(com) == 3
+        # assert len(com) == 3
         self.center = [com_[0], com[1], com[2]]
 
     def get_params(self, img):
