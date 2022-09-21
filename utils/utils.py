@@ -52,7 +52,7 @@ def getROIOrder(custom_order=custom_order, rois=ROIS, inverse=False, include_ext
             order_dic = {roi:i+1 for i, roi in enumerate(ROIS)} if inverse is False else {i+1:roi for i, roi in enumerate(ROIS)}
     else:
         roi_order = [rois[i] for i in custom_order]
-        order_dic = {roi:i for i, roi in enumerate(roi_order)} if inverse is False else {i:roi for i, roi in enumerate(roi_order)}
+        order_dic = {roi:i+1 for i, roi in enumerate(roi_order)} if inverse is False else {i+1:roi for i, roi in enumerate(roi_order)}
     return order_dic
 
 ##########################

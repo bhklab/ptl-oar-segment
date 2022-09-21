@@ -117,7 +117,7 @@ class LoadPatientVolumes(Dataset):
                     class_value = self.order_dic[oar]
                     mask = nrrd.read(path)
                     mask = mask[0] # .transpose(2,0,1)
-                    warnings.warn(f"{self.patient} has {mask.shape} v. {shape}")
+                    warnings.warn(f"Loading {oar} for {self.patient} has {mask.shape} v. {shape}. Max val is {mask.max()} will be {class_value}.")
                     assert mask.shape == shape
                     # version 1 > not one hot encoded
                     self.mask[mask>0] = class_value
