@@ -73,10 +73,8 @@ class Compose(object):
             # print(count, max_, mask.max())
             # check transformations doing right thing //
             if i < len(self.transforms)-2:
-
                 # assert mask.max() == max_
                 # assert mask.min() == 0
-
                 try:
                     assert img.max() == max_img
                 except Exception:
