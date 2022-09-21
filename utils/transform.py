@@ -75,7 +75,7 @@ class Compose(object):
             if i < len(self.transforms)-2:
 
                 # assert mask.max() == max_
-                assert mask.min() == 0
+                # assert mask.min() == 0
 
                 try:
                     assert img.max() == max_img
@@ -450,7 +450,7 @@ class RandomCrop3D(MTTransform):
             if shape[0] > self.window*2: # 128
                 warnings.warn(f'Cropping images/masks from {shape[0]} to 120.')
                 # self.window = 56 # 64
-                a = np.arange(-50, 50) # (64,64)
+                a = np.arange(64,64)
                 if self.mode == 'train':
                     centerz += np.random.choice(a)
                 end = shape[0] - self.window
