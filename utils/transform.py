@@ -359,7 +359,7 @@ class RandomCrop3D(MTTransform):
         com = measure.center_of_mass(img)
         # com = [com[0], com[1], com[2]]
         # assert len(com) == 3
-        self.center = [com_[0], com[1], com[2]]
+        self.center = [com_[0], com[0], com[1]]
 
     def get_params(self, img):
         if len(img.shape) == 3:
