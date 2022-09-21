@@ -15,6 +15,7 @@ def add_args(return_="parser"):
     arg("--model-path", type=str, default="/h/jmarsilla/models")
     arg("--data-path", type=str, default="/storage/data/ml2022/RADCURE_VECTOR")
     arg("--config-path", type=str, default="/h/jmarsilla/config.json")
+    arg("--tag", type=str, default="all")
     arg("--is-config", type=bool, default=False)
 
     # model specific parameters
