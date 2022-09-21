@@ -210,23 +210,30 @@ class SegmentationModule(pl.LightningModule):
         try:
             dices_ = dices[counts_]
         except Exception:
-            counts_ = counts_[:len(counts_)-1]
-            dices_ = dices[counts_]
-        print(dices_)
-        # hdfds_ = hdfds[counts_]
-        # print(hdfds_)
-        # asds_ = asds[counts_]
-        # print(asds_)
+            try:
+                try:
+                    counts_ = counts_[:len(counts_)-1]
+                    dices_ = dices[counts_]
+                    print(dices_)
+                except Exception:
+                    dices_ = dices
+                    counts_ = counts_[0]
+                # hdfds_ = hdfds[counts_]
+                # print(hdfds_)
+                # asds_ = asds[counts_]
+                # print(asds_)
+                if "BACK" not in self.oars:
+                    self.oars = ["BACK"] + self.oars
+                oars_ = np.array(self.oars)[bool_counts]
 
-        if "BACK" not in self.oars:
-            self.oars = ["BACK"] + self.oars
-        oars_ = np.array(self.oars)[bool_counts]
+                for i, val in enumerate(dices_):
+                    # if counts[0][i] == 1:
+                    self.log(f'train_dice_{oars_[i]}', val, on_step=True, prog_bar=True, logger=True)
+                    # be sure to log 95%HD if uncommented above
+                    # self.log(f'train_haus_{i}', hdfds[i], on_step=True, logger=True)
+            except Exception:
+                pass
 
-        for i, val in enumerate(dices_):
-            # if counts[0][i] == 1:
-            self.log(f'train_dice_{oars_[i]}', val, on_step=True, prog_bar=True, logger=True)
-            # be sure to log 95%HD if uncommented above
-            # self.log(f'train_haus_{i}', hdfds[i], on_step=True, logger=True)
         return {'loss':loss}
 
     # ---------------------
@@ -310,7 +317,7 @@ class SegmentationModule(pl.LightningModule):
                 dices_ = dices[counts_]
             except Exception:
                 counts_ = counts_[:len(count_)-2]
-                dices_ = dices[counts_]
+                dices_ = dices[counts]
         print(dices_)
         hdfds_ = hdfds[counts_]
         print(hdfds_)
