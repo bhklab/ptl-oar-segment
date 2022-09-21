@@ -31,9 +31,8 @@ ROIS = ["External", "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
 # using the commented out ROIS list
 # for purposes of testing
 # tag NECK
-# custom_order = [1,2,3]
+custom_order = [1,2,3]
 # tag PAROTID
-
 # custom_order = range(len(ROIS)) #[1,2,3,4,5,6,7,8,9,10,11,12,13]
 # custom_order = [1,2,3,4,5,6,7,8,9,10,11,12,13] # None...
 
