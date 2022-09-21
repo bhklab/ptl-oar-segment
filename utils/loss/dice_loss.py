@@ -445,6 +445,7 @@ class HD_Loss3D(nn.Module):
             if mask is not None:
                 mask = mask.type_as(self.weight)
                 weights = self.weight.clone()
+
             for i, val in enumerate(range(len(net_output[0,:]))):
                 out[:,i] *= weights[i]*mask[0][i]
 
@@ -495,7 +496,7 @@ class FocalTversky_and_topk_loss(nn.Module):
         if self.aggregate == "sum":
             result = ce_loss + ft_loss + hd_loss
         elif self.aggregate == "sumcorrect":
-            result = ce_loss + ft_loss + hd_loss + (hd_max/hd_loss)
+            result = ce_loss + ft_loss + (hd_loss + hd_max)/hd_loss)
         else:
             raise NotImplementedError("nah son") # reserved for other stuff (later?)
         return result

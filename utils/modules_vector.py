@@ -74,7 +74,7 @@ class SegmentationModule(pl.LightningModule):
         # for clipped image(s) from -500 to 1000; expect mean/std values to
         # fall within the following ranges... -390 < meanHU < -420; 205 < stdHU < 245
 
-        path_ = self.hparams.root + f"/config_NECK.json"
+        path_ = self.hparams.root + f"/config_{self.hparams.tag}.json"
         try:
             # if os.path.isfile(self.hparams.is_config) is True:
             # ideally this should be a .json file in the format of self.data_config

@@ -144,7 +144,10 @@ class LoadPatientVolumes(Dataset):
                 assert self.mask.max() > 0
                 # self.count *= 0.
 
-        assert self.mask.max() > 0
+        try:
+            assert self.mask.max() > 0
+        except Exception:
+            warnings.warn(f"Cropped out all class values for {self.patient}...")
         img = torch.from_numpy(self.img).type(torch.FloatTensor)
         mask = torch.from_numpy(self.mask).type(torch.LongTensor)
         count = torch.from_numpy(self.count).type(torch.LongTensor)
