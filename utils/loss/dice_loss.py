@@ -496,7 +496,7 @@ class FocalTversky_and_topk_loss(nn.Module):
         if self.aggregate == "sum":
             result = ce_loss + ft_loss + hd_loss
         elif self.aggregate == "sumcorrect":
-            result = ce_loss + ft_loss + (hd_loss + hd_max)/hd_loss)
+            result = ce_loss + ft_loss + (hd_loss + hd_max)/hd_loss
         else:
             raise NotImplementedError("nah son") # reserved for other stuff (later?)
         return result
