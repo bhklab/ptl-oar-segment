@@ -80,7 +80,9 @@ class SegmentationModule(pl.LightningModule):
             # ideally this should be a .json file in the format of self.data_config
             # produced by __getDataHparam() below...
             config = getJson(path_) # [self.hparams.fold]
+            exclude_ = ["RADCURE-0543"]
             self.train_data = pd.DataFrame.from_dict({"NEWID":config["train_data"]})
+            self.train_data = self.train_data[~self.train_data["NEWID"].isin(exclude_)]
             # self.train_data = self.train_data[10:]
             self.valid_data = pd.DataFrame.from_dict({"NEWID":config["valid_data"]})
             self.test_data =  pd.DataFrame.from_dict({"NEWID":config["test_data"]})
@@ -182,7 +184,7 @@ class SegmentationModule(pl.LightningModule):
         loss = self.criterion(outputs, targets, counts)
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
         return {'loss':loss}
-        
+
         # max_ = targets.max()
         # outputs, targets = onehot(outputs, targets)
         # calculate dice for logging...
