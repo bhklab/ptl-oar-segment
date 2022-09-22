@@ -80,7 +80,7 @@ class SegmentationModule(pl.LightningModule):
         if tag == "NECK":
             # includes GTV...
             custom_order = [1,2,3]
-        elif tag == "NECKMUSNRV":
+        elif tag == "NECKMUS":
             custom_order = [32,33,34,29,28]
         elif tag == "SPINE":
             custom_order = [4,5,6,7,19,30]
@@ -763,7 +763,8 @@ class SegmentationModule(pl.LightningModule):
         weights = np.array(values)/(np.sum(values)+1e-4)
         weights = np.append(base, weights)
         # take the inverse of the absolute log of the weights...
-        weights = 1/np.abs(np.log(weights))
+        weights = np.abs(np.log(weights))
+        weigths[0] = 0.01
         self.config["weights"] = weights
         warnings.warn(f"Weights are {weights}")
         return weights
