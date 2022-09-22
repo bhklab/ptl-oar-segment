@@ -60,9 +60,9 @@ class SegmentationModule(pl.LightningModule):
             self.custom_order = [9,10,17,18,20,21,22,23,24,25,26,27,31]
         else:
             self.custom_order=custom_order
+            warnings.warn("Tag not specified...using general ordering.")
             # will load in custom_order in utils.py...
             pass
-
     def setup(self, stage=None):
 
         '''
