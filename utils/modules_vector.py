@@ -74,7 +74,24 @@ class SegmentationModule(pl.LightningModule):
         # for clipped image(s) from -500 to 1000; expect mean/std values to
         # fall within the following ranges... -390 < meanHU < -420; 205 < stdHU < 245
 
-        path_ = self.hparams.root + f"/config_{self.hparams.tag}.json"
+        tag = self.hparams.tag
+        path_ = self.hparams.root + f"/config_{tag}.json"
+
+        if tag == "NECK":
+            # includes GTV...
+            custom_order = [1,2,3]
+        elif tag == "NECKMUSNRV":
+            custom_order = [32,33,34,29,28]
+        elif tag == "SPINE":
+            custom_order = [4,5,6,7,19,30]
+        elif tag == "TOPHEAD":
+            custom_order = [8,11,12,13,14,15,16]
+        elif tag == "MIDHEAD":
+            custom_order = [9,10,17,18,20,21,22,23,24,25,26,27,31]
+        else:
+            # will load in custom_order in utils.py...
+            pass
+
         try:
             # if os.path.isfile(self.hparams.is_config) is True:
             # ideally this should be a .json file in the format of self.data_config
@@ -114,7 +131,9 @@ class SegmentationModule(pl.LightningModule):
                 data_ = getROIOrder(custom_order=custom_order, inverse=True)
                 oars = list(data_.values())
                 oar_data = data[data["ROI"].isin(oars)]
+                exclude_ = ["RADCURE-0543"]
                 oar_data = pd.DataFrame.from_dict({"NEWID":list(oar_data["NEWID"].unique())})
+                oar_data = oar_data[~oar_data["NEWID"].isin(exclude_)]
                 self.train_data = oar_data[:int(len(oar_data)*.9)]
                 self.valid_data = oar_data[int(len(oar_data)*.9):]
                 # select random test div for sitsagiigles
@@ -182,17 +201,20 @@ class SegmentationModule(pl.LightningModule):
         if type(outputs) == tuple:
             outputs = outputs[0]
         loss = self.criterion(outputs, targets, counts)
+        # if loss is nan...
+        # if torch.isnan(loss)[0] is True:
+        loss = torch.nan_to_num(loss, nan=10.)
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
-        return {'loss':loss}
-
+        # calculate and log dices...
+        ###############################
         # max_ = targets.max()
         # outputs, targets = onehot(outputs, targets)
-        # calculate dice for logging...
-        # can add other metrics here...
+        # # calculate dice for logging...
+        # # can add other metrics here...
         # dices = monmet.compute_meandice(outputs, targets)
-        # compute_hausdorff_distance # compute_average_surface_distance
-        # get size of dice array,
-        # fist dim should be that of batch...
+        # # compute_hausdorff_distance # compute_average_surface_distance
+        # # get size of dice array,
+        # # fist dim should be that of batch...
         # s = dices.size()
         # if s[0]==1:
         #     dices = dices[0]
@@ -229,14 +251,16 @@ class SegmentationModule(pl.LightningModule):
         #     self.oars = ["BACK"] + self.oars
         # oars_ = np.array(self.oars)[bool_counts]
         # # Let's log it shall we...
-        # try:
-        #     for i, val in enumerate(dices_):
-        #         # if counts[0][i] == 1:
-        #         self.log(f'train_dice_{oars_[i]}', val, on_step=True, prog_bar=True, logger=True)
+        # # try:
+        # for i, val in enumerate(dices_):
+        #     # if counts[0][i] == 1:
+        #     self.log(f'train_dice_{oars_[i]}', val, on_step=True, prog_bar=True, logger=True)
         #         # be sure to log 95%HD if uncommented above
         #         # self.log(f'train_haus_{i}', hdfds[i], on_step=True, logger=True)
         # except Exception:
         #     self.log(f'train_dice_{oars_[0]}', dices_, on_step=True, prog_bar=True, logger=True)
+        ########################################
+        return {'loss':loss}
 
     # ---------------------
     # Run Validation Step, Runs after Trainning Epoch converges
