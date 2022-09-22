@@ -350,16 +350,19 @@ class RandomCrop3D(MTTransform):
             img=img[0,0,:,:,:]
             shape = img.shape
 
-        # if self.mode == 'test':
-        img = img[shape[0]//2:shape[0]-shape[0]//3]
-        img = self.segment_head(img)
-        com_ = measure.center_of_mass(img)
-        img = img[int(com_[0])]
-        # prodcues a mask, where we take COM from...
-        com = measure.center_of_mass(img)
-        # com = [com[0], com[1], com[2]]
-        # assert len(com) == 3
-        self.center = [com_[0], com[0], com[1]]
+        if self.mode == 'test':
+            img = img[shape[0]//2:shape[0]-shape[0]//3]
+            img = self.segment_head(img)
+            com_ = measure.center_of_mass(img)
+            img = img[int(com_[0])]
+            self.center = [com_[0], com[0], com[1]]
+        else:
+            # prodcues a mask, where we take COM from...
+            com = measure.center_of_mass(img)
+            com = [com[0], com[1], com[2]]
+            assert len(com) == 3
+            self.center = com
+
 
     def get_params(self, img):
         if len(img.shape) == 3:
@@ -541,10 +544,10 @@ class RandomCrop3D(MTTransform):
 
         if self.mode=='test':
             self.get_params(img)
-            self.get_shifts(mask2)
+            self.get_shifts(img)
         else:
             self.get_params(img)
-            self.get_shifts(img)
+            self.get_shifts(mask)
 
         if mask is not None:
             assert mask.max() > 0
