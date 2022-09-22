@@ -50,7 +50,7 @@ class SegmentationModule(pl.LightningModule):
         if self.tag == "NECK":
             # includes GTV...
             self.custom_order = [1,2,3]
-        elif tag == "NECKMUS":
+        elif sel.tag == "NECKMUS":
             self.custom_order = [32,33,34,29,28]
         elif self.tag == "SPINE":
             self.custom_order = [4,5,6,7,19,30]
