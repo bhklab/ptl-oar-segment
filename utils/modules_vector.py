@@ -63,12 +63,6 @@ class SegmentationModule(pl.LightningModule):
             # will load in custom_order in utils.py...
             pass
 
-    # def prepare_data(self):
-    #     """
-    #     This class specific to downloading dataset(s) if defined.
-    #     See https://pytorchlightning.github.io/lightning-tutorials/notebooks/lightning_examples/datamodules.html
-    #     """
-
     def setup(self, stage=None):
 
         '''
