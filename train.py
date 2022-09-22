@@ -46,6 +46,9 @@ def main(args):
             gpus=args.gpus, # set to -1 to use all avaliable gpus...
             strategy='ddp', # should be same as args.backend...
             # stochastic_weight_avg=True, # pass to callbacks if required...
+            reload_dataloaders_every_n_epochs=1,
+            limit_train_batches=0.25,
+            limit_val_batches=0.25,
             default_root_dir=model.hparams.root,
             max_epochs=model.hparams.n_epochs,
             # log_gpu_memory='min_max',
