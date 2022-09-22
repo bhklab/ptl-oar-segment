@@ -764,7 +764,7 @@ class SegmentationModule(pl.LightningModule):
         weights = np.append(base, weights)
         # take the inverse of the absolute log of the weights...
         weights = np.abs(np.log(weights))
-        weigths[0] = 0.01
+        weights[0] = 0.01
         self.config["weights"] = weights
         warnings.warn(f"Weights are {weights}")
         return weights
