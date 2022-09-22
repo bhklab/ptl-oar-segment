@@ -46,6 +46,23 @@ class SegmentationModule(pl.LightningModule):
         self.get_model_root_dir()
         self.__build_model()
 
+        self.tag = self.hparams.tag
+        if self.tag == "NECK":
+            # includes GTV...
+            self.custom_order = [1,2,3]
+        elif tag == "NECKMUS":
+            self.custom_order = [32,33,34,29,28]
+        elif self.tag == "SPINE":
+            self.custom_order = [4,5,6,7,19,30]
+        elif self.tag == "TOPHEAD":
+            self.custom_order = [8,11,12,13,14,15,16]
+        elif self.tag == "MIDHEAD":
+            self.custom_order = [9,10,17,18,20,21,22,23,24,25,26,27,31]
+        else:
+            self.custom_order=custom_order
+            # will load in custom_order in utils.py...
+            pass
+
     # def prepare_data(self):
     #     """
     #     This class specific to downloading dataset(s) if defined.
@@ -74,23 +91,8 @@ class SegmentationModule(pl.LightningModule):
         # for clipped image(s) from -500 to 1000; expect mean/std values to
         # fall within the following ranges... -390 < meanHU < -420; 205 < stdHU < 245
 
-        tag = self.hparams.tag
-        path_ = self.hparams.root + f"/config_{tag}.json"
 
-        if tag == "NECK":
-            # includes GTV...
-            custom_order = [1,2,3]
-        elif tag == "NECKMUS":
-            custom_order = [32,33,34,29,28]
-        elif tag == "SPINE":
-            custom_order = [4,5,6,7,19,30]
-        elif tag == "TOPHEAD":
-            custom_order = [8,11,12,13,14,15,16]
-        elif tag == "MIDHEAD":
-            custom_order = [9,10,17,18,20,21,22,23,24,25,26,27,31]
-        else:
-            # will load in custom_order in utils.py...
-            pass
+        path_ = self.hparams.root + f"/config_{self.tag}.json"
 
         try:
             # if os.path.isfile(self.hparams.is_config) is True:
@@ -128,7 +130,7 @@ class SegmentationModule(pl.LightningModule):
             else:
                 data = pd.read_csv(f"{self.hparams.home_path}radcure_oar_summary.csv", index_col=0)
                 # cust_ = custom_order.remove(1)
-                data_ = getROIOrder(custom_order=custom_order, inverse=True)
+                data_ = getROIOrder(custom_order=self.custom_order, inverse=True)
                 oars = list(data_.values())
                 oar_data = data[data["ROI"].isin(oars)]
                 exclude_ = ["RADCURE-0543", "RADCURE-3154"]
@@ -157,8 +159,8 @@ class SegmentationModule(pl.LightningModule):
         self.mean = self.config["meanHU"]
         self.std = self.config["stdHU"]
         # setup custom_order, loaded in with utils.py...
-        self.config["roi_order"] = custom_order
-        self.config["order_dic"] = getROIOrder(custom_order=custom_order, inverse=True)
+        self.config["roi_order"] = self.custom_order
+        self.config["order_dic"] = getROIOrder(custom_order=self.custom_order, inverse=True)
         self.oars = list(self.config["order_dic"].values())
         self.config["data_path"] = self.hparams.data_path
         self.config["oar_order"] = self.oars
