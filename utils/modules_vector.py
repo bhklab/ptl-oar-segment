@@ -45,24 +45,8 @@ class SegmentationModule(pl.LightningModule):
         self.save_hyperparameters(hparams) # 1.3+ self.hparams
         self.get_model_root_dir()
         self.__build_model()
+        self.__getCutomOrder()
 
-        self.tag = self.hparams.tag
-        if self.tag == "NECK":
-            # includes GTV...
-            self.custom_order = [1,2,3]
-        elif self.tag == "NECKMUS":
-            self.custom_order = [32,33,34,29,28]
-        elif self.tag == "SPINE":
-            self.custom_order = [4,5,6,7,19,30]
-        elif self.tag == "TOPHEAD":
-            self.custom_order = [8,11,12,13,14,15,16]
-        elif self.tag == "MIDHEAD":
-            self.custom_order = [9,10,17,18,20,21,22,23,24,25,26,27,31]
-        else:
-            self.custom_order=custom_order
-            warnings.warn("Tag not specified...using general ordering.")
-            # will load in custom_order in utils.py...
-            pass
     def setup(self, stage=None):
 
         '''
@@ -124,7 +108,7 @@ class SegmentationModule(pl.LightningModule):
             else:
                 data = pd.read_csv(f"{self.hparams.home_path}radcure_oar_summary.csv", index_col=0)
                 # cust_ = custom_order.remove(1)
-                data_ = getROIOrder(custom_order=self.custom_order, inverse=True)
+                data_ = getROIOrder(tag=self.tag, inverse=True)
                 oars = list(data_.values())
                 oar_data = data[data["ROI"].isin(oars)]
                 exclude_ = ["RADCURE-0543", "RADCURE-3154"]
@@ -154,7 +138,7 @@ class SegmentationModule(pl.LightningModule):
         self.std = self.config["stdHU"]
         # setup custom_order, loaded in with utils.py...
         self.config["roi_order"] = self.custom_order
-        self.config["order_dic"] = getROIOrder(custom_order=self.custom_order, inverse=True)
+        self.config["order_dic"] = getROIOrder(tag=self.tag, inverse=True)
         self.oars = list(self.config["order_dic"].values())
         self.config["data_path"] = self.hparams.data_path
         self.config["oar_order"] = self.oars
@@ -178,6 +162,25 @@ class SegmentationModule(pl.LightningModule):
         x = x.unsqueeze(1)
         return self.net(x)
 
+    def __getCutomOrder(self):
+
+        self.tag = self.hparams.tag
+        if self.tag == "NECK":
+            # includes GTV...
+            self.custom_order = [1,2,3]
+        elif self.tag == "NECKMUS":
+            self.custom_order = [32,33,34,29,28]
+        elif self.tag == "SPINE":
+            self.custom_order = [4,5,6,7,19,30]
+        elif self.tag == "TOPHEAD":
+            self.custom_order = [8,11,12,13,14,15,16]
+        elif self.tag == "MIDHEAD":
+            self.custom_order = [9,10,17,18,20,21,22,23,24,25,26,27,31]
+        else:
+            self.custom_order=custom_order
+            warnings.warn("Tag not specified...using general ordering.")
+            # will load in custom_order in utils.py...
+            pass
     # ---------------------
     # TRAINING
     # ---------------------
@@ -678,7 +681,7 @@ class SegmentationModule(pl.LightningModule):
         # we want this to be a list of list(s)
         # contain the paths to the structures for each patient
         folders = [glob.glob(self.hparams.data_path + fold + "/structures/*") for fold in folders]
-        config = getHeaderData(folders)
+        config = getHeaderData(folders, tag=self.tag)
 
         # config["IMGINFO"]["VOXINFO"] = voxel_info
         return config # ["IMGINFO"]

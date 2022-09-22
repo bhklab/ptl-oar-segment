@@ -27,7 +27,7 @@ ROIS = ["External", "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
         "Musc_Constrict_S", "Musc_Constrict_M"]
 
 # this was the original order used for the OG segmentation study...
-custom_order = [4,5,6,8,11,12,13,14,15,16,17,18,20,22,25,26,27,30,31]
+# custom_order = [4,5,6,8,11,12,13,14,15,16,17,18,20,22,25,26,27,30,31]
 # using the commented out ROIS list
 # for purposes of testing
 # tag NECK
@@ -40,7 +40,6 @@ custom_order = [4,5,6,8,11,12,13,14,15,16,17,18,20,22,25,26,27,30,31]
 # custom_order = [9,10,17,18,20,21,22,23,24,25,26,27,31]
 # # tag NECKMUSNRV
 # custom_order = [32,33,34,29,28]
-
 # custom_order = range(len(ROIS)) #[1,2,3,4,5,6,7,8,9,10,11,12,13]
 # custom_order = [1,2,3,4,5,6,7,8,9,10,11,12,13] # None...
 
@@ -53,8 +52,9 @@ custom_order = [4,5,6,8,11,12,13,14,15,16,17,18,20,22,25,26,27,30,31]
 #     "MPCM"]
 #################################
 
-def getROIOrder(custom_order=custom_order, rois=ROIS, inverse=False, include_external=True):
+def getROIOrder(tag, rois=ROIS, inverse=False, include_external=True):
     # ideally this ordering has to be consistent to make inference easy...
+    custom_order = getCustomOrder(tag)
     if custom_order is None:
         if include_external is False:
             order_dic = {roi:i for i, roi in enumerate(ROIS)} if inverse is False else {i:roi for i, roi in enumerate(ROIS)}
@@ -68,7 +68,26 @@ def getROIOrder(custom_order=custom_order, rois=ROIS, inverse=False, include_ext
 ##########################
 # first step get ROI order
 ##########################
-def getHeaderData(folders, structures=True, roi_order=getROIOrder()):
+def getCustomOrder(tag):
+    if tag == "NECK":
+        # includes GTV...
+        custom_order = [1,2,3]
+    elif tag == "NECKMUS":
+        custom_order = [32,33,34,29,28]
+    elif tag == "SPINE":
+        custom_order = [4,5,6,7,19,30]
+    elif tag == "TOPHEAD":
+        custom_order = [8,11,12,13,14,15,16]
+    elif tag == "MIDHEAD":
+        custom_order = [9,10,17,18,20,21,22,23,24,25,26,27,31]
+    else:
+        custom_order=custom_order
+        warnings.warn("Tag not specified...using general ordering.")
+        # will load in custom_order in utils.py...
+    return custom_order
+
+def getHeaderData(folders, structures=True, tag=None):
+    roi_order=getROIOrder(tag)
     assert len(folders) > 1
     voxel_dic = {}
     img_dic = {}
