@@ -28,21 +28,6 @@ ROIS = ["External", "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
 
 # this was the original order used for the OG segmentation study...
 # custom_order = [4,5,6,8,11,12,13,14,15,16,17,18,20,22,25,26,27,30,31]
-# using the commented out ROIS list
-# for purposes of testing
-# tag NECK
-# custom_order = [1,2,3]
-# tag SPINE
-# custom_order = [4,5,6,7,19,30]
-# tag TOPHEAD
-# custom_order = [8,11,12,13,14,15,16]
-# # tag MIDHEAD
-# custom_order = [9,10,17,18,20,21,22,23,24,25,26,27,31]
-# # tag NECKMUSNRV
-# custom_order = [32,33,34,29,28]
-# custom_order = range(len(ROIS)) #[1,2,3,4,5,6,7,8,9,10,11,12,13]
-# custom_order = [1,2,3,4,5,6,7,8,9,10,11,12,13] # None...
-
 #################################
 # original ROI standardization...
 # rois = ["GTV", "BRAIN","BSTEM","SPCOR","ESOPH","LARYNX","MAND",
@@ -84,7 +69,9 @@ def getCustomOrder(tag):
     elif tag == "TOPHEAD":
         custom_order = [8,11,12,13,14,15,16]
     elif tag == "MIDHEAD":
-        custom_order = [7,9,10,17,18,21,22,23,24,25,26,27,31]
+        custom_order = [9,10,17,18,21,22,23,24,25,26,27]
+    elif tag == "OTHER":
+        custom_order = [7,31]
     else:
         custom_order=custom_order
         warnings.warn("Tag not specified...using general ordering.")
