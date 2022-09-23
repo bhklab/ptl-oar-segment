@@ -441,6 +441,8 @@ class HD_Loss3D(nn.Module):
         net_output, target = onehot(net_output, target)
         out = monmet.compute_hausdorff_distance(net_output, target, percentile=self.percentile,
                                                 include_background=True)
+
+        out = torch.nan_to_num(out, nan=50., posinf=50)
         if self.weight is not None:
             if mask is not None:
                 mask = mask.type_as(self.weight)
@@ -454,10 +456,9 @@ class HD_Loss3D(nn.Module):
         # counts = mask[0].cpu().numpy()
         # bool_counts = (counts == 1)
         # counts_ = np.where(bool_counts)[0]
-
         hd = torch.pow(out, .25) # hyperparameter, can varry...
         hd = hd[~torch.isnan(hd)]
-        hd_max = hd.max()*.25
+        hd_max = hd.max()*.5
         # can also implement topK HD loss...
         return hd.mean() , hd_max
 

@@ -203,7 +203,7 @@ class SegmentationModule(pl.LightningModule):
         loss = self.criterion(outputs, targets, counts)
         # if loss is nan...
         # if torch.isnan(loss)[0] is True:
-        loss = torch.nan_to_num(loss, nan=10.)
+        loss = torch.nan_to_num(loss, nan=10., posinf=10)
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
         # calculate and log dices...
         ###############################
