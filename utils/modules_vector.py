@@ -170,7 +170,7 @@ class SegmentationModule(pl.LightningModule):
         elif self.tag == "NECKMUS":
             self.custom_order = [32,33,34]
         elif self.tag == "SPINE":
-            self.custom_order = [4,5,6,19,20,30]
+            self.custom_order = [30,4,5,6,19,20]
         elif self.tag == "TOPHEAD":
             self.custom_order = [8,11,12,13,14,15,16]
         elif self.tag == "MIDHEAD":
