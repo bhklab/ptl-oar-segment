@@ -170,11 +170,11 @@ class SegmentationModule(pl.LightningModule):
         elif self.tag == "NECKMUS":
             self.custom_order = [32,33,34]
         elif self.tag == "SPINE":
-            self.custom_order = [4,5,6,7,19,20]
+            self.custom_order = [4,5,6,19,20,30]
         elif self.tag == "TOPHEAD":
             self.custom_order = [8,11,12,13,14,15,16]
         elif self.tag == "MIDHEAD":
-            self.custom_order = [9,10,17,18,21,22,23,24,25,26,27,30,31]
+            self.custom_order = [7,9,10,17,18,21,22,23,24,25,26,27,31]
         else:
             self.custom_order=custom_order
             warnings.warn("Tag not specified...using general ordering.")
