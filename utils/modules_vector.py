@@ -69,15 +69,13 @@ class SegmentationModule(pl.LightningModule):
         # for clipped image(s) from -500 to 1000; expect mean/std values to
         # fall within the following ranges... -390 < meanHU < -420; 205 < stdHU < 245
 
-
         path_ = self.hparams.root + f"/config_{self.tag}.json"
-
+        exclude_ = ["RADCURE-0543", "RADCURE-3154", "RADCURE-1427"]
         try:
             # if os.path.isfile(self.hparams.is_config) is True:
             # ideally this should be a .json file in the format of self.data_config
             # produced by __getDataHparam() below...
             config = getJson(path_) # [self.hparams.fold]
-            exclude_ = ["RADCURE-0543", "RADCURE-3154"]
             self.train_data = pd.DataFrame.from_dict({"NEWID":config["train_data"]})
             self.train_data = self.train_data[~self.train_data["NEWID"].isin(exclude_)]
             # self.train_data = self.train_data[10:]
@@ -104,14 +102,13 @@ class SegmentationModule(pl.LightningModule):
                 self.train_data = pd.read_csv(train_csv_path)
                 self.valid_data = pd.read_csv(valid_csv_path)
                 self.test_data  = pd.read_csv(test_csv_path)
-
             else:
                 data = pd.read_csv(f"{self.hparams.home_path}radcure_oar_summary.csv", index_col=0)
                 # cust_ = custom_order.remove(1)
                 data_ = getROIOrder(tag=self.tag, inverse=True)
                 oars = list(data_.values())
                 oar_data = data[data["ROI"].isin(oars)]
-                exclude_ = ["RADCURE-0543", "RADCURE-3154"]
+                # exclude_ = ["RADCURE-0543", "RADCURE-3154"]
                 oar_data = pd.DataFrame.from_dict({"NEWID":list(oar_data["NEWID"].unique())})
                 oar_data = oar_data[~oar_data["NEWID"].isin(exclude_)]
                 self.train_data = oar_data[:int(len(oar_data)*.9)]
@@ -167,15 +164,15 @@ class SegmentationModule(pl.LightningModule):
         self.tag = self.hparams.tag
         if self.tag == "NECK":
             # includes GTV...
-            self.custom_order = [1,2,3]
+            self.custom_order = [1,2,3,29,28]
         elif self.tag == "NECKMUS":
-            self.custom_order = [32,33,34,29,28]
+            self.custom_order = [32,33,34]
         elif self.tag == "SPINE":
-            self.custom_order = [4,5,6,7,19,30]
+            self.custom_order = [4,5,6,7,19]
         elif self.tag == "TOPHEAD":
             self.custom_order = [8,11,12,13,14,15,16]
         elif self.tag == "MIDHEAD":
-            self.custom_order = [9,10,17,18,20,21,22,23,24,25,26,27,31]
+            self.custom_order = [9,10,17,18,20,21,22,23,24,25,26,27,30,31]
         else:
             self.custom_order=custom_order
             warnings.warn("Tag not specified...using general ordering.")
