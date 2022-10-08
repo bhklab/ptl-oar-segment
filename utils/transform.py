@@ -351,14 +351,17 @@ class RandomCrop3D(MTTransform):
             shape = img.shape
 
         # if self.mode == 'test':
+
         img = img[shape[0]//2:shape[0]-shape[0]//3]
         img = self.segment_head(img)
         com_ = measure.center_of_mass(img)
         img = img[int(com_[0])]
+        com = measure.center_of_mass(img)
         self.center = [com_[0], com[0], com[1]]
+        
         # else:
         #     # prodcues a mask, where we take COM from...
-        #     com = measure.center_of_mass(img)
+        #
         #     com = [com[0], com[1], com[2]]
         #     assert len(com) == 3
         #     self.center = com
