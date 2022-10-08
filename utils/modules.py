@@ -57,9 +57,8 @@ class SegmentationModule(pl.LightningModule):
         :return:
         n_classes + 1 (because we need to include background)
         """
-
+        
         classes = self.hparams.n_classes + 1
-
         if self.hparams.model == "DEEPNET":
             # num_classes + 1 that includes background...
             self.net = DeepUNet(num_classes=classes, sub_enc=self.hparams.sub_enc)

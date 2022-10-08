@@ -57,9 +57,6 @@ def getCustomOrder(tag):
     if tag == "NECK":
         # includes GTV...
         custom_order = [1,2,3]
-    # elif tag == "NECKBP":
-    #     # includes GTV...and BrachialPlex_L/R
-    #     custom_order = [1,2,3,]
     elif tag == "BRACP":
         custom_order = [29,28]
     elif tag == "NECKMUS":

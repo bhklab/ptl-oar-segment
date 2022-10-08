@@ -44,17 +44,16 @@ def main(args):
                                                      save_top_k=3,)
     trainer = Trainer(
             gpus=args.gpus, # set to -1 to use all avaliable gpus...
-            strategy='ddp', # should be same as args.backend...
-            # stochastic_weight_avg=True, # pass to callbacks if required...
+            strategy='ddp', # should be same as args.backend..., # stochastic_weight_avg=True, # pass to callbacks if required...
             reload_dataloaders_every_n_epochs=1,
-            limit_train_batches=0.25,
-            limit_val_batches=0.25,
+            limit_train_batches=0.5,
+            limit_val_batches=0.3,
             default_root_dir=model.hparams.root,
             max_epochs=model.hparams.n_epochs,
             # log_gpu_memory='min_max',
             sync_batchnorm=True,
             # precision=16,
-            accumulate_grad_batches={75:2, 150:4},#2, # changing this parameter affects outputs
+            accumulate_grad_batches={150:2, 400:4},#2, # changing this parameter affects outputs
             callbacks=[checkpoint_callback])
             # checkpoint_callback=checkpoint_callback)# < 1.4.0
             # resume_from_checkpoint=args.weights_path)

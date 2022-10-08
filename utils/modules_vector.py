@@ -131,8 +131,11 @@ class SegmentationModule(pl.LightningModule):
         print(config)
         # other values can be loaded in here as well...
         # ideally the data_config would be saved
-        self.mean = self.config["meanHU"]
-        self.std = self.config["stdHU"]
+        # Kfold["means"][fold] # - 300.
+        self.mean = -407.4462155135238
+        self.std = 226.03663728492648
+        # self.mean = self.config["meanHU"]
+        # self.std = self.config["stdHU"]
         # setup custom_order, loaded in with utils.py...
         self.config["roi_order"] = self.custom_order
         self.config["order_dic"] = getROIOrder(tag=self.tag, inverse=True)
