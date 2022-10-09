@@ -345,8 +345,8 @@ class SegmentationModule(pl.LightningModule):
                 counts_ = counts_[:len(counts_)-1]
                 dices_ = dices[counts_]
             except Exception:
-                counts_ = counts_[:len(count_)-2]
-                dices_ = dices[counts]
+                counts_ = counts_[:len(counts_)-2]
+                dices_ = dices[counts_]
         print(dices_)
         hdfds_ = hdfds[counts_]
         print(hdfds_)
