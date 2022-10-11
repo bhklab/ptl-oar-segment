@@ -59,16 +59,26 @@ def getCustomOrder(tag):
         custom_order = [1,2,3]
     elif tag == "BRACP":
         custom_order = [29,28]
+    elif tag == "LACRIM":
+        custom_order = [9,10]
+    elif tag == "PAROTI":
+        custom_order = [17,18]
+    elif tag == "SUBMAN":
+        custom_order = [21,22]
+    elif tag == "COCHLEA":
+        custom_order = [23,24]
+    elif tag == "GLANDS":
+        custom_order = [9,10,17,18,21,22]
     elif tag == "NECKMUS":
         custom_order = [32,33,34]
     elif tag == "SPINE":
-        custom_order = [5,4,6,19]
+        custom_order = [20,5,4,6,19,30]
     elif tag == "TOPHEAD":
-        custom_order = [30,8,11,12,13,14,15,16]
+        custom_order = [13,8,14,15,16,11,12]
     elif tag == "MIDHEAD":
         custom_order = [9,10,17,18,19,20,21,22,23,24]
     elif tag == "OTHER":
-        custom_order = [7,31,4,25,26,27,5,6]
+        custom_order = [7,31,4,25,26,27,5,6,30]
     else:
         custom_order=custom_order
         warnings.warn("Tag not specified...using general ordering.")

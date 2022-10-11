@@ -175,7 +175,7 @@ class SegmentationModule(pl.LightningModule):
         elif self.tag == "SPINE":
             self.custom_order = [5,4,6,19]
         elif self.tag == "TOPHEAD":
-            self.custom_order = [30,8,11,12,13,14,15,16]
+            self.custom_order = [13,8,14,15,16,11,12]
         elif self.tag == "MIDHEAD":
             self.custom_order = [9,10,17,18,19,20,21,22,23,24]
         elif self.tag == "OTHER":
@@ -185,6 +185,7 @@ class SegmentationModule(pl.LightningModule):
             warnings.warn("Tag not specified...using general ordering.")
             # will load in custom_order in utils.py...
             pass
+
     # ---------------------
     # TRAINING
     # ---------------------
@@ -208,6 +209,7 @@ class SegmentationModule(pl.LightningModule):
         # if torch.isnan(loss)[0] is True:
         loss = torch.nan_to_num(loss, nan=10., posinf=10)
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
+        return {'loss':loss}
         # calculate and log dices...
         ###############################
         # max_ = targets.max()
@@ -263,7 +265,6 @@ class SegmentationModule(pl.LightningModule):
         # except Exception:
         #     self.log(f'train_dice_{oars_[0]}', dices_, on_step=True, prog_bar=True, logger=True)
         ########################################
-        return {'loss':loss}
 
     # ---------------------
     # Run Validation Step, Runs after Trainning Epoch converges
@@ -276,108 +277,108 @@ class SegmentationModule(pl.LightningModule):
         self.step_type = "valid"
         inputs, targets, counts = batch
         shape = inputs.size()
-
         if batch_idx == 0:
             print(inputs.max(), inputs.size())
             print(targets.max(), targets.size())
         if inputs.shape != targets.shape:
             warnings.warn("Input Shape Not Same size as label...")
+        # calculate loss...
+        outputs = self.forward(inputs)
+        if type(outputs) == tuple:
+            outputs = outputs[0]
+        loss = self.criterion(outputs, targets, counts) # (self.criterion(outputs, targets.unsqueeze(1)).cpu() if self.criterion is not None else 0)
+        loss = torch.nan_to_num(loss, nan=10., posinf=10)
+        self.log("val_loss", loss, on_epoch=True, prog_bar=True, logger=True)
 
+        # calculating evaluation metrics metrics
+        # apply soft/argmax to outputs...
+        outputs = torch.softmax(outputs, dim=1)
+        outputs = torch.argmax(outputs , dim=1)
+        max_ = targets.max()
+        outputs, targets = onehot(outputs, targets, argmax=False)
+        dices = monmet.compute_meandice(outputs, targets)
+        print(dices.size(),dices)
+        s = dices.size()
+        if s[0]==1:
+            dices = dices[0]
+            # hdfds = hdfds[0]
+            # asds = asds[0]
+        else:
+            dices=dices.mean(dim=0)
+            # hdfds=hdfds.mean(dim=0)
+            # asds = asds.mean(dim=0)
+        # use counts to filter out which metrics to log for set OAR...
+        counts = counts[0].cpu().numpy()
+        bool_counts = (counts == 1)
+        counts_ = np.where(bool_counts)[0]
+        print(counts, bool_counts, counts_)
+        try:
+            try:
+                dices_ = dices[counts_]
+            except Exception:
+                try:
+                    counts_ = counts_[:len(counts_)-1]
+                    dices_ = dices[counts_]
+                    bool_counts = bool_counts[:len(counts_)-1]
+                except Exception:
+                    try:
+                        counts_ = counts_[:len(counts_)-2]
+                        dices_ = dices[counts_]
+                        bool_counts = bool_counts[:len(counts_)-2]
+                    except Exception:
+                        counts_ = counts_[:len(counts_)-3]
+                        dices_ = dices[counts_]
+                        bool_counts = bool_counts[:len(counts_)-3]
+
+            print(dices_)
+            hdfds_ = hdfds[counts_]
+            print(hdfds_)
+            asds_ = asds[counts_]
+            print(asds_)
+            if "BACK" not in self.oars:
+                self.oars = ["BACK"] + self.oars
+            oars_ = np.array(self.oars)[bool_counts]
+            print(oars_, bool_counts)
+            for i, val in enumerate(dices_):
+                self.log(f'val_dice_{oars_[i]}', val, on_step=True, prog_bar=True, logger=True)
+                # logging individual evaluation metrics...
+                # if you have the order of OAR(s) - given that they're variable, i can be replaced with ROI name...
+                # if counts[i] == 1:
+                # self.log(f'val_haus_{oars_[i]}', hdfds_[i], on_step=True, logger=True)
+                # self.log(f"val_asds_{oars_[i]}", asds_[i], on_step=True, logger=True)
+                # logging evaluation metrics ...
+                # self.log(f"val_EVAL_{oars_[i]}", val*100/(hdfds_[i]+asds_[i]), on_step=True, logger=True)
+        except Exception:
+            warnings.warn(f"Couldn't log metrics for validation step {batch_idx}.")
+
+        ###### EXTRA STUFF ##########
         # Can change this to incorporate sliding window...
         # roi_size = (int(shape[1]), 192, 192) # (64, 192, 192)
         # sw_batch_size = 1 # second sliding window inference
         # outputs = sliding_window_inference(inputs, roi_size, sw_batch_size, self.forward)
         # evaluation using sliding window inference only (really) required during testing.
+        # if batch_idx%2==0:
+        ################
+        # grab images to save during training...
+        # in_   = inputs.cpu().numpy()
+        # targ_ = targets.cpu().numpy()
+        # out_  = outputs.cpu().detach().numpy()
+        # in_, out_, targ_ = self.export_figs(in_, out_, targ_)
+        ################
 
-        outputs = self.forward(inputs)
-        if type(outputs) == tuple:
-            outputs = outputs[0]
-        loss = self.criterion(outputs, targets, counts) # (self.criterion(outputs, targets.unsqueeze(1)).cpu() if self.criterion is not None else 0)
-        self.log("val_loss", loss, on_epoch=True, prog_bar=True, logger=True)
-
-        if batch_idx%2==0:
-            # apply soft/argmax to outputs...
-            outputs = torch.softmax(outputs, dim=1)
-            outputs = torch.argmax(outputs , dim=1)
-            ################
-            # grab images to save during training...
-            # in_   = inputs.cpu().numpy()
-            # targ_ = targets.cpu().numpy()
-            # out_  = outputs.cpu().detach().numpy()
-            # in_, out_, targ_ = self.export_figs(in_, out_, targ_)
-            ################
-            # calculating evaluation metrics metrics
-            max_ = targets.max()
-            outputs, targets = onehot(outputs, targets, argmax=False)
-
-            hdfds = monmet.compute_hausdorff_distance(outputs, targets, percentile=95,
-                                                       include_background=True)
-            dices = monmet.compute_meandice(outputs, targets)
-            asds = monmet.compute_average_surface_distance(outputs,targets, include_background=True)
-            print(dices.size(), hdfds.size(), asds.size())
-            print(dices,hdfds, asds)
-            # only use if you'd like to plot example of outputs...
-            # Note: Best way to do that is to define validation_epoch_end
-            # output = OrderedDict( { "val_loss": loss,
-            #         "input": torch.from_numpy(in_).type(torch.FloatTensor),
-            #         "out": torch.from_numpy(out_).type(torch.FloatTensor),
-            #         "targ": torch.from_numpy(targ_).type(torch.FloatTensor),})
-            s = dices.size()
-            if s[0]==1:
-                dices = dices[0]
-                hdfds = hdfds[0]
-                asds = asds[0]
-            else:
-                dices=dices.mean(dim=0)
-                hdfds=hdfds.mean(dim=0)
-                asds = asds.mean(dim=0)
-
-            # use counts to filter out which metrics to log for set OAR...
-            counts = counts[0].cpu().numpy()
-            bool_counts = (counts == 1)
-            counts_ = np.where(bool_counts)[0]
-            print(counts, bool_counts, counts_)
-            # counts_ = list(counts_.astype(bool))
-            # counts_2 = counts_[:max_]
-            try:
-                try:
-                    dices_ = dices[counts_]
-                except Exception:
-
-                    try:
-                        counts_ = counts_[:len(counts_)-1]
-                        dices_ = dices[counts_]
-                        bool_counts = bool_counts[:len(counts_)-1]
-                    except Exception:
-                        try:
-                            counts_ = counts_[:len(counts_)-2]
-                            dices_ = dices[counts_]
-                            bool_counts = bool_counts[:len(counts_)-2]
-                        except Exception:
-                            counts_ = counts_[:len(counts_)-3]
-                            dices_ = dices[counts_]
-                            bool_counts = bool_counts[:len(counts_)-3]
-
-                print(dices_)
-                hdfds_ = hdfds[counts_]
-                print(hdfds_)
-                asds_ = asds[counts_]
-                print(asds_)
-                if "BACK" not in self.oars:
-                    self.oars = ["BACK"] + self.oars
-                oars_ = np.array(self.oars)[bool_counts]
-                print(oars_, bool_counts)
-                for i, val in enumerate(dices_):
-                    # logging individual evaluation metrics...
-                    # if you have the order of OAR(s) - given that they're variable, i can be replaced with ROI name...
-                    # if counts[i] == 1:
-                    self.log(f'val_dice_{oars_[i]}', val, on_step=True, prog_bar=True, logger=True)
-                    self.log(f'val_haus_{oars_[i]}', hdfds_[i], on_step=True, logger=True)
-                    self.log(f"val_asds_{oars_[i]}", asds_[i], on_step=True, logger=True)
-                    # logging evaluation metrics ...
-                    self.log(f"val_EVAL_{oars_[i]}", val*100/(hdfds_[i]+asds_[i]), on_step=True, logger=True)
-            except Exception:
-                warnings.warn(f"Couldn't log metrics for validation step {batch_idx}.")
+        # hdfds = monmet.compute_hausdorff_distance(outputs, targets, percentile=95,
+        #                                            include_background=True)
+        # asds = monmet.compute_average_surface_distance(outputs,targets, include_background=True)
+        # only use if you'd like to plot example of outputs...
+        # Note: Best way to do that is to define validation_epoch_end
+        # output = OrderedDict( { "val_loss": loss,
+        #         "input": torch.from_numpy(in_).type(torch.FloatTensor),
+        #         "out": torch.from_numpy(out_).type(torch.FloatTensor),
+        #         "targ": torch.from_numpy(targ_).type(torch.FloatTensor),})
+        # counts_ = list(counts_.astype(bool))
+        # counts_2 = counts_[:max_]
+        #################################
+        #################################
 
     def CalcEvaluationMetric(self, outputs, targs, batch_idx, total_time):
 

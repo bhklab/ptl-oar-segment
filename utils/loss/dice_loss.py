@@ -489,8 +489,6 @@ class FocalTversky_and_topk_loss(nn.Module):
         # fold 2 (added hd_loss and corrected with hd_max term...) (version_2770034)
         # fold 3 same as fold 0 ... (version_2771355)
         # fold 4 same as fold 2 (version_2784520)
-        # if hd_loss > 10.:
-        #     hd_loss = 10.
         # we need to use a switch here, after convergence in dice, change to HD
         # minimization.
 
