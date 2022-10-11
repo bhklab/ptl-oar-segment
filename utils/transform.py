@@ -351,8 +351,10 @@ class RandomCrop3D(MTTransform):
             shape = img.shape
 
         # if self.mode == 'test':
-
-        img = img[shape[0]//3:shape[0]-shape[0]//3]
+        # TOPHEAD CLASSES
+        img = img[shape[0]//2:shape[0]-shape[0]//3]
+        # EVERYTHING ELSE...
+        # img = img[shape[0]//2:shape[0]-shape[0]//3]
         img = self.segment_head(img)
         com_ = measure.center_of_mass(img)
         img = img[int(com_[0])]
