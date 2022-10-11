@@ -70,7 +70,7 @@ class SegmentationModule(pl.LightningModule):
         # fall within the following ranges... -390 < meanHU < -420; 205 < stdHU < 245
 
         path_ = self.hparams.root + f"/config_{self.tag}.json"
-        exclude_ = ["RADCURE-0543", "RADCURE-3154", "RADCURE-1427"]
+        exclude_ = ["RADCURE-0543", "RADCURE-3154", "RADCURE-1427", "RADCURE-0361"]
         try:
             # if os.path.isfile(self.hparams.is_config) is True:
             # ideally this should be a .json file in the format of self.data_config
@@ -173,13 +173,13 @@ class SegmentationModule(pl.LightningModule):
         elif self.tag == "NECKMUS":
             self.custom_order = [32,33,34]
         elif self.tag == "SPINE":
-            self.custom_order = [19,5,6,17,18,20]
+            self.custom_order = [5,4,6,19]
         elif self.tag == "TOPHEAD":
-            self.custom_order = [8,11,12,13,14,15,16]
+            self.custom_order = [30,8,11,12,13,14,15,16]
         elif self.tag == "MIDHEAD":
-            self.custom_order = [9,10,17,18,21,22,23,24,20]
+            self.custom_order = [9,10,17,18,19,20,21,22,23,24]
         elif self.tag == "OTHER":
-            self.custom_order = [7,31,4,25,26,27,30]
+            self.custom_order = [7,31,4,25,26,27,5,6]
         else:
             self.custom_order=custom_order
             warnings.warn("Tag not specified...using general ordering.")
