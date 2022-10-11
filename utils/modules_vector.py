@@ -295,7 +295,7 @@ class SegmentationModule(pl.LightningModule):
         loss = self.criterion(outputs, targets, counts) # (self.criterion(outputs, targets.unsqueeze(1)).cpu() if self.criterion is not None else 0)
         self.log("val_loss", loss, on_epoch=True, prog_bar=True, logger=True)
 
-        if batch_idx%3==0:
+        if batch_idx%2==0:
             # apply soft/argmax to outputs...
             outputs = torch.softmax(outputs, dim=1)
             outputs = torch.argmax(outputs , dim=1)
@@ -343,14 +343,21 @@ class SegmentationModule(pl.LightningModule):
                 try:
                     dices_ = dices[counts_]
                 except Exception:
+
                     try:
                         counts_ = counts_[:len(counts_)-1]
                         dices_ = dices[counts_]
                         bool_counts = bool_counts[:len(counts_)-1]
                     except Exception:
-                        counts_ = counts_[:len(counts_)-2]
-                        dices_ = dices[counts_]
-                        bool_counts = bool_counts[:len(counts_)-2]
+                        try:
+                            counts_ = counts_[:len(counts_)-2]
+                            dices_ = dices[counts_]
+                            bool_counts = bool_counts[:len(counts_)-2]
+                        except Exception:
+                            counts_ = counts_[:len(counts_)-3]
+                            dices_ = dices[counts_]
+                            bool_counts = bool_counts[:len(counts_)-3]
+
                 print(dices_)
                 hdfds_ = hdfds[counts_]
                 print(hdfds_)
