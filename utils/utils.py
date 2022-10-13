@@ -82,7 +82,7 @@ def getCustomOrder(tag):
     elif tag == "MIDHEAD":
         custom_order = [23,24,17,18,19,20,21,22,9,10,4,5,6]
     elif tag == "OTHER":
-        custom_order = [7,31,4,25,26,27,5,6,30]
+        custom_order = [19,20,21,22,23,24,25,26,27,28,29,30,31,17,18,4]
     else:
         custom_order=custom_order
         warnings.warn("Tag not specified...using general ordering.")
