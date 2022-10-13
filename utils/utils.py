@@ -76,7 +76,7 @@ def getCustomOrder(tag):
     elif tag == "TOPHEAD":
         custom_order = [13,8,14,15,16,11,12]
     elif tag == "MIDHEAD":
-        custom_order = [9,10,17,18,19,20,21,22,23,24]
+        custom_order = [23,24,17,18,19,20,21,22,9,10,4,5,6]
     elif tag == "OTHER":
         custom_order = [7,31,4,25,26,27,5,6,30]
     else:
