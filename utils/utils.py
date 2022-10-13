@@ -72,7 +72,7 @@ def getCustomOrder(tag):
     elif tag == "NECKMUS":
         custom_order = [32,33,34]
     elif tag == "SPINE":
-        custom_order = [20,19,30,7,31,4,25,26,27,4,5,6]
+        custom_order = [29,28,30,7,31,4,25,26,27,4,5,6,19,20]
     elif tag == "TOPHEAD":
         custom_order = [13,8,14,15,16,11,12]
     elif tag == "MIDHEAD":
