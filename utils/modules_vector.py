@@ -172,6 +172,10 @@ class SegmentationModule(pl.LightningModule):
             self.custom_order = [29,28]
         elif self.tag == "NECKMUS":
             self.custom_order = [32,33,34]
+        elif self.tag == "TOPHEAD":
+            self.custom_order = [13,8,14,15,16,11,12]
+        elif self.tag == "GLANDS":
+            self.custom_order = [9,10,17,18,21,22]
         elif self.tag == "LACRIM":
             self.custom_order = [9,10]
         elif self.tag == "PAROTI":
@@ -180,12 +184,8 @@ class SegmentationModule(pl.LightningModule):
             self.custom_order = [21,22]
         elif self.tag == "COCHLEA":
             self.custom_order = [23,24]
-        elif self.tag == "GLANDS":
-            self.custom_order = [9,10,17,18,21,22]
         elif self.tag == "SPINE":
             self.custom_order = [20,5,4,6,19,30]
-        elif self.tag == "TOPHEAD":
-            self.custom_order = [13,8,14,15,16,11,12]
         elif self.tag == "MIDHEAD":
             self.custom_order = [9,10,17,18,19,20,21,22,23,24]
         elif self.tag == "OTHER":
