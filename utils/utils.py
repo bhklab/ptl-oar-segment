@@ -67,6 +67,10 @@ def getCustomOrder(tag):
         custom_order = [21,22]
     elif tag == "COCHLEA":
         custom_order = [23,24]
+    elif tag == "LARYNX":
+        custom_order = [5,6,7]
+    elif tag == "BRAIN":
+        custom_order = [4,30,31]
     elif tag == "GLANDS":
         custom_order = [23,24,25,26,27,9,10,17,18,21,22,19,20]
     elif tag == "NECKMUS":
