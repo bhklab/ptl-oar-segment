@@ -36,7 +36,7 @@ from .utils import *
 # v_ = getROIOrder(custom_order=custom_order)
 
 class LoadPatientVolumes(Dataset):
-    def __init__(self, folder_data, data_config, tag="neck", transform=None, cache_dir="/h/jmarsilla/scratch"):
+    def __init__(self, folder_data, data_config, tag="neck", transform=None, cache_dir="/cluster/projects/radiomics/Temp/joe/scratch-1222"): #"/h/jmarsilla/scratch"
         """
         This is the class that our Dataloader object
         will take to create batches for training.
