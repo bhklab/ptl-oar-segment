@@ -92,8 +92,8 @@ class LoadPatientVolumes(Dataset):
         # self.mask = []
         # this will load in masks and set them to class value of order_dic
         # can be modified in target adaptive loss or be used to condition network to missing labels.
-        cache_file = self.cache_dir + f"/{self.patient}_{self.tag}_mask.nrrd"
-        cache_file = cache_file.lower().replace("-", "_")
+        name_ = f"/{self.patient}_{self.tag}_mask.nrrd"
+        cache_file = self.cache_dir + name_.lower().replace("-", "_")
 
         if os.path.isfile(cache_file):
             mask = nrrd.read(cache_file)
