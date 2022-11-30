@@ -94,8 +94,8 @@ class SegmentationModule(pl.LightningModule):
                 if self.hparams.home_path[-1] != "/":
                     self.hparams.home_path += "/"
                 # load dataset paths...
-                train_csv_path = str(self.hparams.home_path) + "wolnet-sample/vector_train.csv" # f"wolnet-sample/new_train_fold_{fold}.csv"
-                valid_csv_path = str(self.hparams.home_path) + "wolnet-sample/vector_test.csv" # f"wolnet-sample/new_valid_fold_{fold}.csv"
+                train_csv_path = str(self.hparams.home_path) + "wolnet-sample/h4htrain2022.csv"#vector_train.csv" # f"wolnet-sample/new_train_fold_{fold}.csv"
+                valid_csv_path = str(self.hparams.home_path) + "wolnet-sample/h4hvalid2022.csv"#vector_test.csv" # f"wolnet-sample/new_valid_fold_{fold}.csv"
                 test_csv_path = str(self.hparams.home_path)  + "wolnet-sample/vector_test.csv" #f"wolnet-sample/new_test_fold.csv"
                 # load corresponding .csv(s) for training fold...
                 assert os.path.isfile(train_csv_path) is True
@@ -592,7 +592,6 @@ class SegmentationModule(pl.LightningModule):
          #     targ_ = targets.cpu().numpy()
          #     nrrd.write(img_path, in_)
          #     nrrd.write(targ_path, targ_[0].astype('uint8'), compression_level=9)
-
          # save FULL outputs...
          outs_ = out_full.cpu().numpy()
          warnings.warn(f'Max pred is {out_full.max()}')
