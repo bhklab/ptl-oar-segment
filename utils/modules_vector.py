@@ -103,7 +103,7 @@ class SegmentationModule(pl.LightningModule):
                 self.valid_data = pd.read_csv(valid_csv_path)
                 self.test_data  = pd.read_csv(test_csv_path)
             else:
-                data = pd.read_csv(f"{self.hparams.home_path}radcure_oar_summary.csv", index_col=0)
+                data = pd.read_csv(f"{self.hparams.home_path}radcure_oar_summary_h4h.csv", index_col=0)
                 # cust_ = custom_order.remove(1)
                 data_ = getROIOrder(tag=self.tag, inverse=True)
                 oars = list(data_.values())
