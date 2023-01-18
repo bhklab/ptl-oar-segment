@@ -192,7 +192,7 @@ class SegmentationModule(pl.LightningModule):
         elif self.tag == "COCHLEA":
             self.custom_order = [23,24]
         elif self.tag == "LARYNX":
-            self.custom_order = [5,6,7]
+            self.custom_order = [4,5,6,7]
         elif self.tag == "BRAIN":
             self.custom_order = [4,30,31]
         elif self.tag == "SPINE":
