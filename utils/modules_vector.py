@@ -183,6 +183,8 @@ class SegmentationModule(pl.LightningModule):
             self.custom_order = [13,8,14,15,16,11,12]
         elif self.tag == "GLANDS":
             self.custom_order = [23,24,25,26,27,9,10,17,18,21,22,19,20]
+        elif self.tag == "TOPGLD":
+            self.custom_order = [13,8,14,15,16,11,12,23,24,25,26,27,9,10,17,18,21,22,19,20]
         elif self.tag == "LACRIM":
             self.custom_order = [9,10]
         elif self.tag == "PAROTI":
@@ -228,7 +230,8 @@ class SegmentationModule(pl.LightningModule):
         loss = self.criterion(outputs, targets, counts)
         # if loss is nan...
         # if torch.isnan(loss)[0] is True:
-        loss = torch.nan_to_num(loss, nan=10., posinf=10)
+        nan_val = 10 + len(self.custom_order)
+        loss = torch.nan_to_num(loss, nan=nan_val, posinf=nan_val)
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
         return {'loss':loss}
         # calculate and log dices...
@@ -307,8 +310,10 @@ class SegmentationModule(pl.LightningModule):
         outputs = self.forward(inputs)
         if type(outputs) == tuple:
             outputs = outputs[0]
-        loss = self.criterion(outputs, targets, counts) # (self.criterion(outputs, targets.unsqueeze(1)).cpu() if self.criterion is not None else 0)
-        loss = torch.nan_to_num(loss, nan=10., posinf=10)
+        loss = self.criterion(outputs, targets, counts)
+        # (self.criterion(outputs, targets.unsqueeze(1)).cpu() if self.criterion is not None else 0)
+        nan_val = 10 + len(self.custom_order)
+        loss = torch.nan_to_num(loss, nan=nan_val, posinf=nan_val)
         self.log("val_loss", loss, on_epoch=True, prog_bar=True, logger=True)
 
         # calculating evaluation metrics metrics
