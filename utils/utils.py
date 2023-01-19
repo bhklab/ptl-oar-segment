@@ -84,7 +84,7 @@ def getCustomOrder(tag):
     elif tag == "OTHER":
         custom_order = [19,20,21,22,23,24,25,26,27,28,29,30,31,17,18,4]
     elif tag == "MAJOR":
-        custom_order = [1,2,3,4,13,8,14,15,16,11,12,23,24,25,26,27,29,28,9,10,17,18,21,22,19,20]
+        custom_order = [13,8,14,15,16,11,12,23,24,25,26,27,29,28,9,10,17,18,21,22,19,20,4,3,1,2]
     else:
         custom_order=custom_order
         warnings.warn("Tag not specified...using general ordering.")

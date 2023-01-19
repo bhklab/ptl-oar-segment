@@ -184,7 +184,7 @@ class SegmentationModule(pl.LightningModule):
         elif self.tag == "GLANDS":
             self.custom_order = [9,10,19,20,23,24,25,26,27,17,18,21,22]
         elif self.tag == "MAJOR":
-            self.custom_order = [1,2,3,4,13,8,14,15,16,11,12,23,24,25,26,27,29,28,9,10,17,18,21,22,19,20]
+            self.custom_order = [13,8,14,15,16,11,12,23,24,25,26,27,29,28,9,10,17,18,21,22,19,20,4,3,1,2]
         elif self.tag == "LACRIM":
             self.custom_order = [9,10]
         elif self.tag == "PAROTI":
