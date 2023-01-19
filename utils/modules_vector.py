@@ -174,15 +174,15 @@ class SegmentationModule(pl.LightningModule):
         self.tag = self.hparams.tag
         if self.tag == "NECK":
             # includes GTV...
-            self.custom_order = [1,2,3]
+            self.custom_order = [3,1,2]
         elif self.tag == "BRACP":
-            self.custom_order = [29,28]
+            self.custom_order = [28,29]
         elif self.tag == "NECKMUS":
-            self.custom_order = [32,33,34]
+            self.custom_order = [34,32,33]
         elif self.tag == "TOPHEAD":
             self.custom_order = [13,8,14,15,16,11,12]
         elif self.tag == "GLANDS":
-            self.custom_order = [23,24,25,26,27,9,10,17,18,21,22,19,20]
+            self.custom_order = [9,10,19,20,23,24,25,26,27,17,18,21,22]
         elif self.tag == "MAJOR":
             self.custom_order = [1,2,3,4,13,8,14,15,16,11,12,23,24,25,26,27,29,28,9,10,17,18,21,22,19,20]
         elif self.tag == "LACRIM":

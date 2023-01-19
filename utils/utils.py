@@ -56,7 +56,7 @@ def getROIOrder(tag, rois=ROIS, inverse=False, include_external=True):
 def getCustomOrder(tag):
     if tag == "NECK":
         # includes GTV...
-        custom_order = [1,2,3]
+        custom_order = [3,1,2]
     elif tag == "BRACP":
         custom_order = [29,28]
     elif tag == "LACRIM":
@@ -72,9 +72,9 @@ def getCustomOrder(tag):
     elif tag == "BRAIN":
         custom_order = [4,30,31]
     elif tag == "GLANDS":
-        custom_order = [23,24,25,26,27,9,10,17,18,21,22,19,20]
+        custom_order = [9,10,19,20,23,24,25,26,27,17,18,21,22]
     elif tag == "NECKMUS":
-        custom_order = [32,33,34]
+        custom_order = [34,32,33]
     elif tag == "SPINE":
         custom_order = [29,28,30,7,31,4,25,26,27,4,5,6,19,20]
     elif tag == "TOPHEAD":
