@@ -383,7 +383,7 @@ class TverskyLoss(nn.Module):
             else:
                 tversky = tversky[:, 1:]
 
-        # hversky = tversky[~torch.isnan(tversky)]
+        hversky = tversky[~torch.isnan(tversky)]
         tversky = tversky.mean()
 
         return -tversky
