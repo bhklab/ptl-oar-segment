@@ -383,6 +383,7 @@ class TverskyLoss(nn.Module):
             else:
                 tversky = tversky[:, 1:]
 
+        hversky = tversky[~torch.isnan(tversky)]
         tversky = tversky.mean()
 
         return -tversky
@@ -458,6 +459,7 @@ class HD_Loss3D(nn.Module):
         # counts_ = np.where(bool_counts)[0]
         hd = torch.pow(out, .25) # hyperparameter, can varry...
         hd = hd[~torch.isnan(hd)]
+        hd = hd[~torch.isinf(hd)]
         hd_max = hd.max()*.5
         # can also implement topK HD loss...
         return hd.mean() , hd_max
