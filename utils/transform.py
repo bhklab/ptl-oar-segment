@@ -554,7 +554,11 @@ class RandomCrop3D(MTTransform):
             self.get_shifts(img)
 
         if mask is not None:
-            assert mask.max() > 0
+            try:
+                assert mask.max() > 0
+            except Exception as e:
+                warnings.warn(str(e))
+                raise Exception(f"Please check mask of size {mask.shape}.")
             if self.mode == 'test':
                 img, mask, center = self.get_crop(img, mask)
                 return img, mask, center

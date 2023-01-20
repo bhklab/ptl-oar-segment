@@ -130,20 +130,25 @@ class LoadPatientVolumes(Dataset):
     def __getitem__(self, idx):
 
         self.load_data(idx)
-        if self.transform is not None:
-            if self.mask.max() > 0:
-                warnings.warn(f"{self.mask.shape} mask vs {self.img.shape} img")
-                self.img, self.mask = self.transform(self.img.copy(), self.mask.copy())
-                # if self.transform2 is not None:
-                #     img2, _ = self.transform2(self.img.copy(), self.mask.copy())
-            else:
-                # only load if mask is zero from start...
-                self.img, self.mask = self.transform(self.img.copy(), self.mask.copy())
-                print(f"Check {self.patient}...loading in a mask with")
-                warnings.warn(f'Check {self.patient}...loading in a mask with ')
-                assert self.mask.max() > 0
-                # self.count *= 0.
+        # if self.transform is not None:
+        # if self.mask.max() > 0:
+        warnings.warn(f"{self.mask.shape} mask vs {self.img.shape} img")
+        try:
+            self.img, self.mask = self.transform(self.img.copy(), self.mask.copy())
+        except Exception as e:
+            warnings.warn(str(e))
+            raise Exception(f"Please check mask for folder {self.patient}.")
 
+            #     # if self.transform2 is not None:
+            #     #     img2, _ = self.transform2(self.img.copy(), self.mask.copy())
+            # else:
+            #     # only load if mask is zero from start...
+            #     self.img, self.mask = self.transform(self.img.copy(), self.mask.copy())
+            #     print(f"Check {self.patient}...loading in a mask with")
+            #     warnings.warn(f'Check {self.patient}...loading in a mask with ')
+            #     assert self.mask.max() > 0
+            #     # self.count *= 0.
+            
         try:
             assert self.mask.max() > 0
         except Exception:
