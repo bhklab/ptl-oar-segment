@@ -70,7 +70,7 @@ class SegmentationModule(pl.LightningModule):
         # fall within the following ranges... -390 < meanHU < -420; 205 < stdHU < 245
 
         path_ = self.hparams.root + f"/config_{self.tag}.json"
-        exclude_ = ["RADCURE-0543", "RADCURE-3154", "RADCURE-1427", "RADCURE-0361", "RADCURE-2503", "RADCURE-0079","RADCURE-0942","RADCURE-0768"]
+        exclude_ = ["RADCURE-0543", "RADCURE-1856", "RADCURE-2503", "RADCURE-0079"]
         try:
             # if os.path.isfile(self.hparams.is_config) is True:
             # ideally this should be a .json file in the format of self.data_config
