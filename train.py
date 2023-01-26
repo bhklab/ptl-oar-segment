@@ -8,7 +8,7 @@ https://williamfalcon.github.io/pytorch-lightning/
 import os, torch, warnings
 import numpy as np
 from utils import SegmentationModule, config
-from pytorch_lightning import Trainer, callbacks, seed_everything
+from lightning import Trainer, callbacks, seed_everything
 
 """
 .. warning:: `logging` package has been renamed to `loggers` since v0.7.0.

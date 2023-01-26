@@ -5,7 +5,7 @@ See https://williamfalcon.github.io/pytorch-lightning/
 import os, torch, warnings
 import numpy as np
 from utils import SegmentationModule, config
-from pytorch_lightning import Trainer, callbacks#, seed_everything
+from lightning import Trainer, callbacks#, seed_everything
 
 """
 .. warning:: `logging` package has been renamed to `loggers` since v0.7.0.
@@ -42,8 +42,8 @@ def main(args):
     assert args.weights_path is not None
     warnings.warn('Using presaved weights...')
     warnings.warn(f'Loading save model from {args.weights_path}.')
-    model = SegmentationModule.load_from_checkpoint(checkpoint_path=args.weights_path) #, strict=False) #,
-
+    model = SegmentationModule.load_from_checkpoint(checkpoint_path=args.weights_path)
+    #, strict=False) #,
     trainer = Trainer(gpus=1, strategy='ddp')
     trainer.test(model)
 

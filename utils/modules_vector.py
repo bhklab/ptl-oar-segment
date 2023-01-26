@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 from torch.utils.data.distributed import DistributedSampler
 import matplotlib.pyplot as plt
-import pytorch_lightning as pl
+import lightning as pl
 from collections import OrderedDict
 import numpy as np
 import pandas as pd
@@ -84,7 +84,8 @@ class SegmentationModule(pl.LightningModule):
                     'RADCURE-0317', 'RADCURE-0415', 'RADCURE-1987', 'RADCURE-1282', 'RADCURE-0667', 'RADCURE-0567',
                     'RADCURE-1438', 'RADCURE-2205', 'RADCURE-0406', 'RADCURE-0499', 'RADCURE-1252', 'RADCURE-1889',
                     'RADCURE-1270', 'RADCURE-0953', 'RADCURE-1030', 'RADCURE-0897', 'RADCURE-3099', 'RADCURE-1582',
-                    'RADCURE-0912', 'RADCURE-2503', 'RADCURE-0079']
+                    'RADCURE-0912', 'RADCURE-2503', 'RADCURE-0079', "RADCURE-0543", "RADCURE-1856", "RADCURE-2503", 
+                    "RADCURE-0079", "RADCURE-2205", "RADCURE-1582", "RADCURE-2986", "RADCURE-2370"]
         try:
             # if os.path.isfile(self.hparams.is_config) is True:
             # ideally this should be a .json file in the format of self.data_config
