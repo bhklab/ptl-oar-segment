@@ -604,7 +604,7 @@ class LoadPatientVolumes(Dataset):
                             If Images properly normalized set to False
         """
 
-        self.data = pd.concat([df] * resample) if resample else df
+        # self.data = pd.concat([df] * resample) if resample else df
         self.window = window
         self.transform  = transform
         self.transform2 = transform2
@@ -620,9 +620,11 @@ class LoadPatientVolumes(Dataset):
         self.get_com = False
         self.volume_type = volume_type
         self.oar_version = oar_version
-        self.img_path = img_path
-        self.mask_path = mask_path
+        # self.img_path = img_path
+        # self.mask_path = mask_path
         self.external = external
+        self.data = df
+        self.root = root+"wolnet-sample/sample/"
 
         # sliding window, will be used to create slice(s) +/- center slice
 
@@ -649,8 +651,12 @@ class LoadPatientVolumes(Dataset):
         """
 
         # load dataframe
-        df = self.data
-
+        self.patient = self.data[idx]
+        self.img_path = f"{self.root}{self.patient}/CT_IMAGE.nrrd"
+        self.mask_path = f"{self.root}{self.patient}/structures/Mandible_Bone.nrrd"
+        self.load_from_sitk() 
+        self.com = None
+        # df = self.data
         # load mask
         # 54 is the right window width
         # [path, Z_COM, patient] >> anything else doesn't matter
@@ -665,35 +671,36 @@ class LoadPatientVolumes(Dataset):
         # else:
         # comment this back out after done messing...
         # uncomment for original...
-        if self.volume_type=='targets':
-            df = self.data
-            self.patient = str(df.iloc[idx][0])
-        else:
-            if self.external is False:
-                # mask_path = str(df.iloc[idx][0])
-                if self.mode == 'test':
-                    self.patient = str(df.iloc[idx][0])
-                else:
-                    self.patient = str(df.iloc[idx][2])
-                # self.counts = np.array(df.iloc[idx][3])
-                self.version = 1
-            else:
-                # structseg...
-                # self.mask_path = df.iloc[0][0]
-                # self.img_path = df.iloc[0][0].replace('masks', 'imgs')
-                # # only needed for testing otherwise not needed...
-                # # comment out otherwise...
-                # self.version = df.iloc[idx]['version']
-                # PDDCA...should work for ALL external datsets...
-                self.mask_path = df.iloc[idx][1]
-                self.img_path = df.iloc[idx][0]
-                # .replace('masks', 'imgs')
-        self.load_from_sitk()
-        # 1x1x1
-        if self.get_com:
-            self.com = df.iloc[idx][1]
-        else:
-            self.com = None
+        # if self.volume_type=='targets':
+        #     df = self.data
+        #     self.patient = str(df.iloc[idx][0])
+        # else:
+        #     if self.external is False:
+        #         # mask_path = str(df.iloc[idx][0])
+        #         if self.mode == 'test':
+        #             self.patient = str(df.iloc[idx][0])
+        #         else:
+        #             self.patient = str(df.iloc[idx][2])
+        #         # self.counts = np.array(df.iloc[idx][3])
+        #         self.version = 1
+        #     else:
+        #         self.mask_path = 
+        #         # structseg...
+        #         # self.mask_path = df.iloc[0][0]
+        #         # self.img_path = df.iloc[0][0].replace('masks', 'imgs')
+        #         # # only needed for testing otherwise not needed...
+        #         # # comment out otherwise...
+        #         # self.version = df.iloc[idx]['version']
+        #         # PDDCA...should work for ALL external datsets...
+        #         self.mask_path = df.iloc[idx][1]
+        #         self.img_path = df.iloc[idx][0]
+        #         # .replace('masks', 'imgs')
+        # self.load_from_sitk()
+        # # 1x1x1
+        # if self.get_com:
+        #     self.com = df.iloc[idx][1]
+        # else:
+        #     self.com = None
 
     def resample_sitk(self, image, mode="linear", new_spacing=None, filter=False ): # new_spacing=np.array((1.0, 1.0, 2.0)) , filter=True
         if new_spacing is not None: # originally taken from https://github.com/SimpleITK/SimpleITK/issues/561
@@ -723,12 +730,12 @@ class LoadPatientVolumes(Dataset):
 
     def load_from_sitk(self):
 
-        if self.external is False: # OAR1204 OAR0720
-            img_path=f'/cluster/projects/radiomics/Temp/joe/RADCURE_Joe/img/{self.patient}.nrrd'
-            mask_path=f'/cluster/projects/radiomics/Temp/joe/RADCURE_Joe/masks/{self.patient}.nrrd'
-        else:
-            img_path = self.img_path if self.img_path else None
-            mask_path = self.mask_path if self.mask_path else None
+        # if self.external is False: # OAR1204 OAR0720
+        #     img_path=f'/cluster/projects/radiomics/Temp/joe/RADCURE_Joe/img/{self.patient}.nrrd'
+        #     mask_path=f'/cluster/projects/radiomics/Temp/joe/RADCURE_Joe/masks/{self.patient}.nrrd'
+        # else:
+        img_path = self.img_path if self.img_path else None
+        mask_path = self.mask_path if self.mask_path else None
 
         try:
             assert os.path.isfile(mask_path)
@@ -758,87 +765,86 @@ class LoadPatientVolumes(Dataset):
             warnings.warn('Using nrrd instead of sitk.')
 
         self.to_mask = None
-
-        if self.external is False:
-
-            if self.volume_type == "targets":
-                # only have GTV, updated for MERK study
-                warnings.warn('Using GTV contour only...')
-                self.mask[self.mask>1] = 0
-                assert self.mask.max() > 0
-                assert self.mask is not None
-                assert self.img is not None
-
-            else:
-
-                if self.oar_version == 16:
-                    # ~1220 patients for this cohort
-                    choose = np.array( [0, 1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 22] )
-
-                elif self.oar_version == 18:
-                    # 647 patients in this cohort
-                    choose = np.array( [0, 1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 20, 21, 22] )
-
-                elif self.oar_version == 19:
-                    # with the 07 arrays
-                    choose = np.array([0,3,4,5,6,7,9,10,11,12,17,18,19,20,21,22,23,24,27,28])
-
-                    # OAR07
-                    # rois = ["GTV","BRAIN","BSTEM","SPCOR","ESOPH","LARYNX","MAND",
-                    #     "POSTCRI","LPAR","RPAR","LACOU","RACOU","LLAC","RLAC","RRETRO",
-                    #     "LRETRO","RPLEX","LPLEX","LLENS","RLENS","LEYE","REYE","LOPTIC",
-                    #     "ROPTIC","LSMAN","RSMAN","CHIASM","LIPS","OCAV","IPCM","SPCM",
-                    #     "MPCM"]
-
-                    # self.mask[self.mask == 1] = 0
-                    # self.mask[self.mask == 2] = 0
-                    # self.mask[self.mask == 8] = 0
-                    # self.mask[self.mask == 13] = 0
-                    # self.mask[self.mask == 14] = 0
-                    # self.mask[self.mask == 15] = 0
-                    # self.mask[self.mask == 16] = 0
-                    # self.mask[self.mask == 25] = 0
-                    # self.mask[self.mask == 26] = 0
-                    # self.mask[self.mask > 28] = 0
-                    # self.mask[self.mask > 26] -= 2
-                    # self.mask[self.mask > 16] -= 4
-                    # self.mask[self.mask > 8] -= 1
-                    # self.mask[self.mask > 2] -= 2
-
-                    # OAR08
-                    # rois = ["GTV","LCTV", "RCTV", "BRAIN","BSTEM","SPCOR","ESOPH","LARYNX","MAND",
-                    #     "POSTCRI","LPAR","RPAR","LACOU","RACOU","LLAC","RLAC","RRETRO",
-                    #     "LRETRO","RPLEX","LPLEX","LLENS","RLENS","LEYE","REYE","LOPTIC",
-                    #     "ROPTIC","LSMAN","RSMAN","CHIASM","LIPS","OCAV","IPCM","SPCM",
-                    #     "MPCM"]
-
-                    self.mask[self.mask == 1] = 0
-                    self.mask[self.mask == 2] = 0
-                    self.mask[self.mask == 3] = 0
-                    self.mask[self.mask == 4] = 0
-                    self.mask[self.mask == 10] = 0
-                    self.mask[self.mask == 15] = 0
-                    self.mask[self.mask == 16] = 0
-                    self.mask[self.mask == 17] = 0
-                    self.mask[self.mask == 18] = 0
-                    self.mask[self.mask == 27] = 0
-                    self.mask[self.mask == 28] = 0
-                    self.mask[self.mask > 30] = 0
-                    self.mask[self.mask > 28] -= 2
-                    self.mask[self.mask > 18] -= 4
-                    self.mask[self.mask > 10] -= 1
-                    self.mask[self.mask > 4] -= 4
-
-        else:
-            # pass
-            # # only for dataset23
-            # self.img = self.img.transpose(2,1,0)
-            # self.mask = self.img
-            pass
-
         assert self.mask is not None
         assert self.img is not None
         return
+    
+        # if self.external is False:
+
+        #     if self.volume_type == "targets":
+        #         # only have GTV, updated for MERK study
+        #         warnings.warn('Using GTV contour only...')
+        #         self.mask[self.mask>1] = 0
+        #         assert self.mask.max() > 0
+        #         assert self.mask is not None
+        #         assert self.img is not None
+
+        #     else:
+
+        #         if self.oar_version == 16:
+        #             # ~1220 patients for this cohort
+        #             choose = np.array( [0, 1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 22] )
+
+        #         elif self.oar_version == 18:
+        #             # 647 patients in this cohort
+        #             choose = np.array( [0, 1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 20, 21, 22] )
+
+        #         elif self.oar_version == 19:
+        #             # with the 07 arrays
+        #             choose = np.array([0,3,4,5,6,7,9,10,11,12,17,18,19,20,21,22,23,24,27,28])
+
+        #             # OAR07
+        #             # rois = ["GTV","BRAIN","BSTEM","SPCOR","ESOPH","LARYNX","MAND",
+        #             #     "POSTCRI","LPAR","RPAR","LACOU","RACOU","LLAC","RLAC","RRETRO",
+        #             #     "LRETRO","RPLEX","LPLEX","LLENS","RLENS","LEYE","REYE","LOPTIC",
+        #             #     "ROPTIC","LSMAN","RSMAN","CHIASM","LIPS","OCAV","IPCM","SPCM",
+        #             #     "MPCM"]
+
+        #             # self.mask[self.mask == 1] = 0
+        #             # self.mask[self.mask == 2] = 0
+        #             # self.mask[self.mask == 8] = 0
+        #             # self.mask[self.mask == 13] = 0
+        #             # self.mask[self.mask == 14] = 0
+        #             # self.mask[self.mask == 15] = 0
+        #             # self.mask[self.mask == 16] = 0
+        #             # self.mask[self.mask == 25] = 0
+        #             # self.mask[self.mask == 26] = 0
+        #             # self.mask[self.mask > 28] = 0
+        #             # self.mask[self.mask > 26] -= 2
+        #             # self.mask[self.mask > 16] -= 4
+        #             # self.mask[self.mask > 8] -= 1
+        #             # self.mask[self.mask > 2] -= 2
+
+        #             # OAR08
+        #             # rois = ["GTV","LCTV", "RCTV", "BRAIN","BSTEM","SPCOR","ESOPH","LARYNX","MAND",
+        #             #     "POSTCRI","LPAR","RPAR","LACOU","RACOU","LLAC","RLAC","RRETRO",
+        #             #     "LRETRO","RPLEX","LPLEX","LLENS","RLENS","LEYE","REYE","LOPTIC",
+        #             #     "ROPTIC","LSMAN","RSMAN","CHIASM","LIPS","OCAV","IPCM","SPCM",
+        #             #     "MPCM"]
+
+        #             self.mask[self.mask == 1] = 0
+        #             self.mask[self.mask == 2] = 0
+        #             self.mask[self.mask == 3] = 0
+        #             self.mask[self.mask == 4] = 0
+        #             self.mask[self.mask == 10] = 0
+        #             self.mask[self.mask == 15] = 0
+        #             self.mask[self.mask == 16] = 0
+        #             self.mask[self.mask == 17] = 0
+        #             self.mask[self.mask == 18] = 0
+        #             self.mask[self.mask == 27] = 0
+        #             self.mask[self.mask == 28] = 0
+        #             self.mask[self.mask > 30] = 0
+        #             self.mask[self.mask > 28] -= 2
+        #             self.mask[self.mask > 18] -= 4
+        #             self.mask[self.mask > 10] -= 1
+        #             self.mask[self.mask > 4] -= 4
+
+        # else:
+        #     # pass
+        #     # # only for dataset23
+        #     # self.img = self.img.transpose(2,1,0)
+        #     # self.mask = self.img
+        #     pass
 
     def __getitem__(self, idx):
 
@@ -881,10 +887,11 @@ class LoadPatientVolumes(Dataset):
             return img2, img, mask
         else:
             return img, mask
-        # if self.to_mask is not None:
-        # to_mask = torch.tensor(self.to_mask).type(torch.FloatTensor)
-        # return img, mask, to_mask
-        # else:
+
+# if self.to_mask is not None:
+# to_mask = torch.tensor(self.to_mask).type(torch.FloatTensor)
+# return img, mask, to_mask
+# else:
 
 # modified for OAR segmentation...
 # class LoadPatientVolumes(Dataset):

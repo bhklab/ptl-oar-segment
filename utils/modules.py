@@ -1,4 +1,4 @@
-import os, torch, time, datetime, warnings, pickle, json, glob, nrrd
+import os, torch, time, datetime, warnings, pickle, json, glob, nrrd, sys
 from pathlib import Path
 from torch.nn import CrossEntropyLoss, BCEWithLogitsLoss
 from torch.utils.data import DataLoader
@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import torch.nn.functional as F
 # from sliding_window import sliding_window_inference
-# from .sliding_window import sliding_window_inference as swi
+from .sliding_window import sliding_window_inference as swi
 # from monai.inferers import sliding_window_inference as swi
 from .metrics import getMetrics, CombinedLoss, SoftDiceLoss, AnatFocalDLoss
 from .loss import *
@@ -21,6 +21,8 @@ from .optimizers import *
 from .models import *
 from .transform import *
 from .utils import swi
+
+sys.path.append('/content/drive/My Drive/ptl-oar-segmentation/')
 
 def cuda(x):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -42,10 +44,12 @@ class SegmentationModule(pl.LightningModule):
         if self.hparams.oar_version == 1:
             self.__get_gtv_data()
         else:
+            self.root="/content/drive/My Drive/ptl-oar-segmentation/"
             self.__get_data()
 
         self.__build_model()
         self.__get_loss()
+
 
     # ---------------------
     # MODEL SETUP
@@ -220,57 +224,20 @@ class SegmentationModule(pl.LightningModule):
     # ------------------
     # Extract Dataframes
     # ------------------
+    
     def __get_data(self):
+        
         self.class_weights = [0.1, 1.3, 5.5]
         self.Kfold = None
         self.val_loss = torch.tensor([0], dtype=torch.float)
         fold = self.hparams.fold
-        pkl_name = self.hparams.pkl_name
-        # if self.hparams.oar_version == 1:
-        dataset_path = str(self.root) + "/" + f"Kfold_{self.model_name}" + ".pkl"
-        if os.path.isfile(dataset_path):
-            # resume from previous crash
-            print(f"\n Load folds from: {dataset_path}")
-            self.Kfold = self.load_obj(dataset_path)
-        else:
-            # can put in .csv of folders to be used in training
-            # make dictionary from Data splits...
-            patient_splits = GetSplits(
-                args=self.hparams,
-                mask_path=self.hparams.mask_path,
-                metrics_name=self.hparams.metrics_name,
-                mrn_path=self.hparams.mrn_csv_path,
-                volume_type=self.hparams.volume_type,
-                site='ALL',
-                mode=self.hparams.split_mode,
-                test_split=self.hparams.tt_split,
-                to_filter=self.hparams.filter,
-                height=self.hparams.window * 2,
-                width=self.hparams.crop_factor,
-                classes=self.hparams.n_classes + 1,
-                dir_path=self.hparams.dir_path,
-            )
-
-            print(
-                f"\n There are {len(patient_splits)} training folds."
-            ) if self.hparams.verbose else None
-            print(f"Saving folds at {dataset_path}.")
-            self.Kfold = {}
-            # ensure given as string ... (for effective parsing)
-            self.Kfold["train"] = patient_splits.train
-            self.Kfold["valid"] = patient_splits.valid
-            self.Kfold["test"] = patient_splits.test
-            self.Kfold["means"] = patient_splits.means
-            self.Kfold["stds"] = patient_splits.stds
-            self.Kfold["weights"] = patient_splits.weights
-            # save kfolds
-            self.save_obj(self.Kfold, dataset_path)
-            testing=True
-            if testing:
-                self.root.joinpath(str(self.root) + f"/folds_{site}.json").write_text(json.dumps(Kfold))
-            else:
-                self.root.joinpath(str(self.root) + f"/folds.json").write_text(json.dumps(Kfold))
-
+        pkl_name = self.hparams.pkl_name 
+        dataset_path = f"{self.root}wolnet-sample/Kfold_WOLNET_2020_08_28_152828.pkl"
+        
+        # resume from previous crash
+        print(f"\n Load folds from: {dataset_path}")
+        self.Kfold = self.load_obj(dataset_path) 
+        
         print('Loading OAR data.')
         # set mean/std to normalize data
         # these are the standard values for clipped image from -500 to 1000
@@ -289,55 +256,132 @@ class SegmentationModule(pl.LightningModule):
         param_path = str(self.root) + f"/tensoborad_logs_{fold}.json"
 
         print( "\n Number of Patient Scans in Training:", len(self.Kfold["train"][0]),
-               "\n Patients for Validation:", len(self.Kfold["valid"][0]),
-               "\n Patients for Testing", len(self.Kfold["test"])) if self.hparams.verbose else None
-
-        # if self.testing is True:
-        #     train_csv_path = str(self.root) + f"/train_fold_{fold}_{site}.csv"
-        #     valid_csv_path = str(self.root) + f"/valid_fold_{fold}_{site}.csv"
-        #     test_csv_path = str(self.root) + f"/test_fold_{fold}_{site}.csv"
-        # else:
-        train_csv_path = str(self.root) + f"/train_fold_{fold}.csv"
-        valid_csv_path = str(self.root) + f"/valid_fold_{fold}.csv"
-        test_csv_path = str(self.root) + f"/test_fold_{fold}.csv"
-
-        train_fold = PatientData(file_name=pkl_name, nfold=fold, folds=self.Kfold["train"],
-                                 dir_path=self.hparams.dir_path)
-        valid_fold = PatientData(file_name=pkl_name, nfold=fold, folds=self.Kfold["valid"],
-                                 dir_path=self.hparams.dir_path)
-        test_fold = PatientData( file_name=pkl_name, nfold=fold, folds=self.Kfold["test"],
-                                 mode="single", dir_path=self.hparams.dir_path)
-
-        # get mean & standard deviation for the dataset...
-        print(f"Saving folds to {self.root}.") if self.hparams.verbose else None
-        # save dataframes of CSV's to .csv
-        self.train_data = train_fold.dataset()
-        self.valid_data = valid_fold.dataset()
-        self.test_data = test_fold.dataset()
-        self.test = self.test_data.copy()
-        print(train_fold.dataset())
-        ###########################
-        # comment this out if just want to use COM ONLY...
-        # self.test = pd.concat([self.test, self.test, self.test])
-        # vals = []
-        # count = 0
-        # for i in range(len(self.test)):
-        #     if i%59 == 0:
-        #         count += 1
-        #     vals.append(count)
-        #
-        # self.test['version'] = vals
-        ###########################
+            "\n Patients for Validation:", len(self.Kfold["valid"][0]),
+            "\n Patients for Testing", len(self.Kfold["test"])) if self.hparams.verbose else None
+        
+        self.train_data = pd.read_csv(f"{self.root}wolnet-sample/new_train_fold_{fold}.csv")
+        self.valid_data = pd.read_csv(f"{self.root}wolnet-sample/new_valid_fold_{fold}.csv")
+        self.test = pd.read_csv(f"{self.root}wolnet-sample/new_test_fold.csv")
         self.test_name = '_RADCURE'
-        # self.Kfold = Kfold
-        # save each split acordingly...
-        if os.path.isfile(train_csv_path) is False:
-            self.train_data.to_csv(train_csv_path)
-            self.valid_data.to_csv(valid_csv_path)
-            self.test.to_csv(test_csv_path)
-        print(self.train_data.iloc[0])
-        print(self.test.head())
-        print(self.test.iloc[0])
+        
+    # def __get_data(self):
+    #     self.class_weights = [0.1, 1.3, 5.5]
+    #     self.Kfold = None
+    #     self.val_loss = torch.tensor([0], dtype=torch.float)
+    #     fold = self.hparams.fold
+    #     pkl_name = self.hparams.pkl_name
+    #     # if self.hparams.oar_version == 1:
+    #     dataset_path = str(self.root) + "/" + f"Kfold_{self.model_name}" + ".pkl"
+    #     if os.path.isfile(dataset_path):
+    #         # resume from previous crash
+    #         print(f"\n Load folds from: {dataset_path}")
+    #         self.Kfold = self.load_obj(dataset_path)
+    #     else:
+    #         # can put in .csv of folders to be used in training
+    #         # make dictionary from Data splits...
+    #         patient_splits = GetSplits(
+    #             args=self.hparams,
+    #             mask_path=self.hparams.mask_path,
+    #             metrics_name=self.hparams.metrics_name,
+    #             mrn_path=self.hparams.mrn_csv_path,
+    #             volume_type=self.hparams.volume_type,
+    #             site='ALL',
+    #             mode=self.hparams.split_mode,
+    #             test_split=self.hparams.tt_split,
+    #             to_filter=self.hparams.filter,
+    #             height=self.hparams.window * 2,
+    #             width=self.hparams.crop_factor,
+    #             classes=self.hparams.n_classes + 1,
+    #             dir_path=self.hparams.dir_path,
+    #         )
+
+    #         print(
+    #             f"\n There are {len(patient_splits)} training folds."
+    #         ) if self.hparams.verbose else None
+    #         print(f"Saving folds at {dataset_path}.")
+    #         self.Kfold = {}
+    #         # ensure given as string ... (for effective parsing)
+    #         self.Kfold["train"] = patient_splits.train
+    #         self.Kfold["valid"] = patient_splits.valid
+    #         self.Kfold["test"] = patient_splits.test
+    #         self.Kfold["means"] = patient_splits.means
+    #         self.Kfold["stds"] = patient_splits.stds
+    #         self.Kfold["weights"] = patient_splits.weights
+    #         # save kfolds
+    #         self.save_obj(self.Kfold, dataset_path)
+    #         testing=True
+    #         if testing:
+    #             self.root.joinpath(str(self.root) + f"/folds_{site}.json").write_text(json.dumps(Kfold))
+    #         else:
+    #             self.root.joinpath(str(self.root) + f"/folds.json").write_text(json.dumps(Kfold))
+
+    #     print('Loading OAR data.')
+    #     # set mean/std to normalize data
+    #     # these are the standard values for clipped image from -500 to 1000
+    #     if self.hparams.clip_max < 300:
+    #         self.mean = self.Kfold["means"][fold] # - 300.
+    #         self.std =  self.Kfold["stds"][fold] # + 75
+    #     else:
+    #         self.mean = -407.4462155135238 # Kfold["means"][fold] # - 300.
+    #         self.std = 226.03663728492648 # Kfold["stds"][fold] # + 75
+    #     # should return a numpy array of class weights n_classes + 1
+    #     self.class_weights = self.Kfold["weights"][fold]
+    #     print( f"Training Set Mean HU: {self.mean} Mean STD: {self.std} \n") if self.hparams.verbose else None
+    #     print( f"Using this weight array to mitigate class imbalance {self.class_weights} \n") if self.hparams.verbose else None
+
+    #     # if paramater files from old training sessions exist - load them...
+    #     param_path = str(self.root) + f"/tensoborad_logs_{fold}.json"
+
+    #     print( "\n Number of Patient Scans in Training:", len(self.Kfold["train"][0]),
+    #            "\n Patients for Validation:", len(self.Kfold["valid"][0]),
+    #            "\n Patients for Testing", len(self.Kfold["test"])) if self.hparams.verbose else None
+
+    #     # if self.testing is True:
+    #     #     train_csv_path = str(self.root) + f"/train_fold_{fold}_{site}.csv"
+    #     #     valid_csv_path = str(self.root) + f"/valid_fold_{fold}_{site}.csv"
+    #     #     test_csv_path = str(self.root) + f"/test_fold_{fold}_{site}.csv"
+    #     # else:
+    #     train_csv_path = str(self.root) + f"/train_fold_{fold}.csv"
+    #     valid_csv_path = str(self.root) + f"/valid_fold_{fold}.csv"
+    #     test_csv_path = str(self.root) + f"/test_fold_{fold}.csv"
+
+    #     train_fold = PatientData(file_name=pkl_name, nfold=fold, folds=self.Kfold["train"],
+    #                              dir_path=self.hparams.dir_path)
+    #     valid_fold = PatientData(file_name=pkl_name, nfold=fold, folds=self.Kfold["valid"],
+    #                              dir_path=self.hparams.dir_path)
+    #     test_fold = PatientData( file_name=pkl_name, nfold=fold, folds=self.Kfold["test"],
+    #                              mode="single", dir_path=self.hparams.dir_path)
+
+    #     # get mean & standard deviation for the dataset...
+    #     print(f"Saving folds to {self.root}.") if self.hparams.verbose else None
+    #     # save dataframes of CSV's to .csv
+    #     self.train_data = train_fold.dataset()
+    #     self.valid_data = valid_fold.dataset()
+    #     self.test_data = test_fold.dataset()
+    #     self.test = self.test_data.copy()
+    #     print(train_fold.dataset())
+    #     ###########################
+    #     # comment this out if just want to use COM ONLY...
+    #     # self.test = pd.concat([self.test, self.test, self.test])
+    #     # vals = []
+    #     # count = 0
+    #     # for i in range(len(self.test)):
+    #     #     if i%59 == 0:
+    #     #         count += 1
+    #     #     vals.append(count)
+    #     #
+    #     # self.test['version'] = vals
+    #     ###########################
+    #     self.test_name = '_RADCURE'
+    #     # self.Kfold = Kfold
+    #     # save each split acordingly...
+    #     if os.path.isfile(train_csv_path) is False:
+    #         self.train_data.to_csv(train_csv_path)
+    #         self.valid_data.to_csv(valid_csv_path)
+    #         self.test.to_csv(test_csv_path)
+    #     print(self.train_data.iloc[0])
+    #     print(self.test.head())
+    #     print(self.test.iloc[0])
 
     # ------------------
     # Assign Loss
@@ -917,7 +961,8 @@ class SegmentationModule(pl.LightningModule):
          # path = '/cluster/projects/radiomics/EXTERNAL/OAR-TESTING/AI_PDDCA_2'
          # path = '/cluster/projects/radiomics/EXTERNAL/STRUCTSEG19/HaN_OAR/AI_'
          ###############
-
+         
+         path = f"{self.root}wolnet-sample"
          targ_fold = path + '/RAW/'
          path += f'/FOLD_{self.hparams.fold}'
          idx=0
@@ -1264,7 +1309,7 @@ class SegmentationModule(pl.LightningModule):
         # self.test=pd.read_csv('/cluster/home/jmarsill/tcia_hnscc.csv', index_col=0)
         # self.test = self.test[946:]
         # self.test=pd.read_csv('/cluster/home/jmarsill/dataset23.csv', index_col=0)
-        self.test=pd.read_csv('/cluster/home/jmarsill/structseg.csv', index_col=0)
+        # self.test=pd.read_csv('/cluster/home/jmarsill/structseg.csv', index_col=0)
         # save to /cluster/projects/radiomics/EXTERNAL/MASTRO/AI
         # MANIFEST
         # old .csv
@@ -1295,8 +1340,8 @@ class SegmentationModule(pl.LightningModule):
         # tr_ += tr_1
         # # random.shuffle(tr_)
         # self.test['0'] = tr_
-        print(self.test.head())
-
+        # print(self.test.head())
+        self.test = ["SAD0001", "SAD0002"]
         return self.get_dataloader(
             df=self.test,# test, self.test[self.test['version']==1]
             mode="test",
