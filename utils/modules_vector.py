@@ -127,7 +127,8 @@ class SegmentationModule(pl.LightningModule):
                 vals_ = list(oar_data["NEWID"].unique())
                 #################
                 # H$H specific...
-                current = glob.glob("/cluster/projects/radiomics/Temp/joe/RADCURE_VECTOR_UPDATE/*")
+                current = glob.glob(self.hparams.data_path+"*")
+                # current = glob.glob("/cluster/projects/radiomics/Temp/joe/RADCURE_VECTOR_UPDATE/*")
                 current = [c.split("/")[-1] for c in current]
                 current = [c for c in current if c in vals_]
                 #################
