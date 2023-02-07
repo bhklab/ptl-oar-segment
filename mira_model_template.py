@@ -5,7 +5,8 @@ from typing import Tuple
 
 import numpy as np
 from utils import SegmentationModule, config
-from lightning import Trainer # callbacks#, seed_everything
+from lightning import Trainer, seed_everything
+from pytorch_lightning.callbacks import ModelCheckpoint
 import SimpleITK as sitk
 
 SEED = 2334
@@ -18,7 +19,6 @@ Point = Tuple[float, float, float]
 __MODEL_NAME__ = "WOLNET_ENSEMBLE"
 __MODEL_VERSION__ = "0.0.1"
 
-
 def run_masks(model, exam_image: sitk.Image) -> dict[str, sitk.Image]:
     # need origin, spacing, direction
     return {
@@ -26,7 +26,6 @@ def run_masks(model, exam_image: sitk.Image) -> dict[str, sitk.Image]:
         "B": sitk.Image(),
         "C": sitk.Image()
     }
-
 
 def run_points(model, exam_image: sitk.Image) -> dict[str, [[Point]]]:
     return {
@@ -41,7 +40,6 @@ def load_model(model_path: str):
     trainer = Trainer(gpus=1, default_root_dir='/content/drive/My Drive/ptl-oar-segmentation/') # strategy='ddp_notebook'
     
     return trainer 
-
 
 if __name__ == "__main__":
     # init logging

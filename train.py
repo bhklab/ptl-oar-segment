@@ -9,7 +9,7 @@ import os, torch, warnings
 import numpy as np
 from utils import SegmentationModule, config
 from lightning import Trainer, seed_everything
-from lightning.callbacks import callbacks
+from pytorch_lightning.callbacks import ModelCheckpoint
 
 """
 .. warning:: `logging` package has been renamed to `loggers` since v0.7.0.
