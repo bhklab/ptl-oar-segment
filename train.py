@@ -37,12 +37,12 @@ def main(args):
     # except Exception:
     #     warnings.warn('Using randomized weights...')
     #     model = SegmentationModule(args)
-    checkpoint_callback = callbacks.ModelCheckpoint( monitor="val_loss",
-                                                     filename=str(args.model + '-epoch{epoch:02d}-val_loss{val/loss:.2f}'),
-                                                     auto_insert_metric_name=False,
-                                                     mode="min",
-                                                     save_last=True,
-                                                     save_top_k=3,)
+    checkpoint_callback = ModelCheckpoint( monitor="val_loss",
+                                           filename=str(args.model + '-epoch{epoch:02d}-val_loss{val/loss:.2f}'),
+                                           auto_insert_metric_name=False,
+                                           mode="min",
+                                           save_last=True,
+                                           save_top_k=3,)
     trainer = Trainer(
             gpus=args.gpus, # set to -1 to use all avaliable gpus...
             strategy='ddp', # should be same as args.backend..., # stochastic_weight_avg=True, # pass to callbacks if required...
