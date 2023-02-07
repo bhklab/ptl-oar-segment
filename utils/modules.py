@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import torch.nn.functional as F
 # from sliding_window import sliding_window_inference
-from .sliding_window import sliding_window_inference as swi
+# from .sliding_window import sliding_window_inference as swi
 # from monai.inferers import sliding_window_inference as swi
 from .metrics import getMetrics, CombinedLoss, SoftDiceLoss, AnatFocalDLoss
 from .loss import *
@@ -962,10 +962,10 @@ class SegmentationModule(pl.LightningModule):
          # path = '/cluster/projects/radiomics/EXTERNAL/OAR-TESTING/AI_PDDCA_2'
          # path = '/cluster/projects/radiomics/EXTERNAL/STRUCTSEG19/HaN_OAR/AI_'
          ###############
-         
+        
          path = f"{self.root}wolnet-sample"
-         targ_fold = path + '/RAW/'
          path += f'/FOLD_{self.hparams.fold}'
+         targ_fold = path + '/RAW/'
          idx=0
          os.makedirs(path, exist_ok=True)
          os.makedirs(targ_fold, exist_ok=True)
@@ -1342,7 +1342,7 @@ class SegmentationModule(pl.LightningModule):
         # # random.shuffle(tr_)
         # self.test['0'] = tr_
         # print(self.test.head())
-        self.test = ["SAD0001", "SAD0002"]
+        self.test = ["SAD0001","SAD0001","SAD0002" "SAD0002"]
         return self.get_dataloader(
             df=self.test,# test, self.test[self.test['version']==1]
             mode="test",

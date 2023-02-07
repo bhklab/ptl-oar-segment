@@ -11,7 +11,6 @@ np.random.seed(7)
 radcure_path = "/cluster/projects/bhklab/RADCURE/img"
 mask_path = "/cluster/projects/bhklab/RADCURE/masks"
 
-
 class GetDirs:
     def __init__(self, path):
         """
@@ -656,6 +655,372 @@ class LoadPatientVolumes(Dataset):
         self.mask_path = f"{self.root}{self.patient}/structures/Mandible_Bone.nrrd"
         self.load_from_sitk() 
         self.com = None
+
+    def resample_sitk(self, image, mode="linear", new_spacing=None, filter=False ): # new_spacing=np.array((1.0, 1.0, 2.0)) , filter=True
+        if new_spacing is not None: # originally taken from https://github.com/SimpleITK/SimpleITK/issues/561
+            resample = sitk.ResampleImageFilter()
+            if mode == "linear":
+                resample.SetInterpolator = sitk.sitkLinear  # use linear to resample image
+            else: # use sitkNearestNeighbor interpolation # best for masks
+                resample.SetInterpolator = sitk.sitkNearestNeighbor
+            orig_size = np.array(image.GetSize(), dtype=np.int)
+            orig_spacing = np.array(image.GetSpacing())
+            resample.SetOutputDirection(image.GetDirection())
+            resample.SetOutputOrigin(image.GetOrigin())
+            resample.SetOutputPixelType(image.GetPixelIDValue())
+            new_spacing = new_spacing
+            resample.SetOutputSpacing(new_spacing)
+            new_size = orig_size * (orig_spacing / new_spacing)
+            new_size = np.ceil(new_size).astype(np.int)
+            new_size = [int(s) for s in new_size]
+            resample.SetSize(new_size)
+            if filter is True: # fights artifacts produced by analaising # only do this when resampling image (not mask...)
+                img = resample.Execute(sitk.SmoothingRecursiveGaussian(image, 2.0))
+            else:
+                img = resample.Execute(image)
+        else: # do nothing to the image...
+            img = image
+        return img
+
+    def load_from_sitk(self):
+
+        # if self.external is False: # OAR1204 OAR0720
+        #     img_path=f'/cluster/projects/radiomics/Temp/joe/RADCURE_Joe/img/{self.patient}.nrrd'
+        #     mask_path=f'/cluster/projects/radiomics/Temp/joe/RADCURE_Joe/masks/{self.patient}.nrrd'
+        # else:
+        img_path = self.img_path if self.img_path else None
+        mask_path = self.mask_path if self.mask_path else None
+
+        try:
+            assert os.path.isfile(mask_path)
+            assert os.path.isfile(img_path)
+        except Exception:
+            pass
+
+        self.img = nrrd.read(img_path)
+        self.img = self.img[0] #.transpose(2,0,1)
+        self.mask= nrrd.read(mask_path)
+        self.mask= self.mask[0] #.transpose(2,0,1)
+        warnings.warn('Using nrrd instead of sitk.')
+
+        self.to_mask = None
+        assert self.mask is not None
+        assert self.img is not None
+        return
+    
+    def __getitem__(self, idx):
+
+        self.load_data(idx)
+        if self.transform is not None:
+            if self.mask.max() > 0:
+                self.img, self.mask = self.transform(self.img.copy(), self.mask.copy())
+                if self.transform2 is not None:
+                    img2, _ = self.transform2(self.img.copy(), self.mask.copy())
+                    # only for dataset23
+                    # img2 = img
+            else:
+                # only load if mask is zero from start...
+                warnings.warn(f'Check {self.patient}...')
+                self.z,self.x,self.y = self.img.shape
+                img = self.img[:,self.x//2-192//2:self.x//2+192//2,self.y//2-192//2:self.y//2+192//2]
+                mask = self.mask[:,self.x//2-192//2:self.x//2+192//2,self.y//2-192//2:self.y//2+192//2]
+        if self.volume_type == "targets":
+           # GTV is captured
+           # final thing that's done, only use GTV...
+           self.mask[self.mask>1] = 0
+           try:
+               assert self.mask.max() == 1
+           except Exception:
+               warnings.warn('Loading a Non-zero mask (Cropped out GTV)...')
+        else:
+            try:
+                assert self.mask.max() == 19
+            except Exception:
+                warnings.warn('Loading a mask that has cropped out least one OAR...')
+                print(self.mask.max())
+                assert self.mask.max() > 0
+                # self.check(img, mask)
+        # because they are volumes should be the same shape
+        # self.check(img, mask)
+        img = torch.from_numpy(self.img).type(torch.FloatTensor)
+        mask = torch.from_numpy(self.mask).type(torch.LongTensor)
+        if self.transform2 is not None:
+            img2 = torch.from_numpy(img2).type(torch.FloatTensor)
+            return img2, img, mask
+        else:
+            return img, mask
+
+class LoadPatientSlices(Dataset):
+    def __init__(
+        self, df, window, root, transform=None, resample=None, mode="train", factor=512
+    ):
+        """
+        This is the class that our Dataloader object
+        will take to create batches for training.
+        param: df         : This is the sliced dataframe output of PatientData
+        param: window     : This is the margin to crop the slice from a center
+                            reference slice # in the z plane.
+        param: to_augment : If to_augment == True ; augment data
+        param: resample   : Resamples the df (int) - recommended to use when
+                            to_augment set True.
+        param: norm       : For Normalizing Wrongly Normalized Radcure Images
+                            If Images properly normalized set to False
+        """
+
+        self.data = pd.concat([df] * resample) if resample else df
+        self.window = window
+        self.transform = transform
+        self.resample = resample
+        self.factor = factor
+        # original state of image/mask
+        self.mask = None
+        self.img = None
+        self.pat_idx = 0
+        self.count = 0
+        # sliding window, will be used to create slice(s) +/- center slice
+
+    def __len__(self):
+        return len(self.data)
+
+    def check(self, img, mask):
+        # check x/y
+        assert img[0].shape == (self.factor // 2, self.factor // 2)
+        assert mask.shape == (self.factor // 2, self.factor // 2)
+        assert img.shape[0] == 11
+        assert mask.max() > 0
+        # == self.args.n_classes # should be n_classes
+
+    def load_data(self, idx):
+
+        """
+        This is called to load the imaged used in slicing.
+        Will only load a new image iff the paths of the image behind
+        a new one don't match!
+
+        Set's self variable that will be called to slice the image/mask.
+                # loading in mask path (without shuffling it)
+                # want a full patient to be represented in a batch
+                # this wil greatly reduce loading time...
+        """
+
+        # load dataframe
+        df = self.data
+        # load mask
+        mask_path_back = df.iloc[idx - 1][0] if idx > 0 else None  # None
+        mask_path = str(df.iloc[idx][0])
+        self.center = df.iloc[idx][1]
+        self.mask_path = mask_path
+        assert os.path.isfile(mask_path)
+        # change mask path to image path.
+        # load image
+        old_patient_folder = str(df.iloc[idx - 1][2]) if idx > 0 else None
+        patient_folder = str(df.iloc[idx][2])
+        self.patient = patient_folder
+        # mask_lbl = 'masks' if self.dataset_name == 'RADCURE' else 'mask'
+        # img_path = str(mask_path).replace(mask_lbl, 'img')
+        img_path = (f"/cluster/projects/radiomics/Temp/RADCURE-npy/img/{patient_folder}_img.npy")
+        self.img_path = img_path
+        assert os.path.isfile(img_path)
+
+        # load patient folder information
+        if mask_path_back == mask_path and self.mask is not None:
+            # check that there is an image
+            self.mask = self.mask
+            self.img = self.img
+            # check that image is also non_zero...
+            assert self.img is not None
+
+        else:
+            # laod image & mask
+            self.img = np.load(img_path)
+            self.mask = np.load(str(mask_path))
+            # sanity check image...
+            assert self.mask is not None
+            assert self.img is not None
+            assert self.mask.max() > 0
+            # == self.args.n_classes
+
+        # check that mask and image dimensions are the same...
+        # self.reset_masking()
+        assert self.mask.shape == self.img.shape
+
+    def __getitem__(self, idx):
+
+        """
+        Returns 3D arrays:
+        1. Sliced Image (Z-window:z+window+1, H, W)
+        2. Sliced Mask  (C, H, W) # definied by number of classes
+
+        When used in a pytorch Dataloader the batches of outputs/targets are 4D tensors.
+            #  Normalize for wrongly normalized Radcure images...
+            #  Originally normalized in HU range -1000 to 400
+            #  New Range -100 to 400 (.64 to 1.) # actually this will work perfectly
+            #  New Range from -100 to 200 (.64 to .86) (not good for segmentation)
+            #  For structSeg images, normalized already -100 to 400 therefore for -100 to 200 [0.,.6]
+        """
+
+        self.load_data(idx)
+        # gets the center slice
+        center_idx = np.int(self.center)
+        # Define cropping dimentions
+        window = self.window
+        bottom = center_idx - window
+        top = center_idx + window + 1
+
+        # if center_idx > z size of the image. reload everything...
+        if center_idx >= self.mask.shape[0] - 7:
+            # reload image & mask
+            self.img = np.load(str(self.img_path))
+            self.mask = np.load(str(self.mask_path))
+
+        # crop image & its mask...
+        img_ = self.img[bottom:top, :, :].copy()
+        mask_ = self.mask[center_idx, :, :].copy()
+        # image shapes
+        mask_shape = mask_.shape
+        imshape = img_.shape
+
+        if img_.shape[0] != 11 or mask_.max() == 0:
+            # import image & mask again...
+            self.img = np.load(str(self.img_path))
+            self.mask = np.load(str(self.mask_path))
+            # self.reset_masking()
+            img_ = self.img[bottom:top, :, :].copy()
+            mask_ = self.mask[center_idx, :, :].copy()
+            assert img_.shape[0] == 11
+            assert mask_.max() > 0
+
+        assert img_[0].shape == (512, 512)
+        assert mask_.shape == (512, 512)
+        assert mask_.max() > 0
+
+        if self.transform is not None:
+            # can add normalization & cropping to this
+            # make sure last & second last transformation
+            img_, mask_ = self.transform(img_, mask_)
+            # check img/mask
+            self.check(img_, mask_)
+
+        img_ = torch.from_numpy(img_).type(torch.FloatTensor)
+        mask_ = torch.from_numpy(mask_).type(torch.LongTensor)
+
+        return img_, mask_
+
+        # Note: output image tensor should be 4D output mask tensor should be 4D if single class, 5D for multi class...
+
+
+class TestLoader(Dataset):
+
+    """
+    Created on Wed May  9 17:01:04 2018
+    @author: joseph
+    Taken from pyGempick.mod
+    Link: https://github.com/jmarsil/pygempick/blob/master/pygempick/modeling.py
+
+    """
+
+    def __init__(self, sample, dim=512 // 2, volume=1, to_augment=False):
+        self.sample = (
+            sample  # imput this as range/arange of number of test images there are...
+        )
+        self.dim = dim
+        self.volume = volume
+        self.to_augment = to_augment
+
+    def stack(self, image):
+        # ADD NOISE TO MASKED REGION..
+        dim = self.dim
+        image[image == 0] = 0.3
+        # a = np.random.poisson(.6, (512, 512))
+        # image *= a/np.linalg.norm(a)
+        image *= np.random.normal(0.67, 0.1, (dim, dim))
+        sigmas = np.arange(0.8, 0.9, 0.1)
+        # sigma = random.choice(sigmas)
+        # image = gaussian_filter(image, sigma=sigma)
+        image[image > 1] = 1
+        # if self.volume == 1:
+        return image
+
+    def make_img(self):
+        dim = self.dim
+        image = np.zeros((dim, dim), np.float32)
+        return cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+
+    def __getitem__(self, idx):
+        item = self.sample[idx]
+        dim = self.dim
+        image = TestLoader.make_img(self)
+        ##bernouli trial to draw either circle or elippse...
+        flip = np.random.rand()
+        radrange = np.arange(50 // 2, 150 // 2, 1)
+        ##picks a random particle radius between 4 and 8 pixels
+        axis = random.choice(radrange)
+        # N = width * height / 4
+        ##chooses a random center position for the circle
+        w = np.int(np.random.uniform(150 // 2, dim - 150 // 2))
+        h = np.int(np.random.uniform(150 // 2, dim - 150 // 2))
+
+        if flip < 0.5:
+            # draw a circle
+            cv2.circle(image, (h, w), np.int(axis), (255, 255, 255), -1)
+        else:
+            # draw an elippse...
+            cv2.ellipse(
+                image,
+                (h, w),
+                (int(axis) * 2, int(axis)),
+                0,
+                0,
+                360,
+                (255, 255, 255),
+                -1,
+            )
+
+        # CONVERT BACK TO GRAY VALUES
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        image[image == 255] = 1
+
+        # EXPAND DIMS IF 2D MASK
+        mask = image.copy()
+        if len(mask.shape) == 2:
+            mask = np.expand_dims(mask, 0)  # expand dims on image plane...
+        # stack & noisify image...
+        image = TestLoader.stack(self, image)
+        # normalize image...
+        # check if 3D or 2D volume...
+        if len(image.shape) == 2:
+            # normalize image...
+            image = np.expand_dims(image, 0)
+
+        # Augment image...
+        #         if self.to_augment:
+        #             image, mask = utils.augment(image, mask)
+
+        assert image.shape == mask.shape
+
+        # assert len(image.shape) == 3
+        # assert len(mask.shape) == 3
+        # check the mask, for every mask value in targets that is 0
+        # simply don't count that value in the loss calculation...
+        # This can allow us to use patient information without penalizing the model
+        # if it produces a wrong or inconsistent class...
+
+        return (
+            torch.from_numpy(image).type(torch.FloatTensor),
+            torch.from_numpy(mask).type(torch.FloatTensor),
+        )
+
+    def __len__(self):
+        return len(self.sample)
+
+
+###############################
+############## SCRATCH ########
+###############################
+
+        
+        ##################
+        # in old load_data
         # df = self.data
         # load mask
         # 54 is the right window width
@@ -701,73 +1066,25 @@ class LoadPatientVolumes(Dataset):
         #     self.com = df.iloc[idx][1]
         # else:
         #     self.com = None
+        ######################
+        # in old load_from_sitk()
+        # try:
+        #     try:
+        #         mask = sitk.ReadImage(mask_path)
+        #     except Exception:
+        #         warnings.warn(f"Couldn't load mask at {mask_path}")
+        #         mask = sitk.ReadImage(img_path)
+        #     img = sitk.ReadImage(img_path)
+        #     # if self.external is True:
+        #     #     img = self.resample_sitk(img, new_spacing=np.array((1.0, 1.0, 2.0)))
+        #     #     mask = self.resample_sitk(mask, mode="nearest", new_spacing=np.array((1.0, 1.0, 2.0)))
+        #     self.img = sitk.GetArrayFromImage(img)
+        #     self.mask = sitk.GetArrayFromImage(mask)
 
-    def resample_sitk(self, image, mode="linear", new_spacing=None, filter=False ): # new_spacing=np.array((1.0, 1.0, 2.0)) , filter=True
-        if new_spacing is not None: # originally taken from https://github.com/SimpleITK/SimpleITK/issues/561
-            resample = sitk.ResampleImageFilter()
-            if mode == "linear":
-                resample.SetInterpolator = sitk.sitkLinear  # use linear to resample image
-            else: # use sitkNearestNeighbor interpolation # best for masks
-                resample.SetInterpolator = sitk.sitkNearestNeighbor
-            orig_size = np.array(image.GetSize(), dtype=np.int)
-            orig_spacing = np.array(image.GetSpacing())
-            resample.SetOutputDirection(image.GetDirection())
-            resample.SetOutputOrigin(image.GetOrigin())
-            resample.SetOutputPixelType(image.GetPixelIDValue())
-            new_spacing = new_spacing
-            resample.SetOutputSpacing(new_spacing)
-            new_size = orig_size * (orig_spacing / new_spacing)
-            new_size = np.ceil(new_size).astype(np.int)
-            new_size = [int(s) for s in new_size]
-            resample.SetSize(new_size)
-            if filter is True: # fights artifacts produced by analaising # only do this when resampling image (not mask...)
-                img = resample.Execute(sitk.SmoothingRecursiveGaussian(image, 2.0))
-            else:
-                img = resample.Execute(image)
-        else: # do nothing to the image...
-            img = image
-        return img
+        # except Exception as e:
+        # print(e)
+        #########################
 
-    def load_from_sitk(self):
-
-        # if self.external is False: # OAR1204 OAR0720
-        #     img_path=f'/cluster/projects/radiomics/Temp/joe/RADCURE_Joe/img/{self.patient}.nrrd'
-        #     mask_path=f'/cluster/projects/radiomics/Temp/joe/RADCURE_Joe/masks/{self.patient}.nrrd'
-        # else:
-        img_path = self.img_path if self.img_path else None
-        mask_path = self.mask_path if self.mask_path else None
-
-        try:
-            assert os.path.isfile(mask_path)
-            assert os.path.isfile(img_path)
-        except Exception:
-            pass
-
-        try:
-            try:
-                mask = sitk.ReadImage(mask_path)
-            except Exception:
-                warnings.warn(f"Couldn't load mask at {mask_path}")
-                mask = sitk.ReadImage(img_path)
-            img = sitk.ReadImage(img_path)
-            # if self.external is True:
-            #     img = self.resample_sitk(img, new_spacing=np.array((1.0, 1.0, 2.0)))
-            #     mask = self.resample_sitk(mask, mode="nearest", new_spacing=np.array((1.0, 1.0, 2.0)))
-            self.img = sitk.GetArrayFromImage(img)
-            self.mask = sitk.GetArrayFromImage(mask)
-
-        except Exception as e:
-            print(e)
-            self.img = nrrd.read(img_path)
-            self.img = self.img[0].transpose(2,0,1)
-            self.mask= nrrd.read(mask_path)
-            self.mask= self.mask[0].transpose(2,0,1)
-            warnings.warn('Using nrrd instead of sitk.')
-
-        self.to_mask = None
-        assert self.mask is not None
-        assert self.img is not None
-        return
     
         # if self.external is False:
 
@@ -845,48 +1162,6 @@ class LoadPatientVolumes(Dataset):
         #     # self.img = self.img.transpose(2,1,0)
         #     # self.mask = self.img
         #     pass
-
-    def __getitem__(self, idx):
-
-        self.load_data(idx)
-        if self.transform is not None:
-            if self.mask.max() > 0:
-                self.img, self.mask = self.transform(self.img.copy(), self.mask.copy())
-                if self.transform2 is not None:
-                    img2, _ = self.transform2(self.img.copy(), self.mask.copy())
-                    # only for dataset23
-                    # img2 = img
-            else:
-                # only load if mask is zero from start...
-                warnings.warn(f'Check {self.patient}...')
-                self.z,self.x,self.y = self.img.shape
-                img = self.img[:,self.x//2-192//2:self.x//2+192//2,self.y//2-192//2:self.y//2+192//2]
-                mask = self.mask[:,self.x//2-192//2:self.x//2+192//2,self.y//2-192//2:self.y//2+192//2]
-        if self.volume_type == "targets":
-           # GTV is captured
-           # final thing that's done, only use GTV...
-           self.mask[self.mask>1] = 0
-           try:
-               assert self.mask.max() == 1
-           except Exception:
-               warnings.warn('Loading a Non-zero mask (Cropped out GTV)...')
-        else:
-            try:
-                assert self.mask.max() == 19
-            except Exception:
-                warnings.warn('Loading a mask that has cropped out least one OAR...')
-                print(self.mask.max())
-                assert self.mask.max() > 0
-                # self.check(img, mask)
-        # because they are volumes should be the same shape
-        # self.check(img, mask)
-        img = torch.from_numpy(self.img).type(torch.FloatTensor)
-        mask = torch.from_numpy(self.mask).type(torch.LongTensor)
-        if self.transform2 is not None:
-            img2 = torch.from_numpy(img2).type(torch.FloatTensor)
-            return img2, img, mask
-        else:
-            return img, mask
 
 # if self.to_mask is not None:
 # to_mask = torch.tensor(self.to_mask).type(torch.FloatTensor)
@@ -1194,266 +1469,3 @@ class LoadPatientVolumes(Dataset):
 #         img = torch.from_numpy(img).type(torch.FloatTensor)
 #         mask = torch.from_numpy(mask).type(torch.LongTensor)
 #         return img, mask
-
-class LoadPatientSlices(Dataset):
-    def __init__(
-        self, df, window, root, transform=None, resample=None, mode="train", factor=512
-    ):
-        """
-        This is the class that our Dataloader object
-        will take to create batches for training.
-        param: df         : This is the sliced dataframe output of PatientData
-        param: window     : This is the margin to crop the slice from a center
-                            reference slice # in the z plane.
-        param: to_augment : If to_augment == True ; augment data
-        param: resample   : Resamples the df (int) - recommended to use when
-                            to_augment set True.
-        param: norm       : For Normalizing Wrongly Normalized Radcure Images
-                            If Images properly normalized set to False
-        """
-
-        self.data = pd.concat([df] * resample) if resample else df
-        self.window = window
-        self.transform = transform
-        self.resample = resample
-        self.factor = factor
-        # original state of image/mask
-        self.mask = None
-        self.img = None
-        self.pat_idx = 0
-        self.count = 0
-        # sliding window, will be used to create slice(s) +/- center slice
-
-    def __len__(self):
-        return len(self.data)
-
-    def check(self, img, mask):
-        # check x/y
-        assert img[0].shape == (self.factor // 2, self.factor // 2)
-        assert mask.shape == (self.factor // 2, self.factor // 2)
-        assert img.shape[0] == 11
-        assert mask.max() > 0
-        # == self.args.n_classes # should be n_classes
-
-    def load_data(self, idx):
-
-        """
-        This is called to load the imaged used in slicing.
-        Will only load a new image iff the paths of the image behind
-        a new one don't match!
-
-        Set's self variable that will be called to slice the image/mask.
-                # loading in mask path (without shuffling it)
-                # want a full patient to be represented in a batch
-                # this wil greatly reduce loading time...
-        """
-
-        # load dataframe
-        df = self.data
-        # load mask
-        mask_path_back = df.iloc[idx - 1][0] if idx > 0 else None  # None
-        mask_path = str(df.iloc[idx][0])
-        self.center = df.iloc[idx][1]
-        self.mask_path = mask_path
-        assert os.path.isfile(mask_path)
-        # change mask path to image path.
-        # load image
-        old_patient_folder = str(df.iloc[idx - 1][2]) if idx > 0 else None
-        patient_folder = str(df.iloc[idx][2])
-        self.patient = patient_folder
-        # mask_lbl = 'masks' if self.dataset_name == 'RADCURE' else 'mask'
-        # img_path = str(mask_path).replace(mask_lbl, 'img')
-        img_path = (f"/cluster/projects/radiomics/Temp/RADCURE-npy/img/{patient_folder}_img.npy")
-        self.img_path = img_path
-        assert os.path.isfile(img_path)
-
-        # load patient folder information
-        if mask_path_back == mask_path and self.mask is not None:
-            # check that there is an image
-            self.mask = self.mask
-            self.img = self.img
-            # check that image is also non_zero...
-            assert self.img is not None
-
-        else:
-            # laod image & mask
-            self.img = np.load(img_path)
-            self.mask = np.load(str(mask_path))
-            # sanity check image...
-            assert self.mask is not None
-            assert self.img is not None
-            assert self.mask.max() > 0
-            # == self.args.n_classes
-
-        # check that mask and image dimensions are the same...
-        # self.reset_masking()
-        assert self.mask.shape == self.img.shape
-
-    def __getitem__(self, idx):
-
-        """
-        Returns 3D arrays:
-        1. Sliced Image (Z-window:z+window+1, H, W)
-        2. Sliced Mask  (C, H, W) # definied by number of classes
-
-        When used in a pytorch Dataloader the batches of outputs/targets are 4D tensors.
-            #  Normalize for wrongly normalized Radcure images...
-            #  Originally normalized in HU range -1000 to 400
-            #  New Range -100 to 400 (.64 to 1.) # actually this will work perfectly
-            #  New Range from -100 to 200 (.64 to .86) (not good for segmentation)
-            #  For structSeg images, normalized already -100 to 400 therefore for -100 to 200 [0.,.6]
-        """
-
-        self.load_data(idx)
-        # gets the center slice
-        center_idx = np.int(self.center)
-        # Define cropping dimentions
-        window = self.window
-        bottom = center_idx - window
-        top = center_idx + window + 1
-
-        # if center_idx > z size of the image. reload everything...
-        if center_idx >= self.mask.shape[0] - 7:
-            # reload image & mask
-            self.img = np.load(str(self.img_path))
-            self.mask = np.load(str(self.mask_path))
-
-        # crop image & its mask...
-        img_ = self.img[bottom:top, :, :].copy()
-        mask_ = self.mask[center_idx, :, :].copy()
-        # image shapes
-        mask_shape = mask_.shape
-        imshape = img_.shape
-
-        if img_.shape[0] != 11 or mask_.max() == 0:
-            # import image & mask again...
-            self.img = np.load(str(self.img_path))
-            self.mask = np.load(str(self.mask_path))
-            # self.reset_masking()
-            img_ = self.img[bottom:top, :, :].copy()
-            mask_ = self.mask[center_idx, :, :].copy()
-            assert img_.shape[0] == 11
-            assert mask_.max() > 0
-
-        assert img_[0].shape == (512, 512)
-        assert mask_.shape == (512, 512)
-        assert mask_.max() > 0
-
-        if self.transform is not None:
-            # can add normalization & cropping to this
-            # make sure last & second last transformation
-            img_, mask_ = self.transform(img_, mask_)
-            # check img/mask
-            self.check(img_, mask_)
-
-        img_ = torch.from_numpy(img_).type(torch.FloatTensor)
-        mask_ = torch.from_numpy(mask_).type(torch.LongTensor)
-
-        return img_, mask_
-
-        # Note: output image tensor should be 4D output mask tensor should be 4D if single class, 5D for multi class...
-
-
-class TestLoader(Dataset):
-
-    """
-    Created on Wed May  9 17:01:04 2018
-    @author: joseph
-    Taken from pyGempick.mod
-    Link: https://github.com/jmarsil/pygempick/blob/master/pygempick/modeling.py
-
-    """
-
-    def __init__(self, sample, dim=512 // 2, volume=1, to_augment=False):
-        self.sample = (
-            sample  # imput this as range/arange of number of test images there are...
-        )
-        self.dim = dim
-        self.volume = volume
-        self.to_augment = to_augment
-
-    def stack(self, image):
-        # ADD NOISE TO MASKED REGION..
-        dim = self.dim
-        image[image == 0] = 0.3
-        # a = np.random.poisson(.6, (512, 512))
-        # image *= a/np.linalg.norm(a)
-        image *= np.random.normal(0.67, 0.1, (dim, dim))
-        sigmas = np.arange(0.8, 0.9, 0.1)
-        # sigma = random.choice(sigmas)
-        # image = gaussian_filter(image, sigma=sigma)
-        image[image > 1] = 1
-        # if self.volume == 1:
-        return image
-
-    def make_img(self):
-        dim = self.dim
-        image = np.zeros((dim, dim), np.float32)
-        return cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
-
-    def __getitem__(self, idx):
-        item = self.sample[idx]
-        dim = self.dim
-        image = TestLoader.make_img(self)
-        ##bernouli trial to draw either circle or elippse...
-        flip = np.random.rand()
-        radrange = np.arange(50 // 2, 150 // 2, 1)
-        ##picks a random particle radius between 4 and 8 pixels
-        axis = random.choice(radrange)
-        # N = width * height / 4
-        ##chooses a random center position for the circle
-        w = np.int(np.random.uniform(150 // 2, dim - 150 // 2))
-        h = np.int(np.random.uniform(150 // 2, dim - 150 // 2))
-
-        if flip < 0.5:
-            # draw a circle
-            cv2.circle(image, (h, w), np.int(axis), (255, 255, 255), -1)
-        else:
-            # draw an elippse...
-            cv2.ellipse(
-                image,
-                (h, w),
-                (int(axis) * 2, int(axis)),
-                0,
-                0,
-                360,
-                (255, 255, 255),
-                -1,
-            )
-
-        # CONVERT BACK TO GRAY VALUES
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        image[image == 255] = 1
-
-        # EXPAND DIMS IF 2D MASK
-        mask = image.copy()
-        if len(mask.shape) == 2:
-            mask = np.expand_dims(mask, 0)  # expand dims on image plane...
-        # stack & noisify image...
-        image = TestLoader.stack(self, image)
-        # normalize image...
-        # check if 3D or 2D volume...
-        if len(image.shape) == 2:
-            # normalize image...
-            image = np.expand_dims(image, 0)
-
-        # Augment image...
-        #         if self.to_augment:
-        #             image, mask = utils.augment(image, mask)
-
-        assert image.shape == mask.shape
-
-        # assert len(image.shape) == 3
-        # assert len(mask.shape) == 3
-        # check the mask, for every mask value in targets that is 0
-        # simply don't count that value in the loss calculation...
-        # This can allow us to use patient information without penalizing the model
-        # if it produces a wrong or inconsistent class...
-
-        return (
-            torch.from_numpy(image).type(torch.FloatTensor),
-            torch.from_numpy(mask).type(torch.FloatTensor),
-        )
-
-    def __len__(self):
-        return len(self.sample)

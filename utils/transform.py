@@ -337,11 +337,12 @@ class RandomCrop3D(MTTransform):
         # fill = self.segment_head(img)
         # assert img.max() > 0
         # only do this if of type tensor...
-        try:
-            shape = img.shape
-        except Exception:
-            shape = img.size()
-            img = img.cpu().numpy()
+        # try:
+        #     shape = img.shape
+        # except Exception:
+        shape = img.size()
+        warnings.warn("Loaded in a tensor...converting to numpy array...")
+        img = img.cpu().numpy()
 
         if len(shape)==4:
             img = img[0,:,:,:]
@@ -349,7 +350,8 @@ class RandomCrop3D(MTTransform):
         elif len(shape)==5:
             img=img[0,0,:,:,:]
             shape = img.shape
-
+        
+        warnings.warn(f"Shape is {str(shape)}")
         # if self.mode == 'test':
         # TOPHEAD CLASSES
         # img = img[shape[0]//2:shape[0]-shape[0]//3]
