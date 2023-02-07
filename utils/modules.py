@@ -44,7 +44,8 @@ class SegmentationModule(pl.LightningModule):
         if self.hparams.oar_version == 1:
             self.__get_gtv_data()
         else:
-            self.root="/content/drive/My Drive/ptl-oar-segmentation/"
+            # please inputput the root directory of the repository
+            self.root="./ptl-oar-segmentation/"
             self.__get_data()
 
         self.__build_model()

@@ -24,7 +24,9 @@ ROIS = ["External", "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
         "Glnd_Submand_R", "Cochlea_L", "Cochlea_R", "Lips",
         "Spc_Retrophar_R", "Spc_Retrophar_L", "BrachialPlex_R",
         "BrachialPlex_L", "BRAIN", "OralCavity", "Musc_Constrict_I",
-        "Musc_Constrict_S", "Musc_Constrict_M"]
+        "Musc_Constrict_S", "Musc_Constrict_M", "LEVEL_IA", "LEVEL_IB_RT",
+        "LEVEL_III_RT", "LEVEL_II_RT", "LEVEL_IV_RT", "LEVEL_VIIA_RT","LEVEL_V_RT",
+        "LEVEL_IB_LT","LEVEL_III_LT","LEVEL_II_LT","LEVEL_IV_LT","LEVEL_VIIA_LT","LEVEL_V_LT"]
 
 # this was the original order used for the OG segmentation study...
 # custom_order = [4,5,6,8,11,12,13,14,15,16,17,18,20,22,25,26,27,30,31]
@@ -85,6 +87,8 @@ def getCustomOrder(tag):
         custom_order = [19,20,21,22,23,24,25,26,27,28,29,30,31,17,18,4]
     elif tag == "MAJOR":
         custom_order = [13,8,14,15,16,11,12,23,24,25,26,27,29,28,9,10,17,18,21,22,19,20,4,3,1,2]
+    elif tag == "NECKLEVEL":
+        custom_order = [35,36,37,38,39,40,41,42,43,44,45,46,47]
     else:
         custom_order=custom_order
         warnings.warn("Tag not specified...using general ordering.")
