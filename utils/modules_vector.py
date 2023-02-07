@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 from torch.utils.data.distributed import DistributedSampler
 import matplotlib.pyplot as plt
-import lightning as pl
+import pytorch_lightning as pl
 from collections import OrderedDict
 import numpy as np
 import pandas as pd
