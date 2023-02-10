@@ -2,10 +2,12 @@ import logging
 import platform
 import sys
 from typing import Tuple
-
 import numpy as np
 from utils import SegmentationModule, config
+
+# packages that were dependent for model training
 from lightning import Trainer, seed_everything
+from torch.utils.data import Dataset
 from pytorch_lightning.callbacks import ModelCheckpoint
 import SimpleITK as sitk
 
@@ -16,9 +18,12 @@ np.random.seed(SEED)
 # (x, y, z)
 Point = Tuple[float, float, float]
 
+
 __MODEL_NAME__ = "WOLNET_ENSEMBLE"
 __MODEL_VERSION__ = "0.0.1"
 
+    
+    
 def run_masks(model, exam_image: sitk.Image) -> dict[str, sitk.Image]:
     # need origin, spacing, direction
     return {

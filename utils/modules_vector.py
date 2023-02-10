@@ -118,19 +118,25 @@ class SegmentationModule(pl.LightningModule):
                 self.valid_data = pd.read_csv(valid_csv_path)
                 self.test_data  = pd.read_csv(test_csv_path)
             else:
-                data = pd.read_csv(f"{self.hparams.home_path}radcure_oar_summary.csv", index_col=0)
-                # cust_ = custom_order.remove(1)
+                
                 data_ = getROIOrder(tag=self.tag, inverse=True)
                 oars = list(data_.values())
-                oar_data = data[data["ROI"].isin(oars)]
-                # exclude_ = ["RADCURE-0543", "RADCURE-3154", "RADCURE-0768"]
-                vals_ = list(oar_data["NEWID"].unique())
-                #################
+                
+                if self.tag != "NECKLEVELS":
+                    data = pd.read_csv(f"{self.hparams.home_path}radcure_oar_summary.csv", index_col=0)
+                    oar_data = data[data["ROI"].isin(oars)]
+                    # exclude_ = ["RADCURE-0543", "RADCURE-3154", "RADCURE-0768"]
+                    vals_ = list(oar_data["NEWID"].unique())
+                    #################
+                    
                 # H$H specific...
                 current = glob.glob(self.hparams.data_path+"*")
                 # current = glob.glob("/cluster/projects/radiomics/Temp/joe/RADCURE_VECTOR_UPDATE/*")
                 current = [c.split("/")[-1] for c in current]
-                current = [c for c in current if c in vals_]
+                
+                if self.tag != "NECKLEVELS":
+                    current = [c for c in current if c in vals_]
+                
                 #################
                 oar_data = pd.DataFrame.from_dict({"NEWID":current})
                 oar_data = oar_data[~oar_data["NEWID"].isin(exclude_)]
