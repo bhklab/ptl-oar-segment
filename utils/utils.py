@@ -3,19 +3,6 @@ import numpy as np
 from skimage import measure, morphology
 import string, random, glob
 
-# folders_ = [glob.glob(p) for p in structure_paths]
-# taken from prepare.py in utils
-# These are the ROIs that must be segmented
-# ROIS= [ "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
-#         "Larynx", "Cricoid_P", "OpticChiasm", "Glnd_Lacrimal_L",
-#         "Glnd_Lacrimal_R", "Lens_L", "Lens_R", "Eye_L", "Eye_R",
-#         "Nrv_Optic_L", "Nrv_Optic_R", "Parotid_L", "Parotid_R",
-#         "SpinalCord",  "Mandible_Bone", "Glnd_Submand_L",
-#         "Glnd_Submand_R", "Cochlea_L", "Cochlea_R", "Lips",
-#         "Spc_Retrophar_R", "Spc_Retrophar_L", "BrachialPlex_R", "BrachialPlex_L",
-#         "BRAIN",  "OralCavity", "Musc_Constrict_I",
-#         "Musc_Constrict_S", "Musc_Constrict_M"]
-
 ROIS = ["External", "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
         "Larynx", "Cricoid_P", "OpticChiasm", "Glnd_Lacrimal_L",
         "Glnd_Lacrimal_R", "Lens_L", "Lens_R", "Eye_L", "Eye_R",
@@ -29,14 +16,27 @@ ROIS = ["External", "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
         "LEVEL_IB_LT","LEVEL_III_LT","LEVEL_II_LT","LEVEL_IV_LT","LEVEL_VIIA_LT","LEVEL_V_LT"]
 
 # this was the original order used for the OG segmentation study...
-# custom_order = [4,5,6,8,11,12,13,14,15,16,17,18,20,22,25,26,27,30,31]
+custom_order = [4,5,6,8,11,12,13,14,15,16,17,18,20,22,25,26,27,30,31]
 #################################
-# original ROI standardization...
+# original ROI standardization/naming...
 # rois = ["GTV", "BRAIN","BSTEM","SPCOR","ESOPH","LARYNX","MAND",
 #     "POSTCRI","LPAR","RPAR","LACOU","RACOU","LLAC","RLAC","RRETRO",
 #     "LRETRO","RPLEX","LPLEX","LLENS","RLENS","LEYE","REYE","LOPTIC",
 #     "ROPTIC","LSMAN","RSMAN","CHIASM","LIPS","OCAV","IPCM","SPCM",
 #     "MPCM"]
+
+# folders_ = [glob.glob(p) for p in structure_paths]
+# taken from prepare.py in utils
+# These are the ROIs that must be segmented
+# ROIS= [ "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
+#         "Larynx", "Cricoid_P", "OpticChiasm", "Glnd_Lacrimal_L",
+#         "Glnd_Lacrimal_R", "Lens_L", "Lens_R", "Eye_L", "Eye_R",
+#         "Nrv_Optic_L", "Nrv_Optic_R", "Parotid_L", "Parotid_R",
+#         "SpinalCord",  "Mandible_Bone", "Glnd_Submand_L",
+#         "Glnd_Submand_R", "Cochlea_L", "Cochlea_R", "Lips",
+#         "Spc_Retrophar_R", "Spc_Retrophar_L", "BrachialPlex_R", "BrachialPlex_L",
+#         "BRAIN",  "OralCavity", "Musc_Constrict_I",
+#         "Musc_Constrict_S", "Musc_Constrict_M"]
 #################################
 
 def getROIOrder(tag, rois=ROIS, inverse=False, include_external=True):

@@ -745,6 +745,8 @@ class SegmentationModule(pl.LightningModule):
         folders = list(data["NEWID"])
         if self.hparams.data_path[-1] != "/":
             self.hparams.data_path += "/"
+        
+        warnings.warn(self.hparams.data_path)
         # we want this to be a list of list(s)
         # contain the paths to the structures for each patient
         folders = [glob.glob(self.hparams.data_path + fold + "/structures/*") for fold in folders]
