@@ -341,9 +341,9 @@ class RandomCrop3D(MTTransform):
             shape = img.shape
         except Exception:
             shape = img.size()
-        warnings.warn("Loaded in a tensor...converting to numpy array...")
-        img = img.cpu().numpy()
-
+            img = img.cpu().numpy()
+            warnings.warn("Loaded in a tensor...converting to numpy array...")
+        
         if len(shape)==4:
             img = img[0,:,:,:]
             shape = img.shape
