@@ -11,7 +11,6 @@ import elasticdeform as edf
 Adapted from medical torch for 3D volumes of numpy arrays.
 """
 
-
 class MTTransform(object):
     def __call__(self, sample):
         raise NotImplementedError("You need to implement the transform() method.")
