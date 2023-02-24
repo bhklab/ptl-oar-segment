@@ -1,12 +1,13 @@
 import logging, platform, torch, os, glob, nrrd
-from typing import Tuple
 import numpy as np
 from utils import SegmentationModule, ROIS, custom_order
 # packages that were dependent for model training
-from lightning import Trainer, seed_everything
-from torch.utils.data import Dataset
-# from pytorch_lightning.callbacks import ModelCheckpoint
+from lightning import Trainer
 import SimpleITK as sitk
+
+# from typing import Tuple
+# from torch.utils.data import Dataset
+# from pytorch_lightning.callbacks import ModelCheckpoint
 
 SEED = 2334
 torch.manual_seed(SEED)
@@ -17,9 +18,10 @@ np.random.seed(SEED)
 
 __MODEL_NAME__ = "WOLNET_ENSEMBLE"
 __MODEL_VERSION__ = "0.0.1"
+# set path on ptl-oar-segmentation directory
 __MODEL_PATH__ = ""
     
-def run_masks(save_path:str, roi_list:list, custom_order:list) -> dict[str, sitk.Image]:
+def run_masks(save_path:str, roi_list:list, custom_order:list, patient:str) -> dict[str, sitk.Image]:
     
     os.mkdir(save_path)  # 'wolnet-sample/FINAL_'
     folders = glob.glob('wolnet-sample/FOLD_*')
@@ -43,13 +45,14 @@ def run_masks(save_path:str, roi_list:list, custom_order:list) -> dict[str, sitk
         # orig = np.load('./RAW/'+f'/input_{b}_FULL.npy')
         orig = nrrd.read('wolnet-sample/RAW/'+f'/input_{b}_FULL.nrrd')[0]
         orig = torch.zeros(orig.shape)
-        orig[center[0]:center[1], center[2]:center[2] +
-            292, center[3]:center[3]+292] = im
+        orig[center[0]:center[1], center[2]:center[2] + 292, center[3]:center[3]+292] = im
         orig = orig.cpu().numpy()  # np.save(f'./FINAL_/outs_{b}_FULL.npy', orig)
         # saves image in nrrd format
         nrrd.write(f'wolnet-sample/FINAL_/outs_{b}_FULL.nrrd', orig)
         print(f'Done {b}')
         # one image or multiple...
+
+    patient_image = sitk.ReadImage(patient)
     
     patient_masks = {}
     names = [roi_list[i] for i in custom_order]
@@ -57,7 +60,9 @@ def run_masks(save_path:str, roi_list:list, custom_order:list) -> dict[str, sitk
         sample = orig.copy()
         sample[sample != i+1] = 0
         sample[sample == i+1] = 1
-        patient_masks[name] = sitk.GetImageFromArray(sample)
+        sample = sitk.GetImageFromArray(sample)
+        sample.CopyInformation(patient_image)
+        patient_masks[name] = sample
         warnings.warn(f'Saving {name}')
 
     return patient_masks
@@ -75,7 +80,7 @@ def run_model(model_path: str, patient:str) -> dict[str, sitk.Image]:
     
     # ensure model_path is location of ptl_oar_segmentation folder...
     # inference may require GPU(s) depending on avaliability adjust gpus/cpus flag acordingly
-    trainer = Trainer(gpus=1, default_root_dir=model_path) # strategy='ddp_notebook'
+    trainer = Trainer(gpus=0, default_root_dir=model_path) # strategy='ddp_notebook'
     splits = glob.glob(model_path+"/wolnet-sample/weights/*.ckpt")
     for split in splits:
         model = SegmentationModule.load_from_checkpoint(checkpoint_path=split)
@@ -88,7 +93,7 @@ def run_model(model_path: str, patient:str) -> dict[str, sitk.Image]:
         model.test = [patient, patient]
         trainer.test(model)
     
-    patient_masks = run_masks('wolnet-sample/FINAL_', ROIS, custom_order)
+    patient_masks = run_masks('wolnet-sample/FINAL_', ROIS, custom_order, patient)
 
     return patient_masks
 

@@ -122,7 +122,7 @@ class SegmentationModule(pl.LightningModule):
                 data_ = getROIOrder(tag=self.tag, inverse=True)
                 oars = list(data_.values())
                 
-                if self.tag != "NECKLEVELS":
+                if self.tag != "NECKLEVEL":
                     data = pd.read_csv(f"{self.hparams.home_path}radcure_oar_summary.csv", index_col=0)
                     oar_data = data[data["ROI"].isin(oars)]
                     # exclude_ = ["RADCURE-0543", "RADCURE-3154", "RADCURE-0768"]
@@ -134,7 +134,7 @@ class SegmentationModule(pl.LightningModule):
                 # current = glob.glob("/cluster/projects/radiomics/Temp/joe/RADCURE_VECTOR_UPDATE/*")
                 current = [c.split("/")[-1] for c in current]
                 
-                if self.tag != "NECKLEVELS":
+                if self.tag != "NECKLEVEL":
                     current = [c for c in current if c in vals_]
                 
                 #################
@@ -741,19 +741,33 @@ class SegmentationModule(pl.LightningModule):
         This will define data_config dictionaries based on a dataframe of images
         and structures...
         '''
-
         folders = list(data["NEWID"])
         if self.hparams.data_path[-1] != "/":
             self.hparams.data_path += "/"
-        
         warnings.warn(self.hparams.data_path)
         # we want this to be a list of list(s)
         # contain the paths to the structures for each patient
         folders = [glob.glob(self.hparams.data_path + fold + "/structures/*") for fold in folders]
         config = getHeaderData(folders, tag=self.tag)
-
         # config["IMGINFO"]["VOXINFO"] = voxel_info
         return config # ["IMGINFO"]
+    
+# test above function...
+# def __getDataHparam(data, path):
+#     '''
+#     This will define data_config dictionaries based on a dataframe of images
+#     and structures...
+#     '''
+#     folders = list(data["NEWID"])
+#     if path[-1] != "/":
+#         path += "/"
+#     warnings.warn(path)
+#     # we want this to be a list of list(s)
+#     # contain the paths to the structures for each patient
+#     folders = [glob.glob(path + fold + "/structures/*") for fold in folders]
+#     config = getHeaderData(folders, tag="NECKLEVEL")
+#     # config["IMGINFO"]["VOXINFO"] = voxel_info
+#     return config  # ["IMGINFO"]
 
     # ---------------------
     # MODEL SETUP

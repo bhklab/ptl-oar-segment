@@ -642,17 +642,15 @@ class LoadPatientVolumes(Dataset):
         This is called to load the imaged used in slicing.
         Will only load a new image iff the paths of the image behind
         a new one don't match!
-
         Set's self variable that will be called to slice the image/mask.
                 # loading in mask path (without shuffling it)
                 # want a full patient to be represented in a batch
                 # this wil greatly reduce loading time...
         """
-
         # load dataframe
         self.patient = self.data[idx]
-        self.img_path = f"{self.root}{self.patient}/CT_IMAGE.nrrd"
-        self.mask_path = f"{self.root}{self.patient}/structures/Mandible_Bone.nrrd"
+        self.img_path = self.patient # f"{self.root}{self.patient}/CT_IMAGE.nrrd"
+        self.mask_path = self.patient # f"{self.root}{self.patient}/structures/Mandible_Bone.nrrd"
         self.load_from_sitk() 
         self.com = None
 
