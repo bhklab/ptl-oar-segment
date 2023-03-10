@@ -381,15 +381,16 @@ class SegmentationModule(pl.LightningModule):
                     bool_counts = bool_counts[:len(counts_)-3]
 
         print(dices_)
-        hdfds_ = hdfds[counts_]
-        print(hdfds_)
-        asds_ = asds[counts_]
-        print(asds_)
+        # hdfds_ = hdfds[counts_]
+        # print(hdfds_)
+        # asds_ = asds[counts_]
+        # print(asds_)
         if "BACK" not in self.oars:
             self.oars = ["BACK"] + self.oars
         oars_ = np.array(self.oars)[bool_counts]
         print(oars_, bool_counts)
         for i, val in enumerate(dices_):
+            warnings.warn(f"Logging Dice for OAR: {str(oars_[i])}:{str(val)}...")
             self.log(f'val_dice_{oars_[i]}', val, on_step=True, prog_bar=True, logger=True)
                 # logging individual evaluation metrics...
                 # if you have the order of OAR(s) - given that they're variable, i can be replaced with ROI name...
