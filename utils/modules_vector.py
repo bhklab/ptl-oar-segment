@@ -152,8 +152,8 @@ class SegmentationModule(pl.LightningModule):
                     # this will only run to create train/test splits after each fold...
                     # makes data splitting for ensembling easier...
                     if i == self.hparams.fold:
-                        self.train_data = pd.DataFrame.from_dict({"NEWID": [c[j] for j in train_index]})
-                        self.valid_data = pd.DataFrame.from_dict({"NEWID": [c[j] for j in test_index]})
+                        self.train_data = pd.DataFrame.from_dict({"NEWID": [current[j] for j in train_index]})
+                        self.valid_data = pd.DataFrame.from_dict({"NEWID": [current[j] for j in test_index]})
                 
                 # select random test div for sitsagiigles
                 test_csv_path = str(self.hparams.home_path)  + "wolnet-sample/vector_test.csv"
