@@ -10,6 +10,7 @@ from collections import OrderedDict
 import numpy as np
 import pandas as pd
 import torch.nn.functional as F
+from sklearn.model_selection import KFold
 # monai slifing window inference...
 # from sliding_window import sliding_window_inference
 # from .sliding_window import sliding_window_inference as swi
@@ -68,8 +69,11 @@ class SegmentationModule(pl.LightningModule):
         # the un-windowed meanHU and stdHU are saved in the meta header for each image...
         # for clipped image(s) from -500 to 1000; expect mean/std values to
         # fall within the following ranges... -390 < meanHU < -420; 205 < stdHU < 245
-
-        path_ = self.hparams.root + f"/config_{self.tag}.json"
+        # set the KFold class variable to the number of folds you want to use for cross-validation
+        # random_state makes the predictions deterministic
+        
+        kf = KFold(n_splits=5, shuffle=True, random_state=234)
+        path_ = self.hparams.root + f"/config_{self.tag}_{self.hparams.fold}.json"
         # this excludes all the data with three contours in their files or less...
         exclude_ = ['RADCURE-2358', 'RADCURE-1645', 'RADCURE-0472', 'RADCURE-1870', 'RADCURE-0431', 'RADCURE-1461',
                     'RADCURE-1715', 'RADCURE-1856', 'RADCURE-2560', 'RADCURE-2620', 'RADCURE-1540', 'RADCURE-0314',
@@ -135,22 +139,33 @@ class SegmentationModule(pl.LightningModule):
                 current = [c.split("/")[-1] for c in current]
                 
                 if self.tag != "NECKLEVEL":
+                    # split by how many OAR(s) are in select pateints...
                     current = [c for c in current if c in vals_]
                 
                 #################
                 oar_data = pd.DataFrame.from_dict({"NEWID":current})
                 oar_data = oar_data[~oar_data["NEWID"].isin(exclude_)]
-                self.train_data = oar_data[:int(len(oar_data)*.9)]
-                self.valid_data = oar_data[int(len(oar_data)*.9):]
+                
+                # ..use Kfold instance from sklearn to split the data...
+                current = list(oar_data["NEWID"])
+                for i, (train_index, test_index) in enumerate(kf.split(current)):
+                    # this will only run to create train/test splits after each fold...
+                    # makes data splitting for ensembling easier...
+                    if i == self.hparams.fold:
+                        self.train_data = pd.DataFrame.from_dict({"NEWID": [c[j] for j in train_index]})
+                        self.valid_data = pd.DataFrame.from_dict({"NEWID": [c[j] for j in test_index]})
+                
                 # select random test div for sitsagiigles
                 test_csv_path = str(self.hparams.home_path)  + "wolnet-sample/vector_test.csv"
                 self.test_data  = pd.read_csv(test_csv_path)
                 warnings.warn(f"Creating model with {len(oars)} oars which are {oars}.")
 
             config = self.__getDataHparam(self.train_data)
-            config["train_data"] = list(self.train_data["NEWID"])
-            config["valid_data"] = list(self.valid_data["NEWID"])
-            config["test_data"] =  list(self.test_data["NEWID"])
+            config["train_data"] =  list(self.train_data["NEWID"])
+            config["valid_data"] =  list(self.valid_data["NEWID"])
+            config["test_data"]  =  list(self.test_data["NEWID"])
+            
+            # config["version"] = 
             with open(path_, "w") as f:
                 json.dump(config,f)
 
