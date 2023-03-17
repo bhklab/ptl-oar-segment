@@ -10,7 +10,7 @@ from collections import OrderedDict
 import numpy as np
 import pandas as pd
 import torch.nn.functional as F
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, ShuffleSplit
 # monai slifing window inference...
 # from sliding_window import sliding_window_inference
 # from .sliding_window import sliding_window_inference as swi
@@ -71,8 +71,8 @@ class SegmentationModule(pl.LightningModule):
         # fall within the following ranges... -390 < meanHU < -420; 205 < stdHU < 245
         # set the KFold class variable to the number of folds you want to use for cross-validation
         # random_state makes the predictions deterministic
-        
-        kf = KFold(n_splits=5, shuffle=True, random_state=234)
+        ss = ShuffleSplit(n_splits=5, test_size=0.1, random_state=234)
+        # kf = KFold(n_splits=5, shuffle=True, random_state=234)
         path_ = self.hparams.root + f"/config_{self.tag}_{self.hparams.fold}.json"
         # this excludes all the data with three contours in their files or less...
         exclude_ = ['RADCURE-2358', 'RADCURE-1645', 'RADCURE-0472', 'RADCURE-1870', 'RADCURE-0431', 'RADCURE-1461',
@@ -148,7 +148,7 @@ class SegmentationModule(pl.LightningModule):
                 
                 # ..use Kfold instance from sklearn to split the data...
                 current = list(oar_data["NEWID"])
-                for i, (train_index, test_index) in enumerate(kf.split(current)):
+                for i, (train_index, test_index) in enumerate(ss.split(current)):
                     # this will only run to create train/test splits after each fold...
                     # makes data splitting for ensembling easier...
                     if i == self.hparams.fold:
