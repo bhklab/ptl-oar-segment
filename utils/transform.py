@@ -355,10 +355,16 @@ class RandomCrop3D(MTTransform):
         # TOPHEAD CLASSES
         # img = img[shape[0]//2:shape[0]-shape[0]//3]
         # EVERYTHING ELSE...
-        img = img[shape[0]//2:shape[0]-shape[0]//3]
-        img = self.segment_head(img)
-        com_ = measure.center_of_mass(img)
-        img = img[int(com_[0])]
+        try:
+            img_ = img[shape[0]//2:shape[0]-shape[0]//3]
+            img_ = self.segment_head(img_)
+            com_ = measure.center_of_mass(img_)
+            img_ = img_[int(com_[0])]
+        except Exception as e:
+            warnings.warn("Cropped out all mask values pre-maturely, use full image...")
+            img_ = self.segment_head(img_)
+            com_ = measure.center_of_mass(img_)
+            img_ = img_[int(com_[0])]
         com = measure.center_of_mass(img)
         self.center = [int(com_[0]), int(com[0]), int(com[1])]
 
@@ -551,8 +557,14 @@ class RandomCrop3D(MTTransform):
             self.get_params(img)
             self.get_shifts(img)
         else:
-            self.get_params(img)
-            self.get_shifts(mask)
+            try:
+                self.get_params(img)
+                self.get_shifts(mask)
+            except Exception as e:
+                # warnings.warn(str(e))
+                # self.get_params(img)
+                # self.get_shifts(img)
+                raise Exception(f"Please check mask of size {img.shape}. Failed in transform.py 567")
 
         if mask is not None:
             try:
