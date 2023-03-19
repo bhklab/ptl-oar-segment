@@ -209,9 +209,9 @@ class SegmentationModule(pl.LightningModule):
     def __getCutomOrder(self):
 
         self.tag = self.hparams.tag
-        if self.tag == "NECK":
+        if self.tag == "GTV":
             # includes GTV...
-            self.custom_order = [3,1,2]
+            self.custom_order = [1,2,3]
         elif self.tag == "BRACP":
             self.custom_order = [28,29]
         elif self.tag == "NECKMUS":

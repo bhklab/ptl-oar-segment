@@ -56,9 +56,9 @@ def getROIOrder(tag, rois=ROIS, inverse=False, include_external=True):
 # first step get ROI order
 ##########################
 def getCustomOrder(tag):
-    if tag == "NECK":
+    if tag == "GTV":
         # includes GTV...
-        custom_order = [3,1,2]
+        custom_order = [1,2,3]
     elif tag == "BRACP":
         custom_order = [29,28]
     elif tag == "LACRIM":
