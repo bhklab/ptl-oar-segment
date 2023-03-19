@@ -37,10 +37,15 @@
 #     for o in oars:
 #         compare = naming[o]
 #         for c in fold:
-#             oar = c.split("/")[-1].partition(".")[0]
-#             if oar in compare:
-#                 shutil.move(c, re_+"/structures/"+o)
-#                 print(oar+" moved to "+re_+"/structures/"+o)
-    
+#             oar = c.split("/")[-1]#.partition(".")[0]
+#             if ".nrrd" not in oar:
+#                 print(oar)
+#                 try:
+#                     shutil.move(c, c+".nrrd")
+#                 except Exception as e:
+#                     print(str(e))
+#             # if oar in compare:
+#             #     shutil.move(c, re_+"/structures/"+o)
+#             #     print(oar+" moved to "+re_+"/structures/"+o)
 #     print("Done with "+re_)
 #     # break

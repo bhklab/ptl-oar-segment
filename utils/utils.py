@@ -16,7 +16,7 @@ ROIS = ["External", "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
         "LEVEL_IB_LT","LEVEL_III_LT","LEVEL_II_LT","LEVEL_IV_LT","LEVEL_VIIA_LT","LEVEL_V_LT"]
 
 # this was the original order used for the OG segmentation study...
-custom_order = [4,5,6,8,11,12,13,14,15,16,17,18,20,22,25,26,27,30,31]
+custom_order = [1,4,5,6,8,9,10,11,12,13,14,15,16,17,18,20,22,25,26,27,30,31]
 #################################
 # original ROI standardization/naming...
 # rois = ["GTV", "BRAIN","BSTEM","SPCOR","ESOPH","LARYNX","MAND",
@@ -90,7 +90,7 @@ def getCustomOrder(tag):
     elif tag == "NECKLEVEL":
         custom_order = [35,36,37,38,39,40,41,42,43,44,45,46,47]
     else:
-        custom_order=custom_order
+        custom_order = [1, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 22, 25, 26, 27, 30, 31] #custom_order
         warnings.warn("Tag not specified...using general ordering.")
         # will load in custom_order in utils.py...
     return custom_order
