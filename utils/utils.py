@@ -10,7 +10,7 @@ ROIS = ["External", "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
         "SpinalCord", "Mandible_Bone", "Glnd_Submand_L",
         "Glnd_Submand_R", "Cochlea_L", "Cochlea_R", "Lips",
         "Spc_Retrophar_R", "Spc_Retrophar_L", "BrachialPlex_R",
-        "BrachialPlex_L", "BRAIN", "OralCavity", "Musc_Constrict_I",
+        "BrachialPlex_L", "Brain", "OralCavity", "Musc_Constrict_I",
         "Musc_Constrict_S", "Musc_Constrict_M", "LEVEL_IA", "LEVEL_IB_RT",
         "LEVEL_III_RT", "LEVEL_II_RT", "LEVEL_IV_RT", "LEVEL_VIIA_RT","LEVEL_V_RT",
         "LEVEL_IB_LT","LEVEL_III_LT","LEVEL_II_LT","LEVEL_IV_LT","LEVEL_VIIA_LT","LEVEL_V_LT"]
