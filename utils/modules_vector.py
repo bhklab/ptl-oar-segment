@@ -90,7 +90,7 @@ class SegmentationModule(pl.LightningModule):
                     'RADCURE-1270', 'RADCURE-0953', 'RADCURE-1030', 'RADCURE-0897', 'RADCURE-3099', 'RADCURE-1582',
                     'RADCURE-0912', 'RADCURE-2503', 'RADCURE-0079', "RADCURE-0543", "RADCURE-1856", "RADCURE-2503", 
                     "RADCURE-0079", "RADCURE-2205", "RADCURE-1582", "RADCURE-2986", "RADCURE-2370", "RADCURE-1573",
-                    "RADCURE-2305", "RADCURE-0592"]
+                    "RADCURE-2305", "RADCURE-0592", "RADCURE-2853", "RADCURE-2178"]
         try:
             # if os.path.isfile(self.hparams.is_config) is True:
             # ideally this should be a .json file in the format of self.data_config

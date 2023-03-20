@@ -40,7 +40,6 @@ class UndoTransform(object):
 class Compose(object):
 
     """
-
     Composes several transforms together.
     Modiefied to edit both image & mask at one time.
     Args:
@@ -50,7 +49,6 @@ class Compose(object):
         >>>     transforms.CenterCrop(10),
         >>>     transforms.ToTensor(),
         >>> ])
-
     """
 
     def __init__(self, transforms):
@@ -362,7 +360,7 @@ class RandomCrop3D(MTTransform):
             img_ = img_[int(com_[0])]
         except Exception as e:
             warnings.warn("Cropped out all mask values pre-maturely, use full image...")
-            img_ = self.segment_head(img_)
+            img_ = self.segment_head(img)
             com_ = measure.center_of_mass(img_)
             img_ = img_[int(com_[0])]
         com = measure.center_of_mass(img)
@@ -552,7 +550,6 @@ class RandomCrop3D(MTTransform):
     def __call__(self, img, mask=None, mask2=None):
 
         # initiate parameters (get shifing coeff)
-
         if self.mode=='test':
             self.get_params(img)
             self.get_shifts(img)
@@ -561,10 +558,13 @@ class RandomCrop3D(MTTransform):
                 self.get_params(img)
                 self.get_shifts(mask)
             except Exception as e:
-                # warnings.warn(str(e))
-                # self.get_params(img)
-                # self.get_shifts(img)
-                raise Exception(f"Please check mask of size {img.shape}. Failed in transform.py 567")
+                warnings.warn(str(e))
+                try:
+                    self.get_params(img)
+                    self.get_shifts(img)
+                except Exception as e:
+                    warnings.warn(str(e))
+                    raise Exception(f"Please check mask of size {img.shape}. Failed in transform.py 567")
 
         if mask is not None:
             try:
