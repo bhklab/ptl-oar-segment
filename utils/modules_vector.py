@@ -377,37 +377,45 @@ class SegmentationModule(pl.LightningModule):
         counts = counts[0].cpu().numpy()
         bool_counts = (counts == 1)
         counts_ = np.where(bool_counts)[0]
+        
         print(counts, bool_counts, counts_)
-        # try:
+        print(dices)
+        
         try:
-            dices_ = dices[counts_]
+            if "BACK" not in self.oars:
+                self.oars = ["BACK"] + self.oars
+            oars_ = [self.oars[j] for j in counts_]
+            print(oars_, bool_counts)
+            for i, val in enumerate(dices):
+                warnings.warn(f"Logging Dice for OAR: {str(oars_[i])}:{str(val)}...")
+                self.log(f'val_dice_{oars_[i]}', val, on_step=True, prog_bar=True, logger=True)
         except Exception:
-            try:
-                counts_ = counts_[:len(counts_)-1]
-                dices_ = dices[counts_]
-                bool_counts = bool_counts[:len(counts_)-1]
-            except Exception:
-                try:
-                    counts_ = counts_[:len(counts_)-2]
-                    dices_ = dices[counts_]
-                    bool_counts = bool_counts[:len(counts_)-2]
-                except Exception:
-                    counts_ = counts_[:len(counts_)-3]
-                    dices_ = dices[counts_]
-                    bool_counts = bool_counts[:len(counts_)-3]
+            warnings.warn(f"Skipping Logging Validation Dice for OAR {batch_idx}.")
+        
+        # try:
+        # try:
+        #     dices_ = dices[counts_]
+        # except Exception:
+        #     try:
+        #         counts_ = counts_[:len(counts_)-1]
+        #         dices_ = dices[counts_]
+        #         bool_counts = bool_counts[:len(counts_)-1]
+        #     except Exception:
+        #         try:
+        #             counts_ = counts_[:len(counts_)-2]
+        #             dices_ = dices[counts_]
+        #             bool_counts = bool_counts[:len(counts_)-2]
+        #         except Exception:
+        #             counts_ = counts_[:len(counts_)-3]
+        #             dices_ = dices[counts_]
+        #             bool_counts = bool_counts[:len(counts_)-3]
 
-        print(dices_)
+        # print(dices_)
         # hdfds_ = hdfds[counts_]
         # print(hdfds_)
         # asds_ = asds[counts_]
         # print(asds_)
-        if "BACK" not in self.oars:
-            self.oars = ["BACK"] + self.oars
-        oars_ = np.array(self.oars)[bool_counts]
-        print(oars_, bool_counts)
-        for i, val in enumerate(dices_):
-            warnings.warn(f"Logging Dice for OAR: {str(oars_[i])}:{str(val)}...")
-            self.log(f'val_dice_{oars_[i]}', val, on_step=True, prog_bar=True, logger=True)
+
                 # logging individual evaluation metrics...
                 # if you have the order of OAR(s) - given that they're variable, i can be replaced with ROI name...
                 # if counts[i] == 1:
