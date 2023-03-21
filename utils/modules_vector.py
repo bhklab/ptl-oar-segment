@@ -389,7 +389,8 @@ class SegmentationModule(pl.LightningModule):
             for i, val in enumerate(dices):
                 warnings.warn(f"Logging Dice for OAR: {str(oars_[i])}:{str(val)}...")
                 self.log(f'val_dice_{oars_[i]}', val, on_step=True, prog_bar=True, logger=True)
-        except Exception:
+        except Exception as e:
+            warnings.warn(str(e))
             warnings.warn(f"Skipping Logging Validation Dice for OAR {batch_idx}.")
         
         # try:
