@@ -5,7 +5,7 @@ See https://williamfalcon.github.io/pytorch-lightning/
 import os, torch, warnings, glob
 import numpy as np
 from utils import SegmentationModule, config
-from pytorch_lightning import Trainer # , seed_everything
+from lightning import Trainer # , seed_everything
 # from pytorch_lightning.callbacks import ModelCheckpoint
 
 """
@@ -47,11 +47,15 @@ def main(args):
     # inference for custom model...
     weights_path = "/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_01_31_190855/weights_CUSTOM/"
     checkpoints = glob.glob(weights_path + "*.ckpt")
-    for checkpoint in checkpoints:
+    hparams = glob.glob(weights_path + "*.yaml")
+    checkpoints.sort()
+    hparams.sort()
+    for i, checkpoint in enumerate(checkpoints):
         warnings.warn(f'Loading save model from {checkpoint}.')
-        model = SegmentationModule.load_from_checkpoint(checkpoint_path=checkpoint)
-        trainer = Trainer(gpus=1, strategy='ddp',
-                          default_root_dir=model.hparams.root)
+        model = SegmentationModule.load_from_checkpoint(checkpoint_path=checkpoint,
+                                                        hparams_file=hparams[i],
+                                                        map_location=None)
+        trainer = Trainer(gpus=1, default_root_dir=model.hparams.root)
         trainer.test(model)
 
 if __name__ == '__main__':
