@@ -50,7 +50,8 @@ def main(args):
     for checkpoint in checkpoints:
         warnings.warn(f'Loading save model from {checkpoint}.')
         model = SegmentationModule.load_from_checkpoint(checkpoint_path=checkpoint)
-        trainer = Trainer(gpus=1, strategy='ddp')
+        trainer = Trainer(gpus=1, strategy='ddp',
+                          default_root_dir=model.hparams.root)
         trainer.test(model)
 
 if __name__ == '__main__':
