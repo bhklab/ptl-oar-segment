@@ -75,22 +75,24 @@ class SegmentationModule(pl.LightningModule):
         # kf = KFold(n_splits=5, shuffle=True, random_state=234)
         path_ = self.hparams.root + f"/config_{self.tag}_{self.hparams.fold}.json"
         # this excludes all the data with three contours in their files or less...
-        exclude_ = ['RADCURE-2358', 'RADCURE-1645', 'RADCURE-0472', 'RADCURE-1870', 'RADCURE-0431', 'RADCURE-1461',
-                    'RADCURE-1715', 'RADCURE-1856', 'RADCURE-2560', 'RADCURE-2620', 'RADCURE-1540', 'RADCURE-0314',
-                    'RADCURE-0703', 'RADCURE-1295', 'RADCURE-1786', 'RADCURE-0526', 'RADCURE-1779', 'RADCURE-1570',
-                    'RADCURE-1796', 'RADCURE-1707', 'RADCURE-1558', 'RADCURE-1314', 'RADCURE-0609', 'RADCURE-1774',
-                    'RADCURE-1003', 'RADCURE-1617', 'RADCURE-0570', 'RADCURE-1787', 'RADCURE-0571', 'RADCURE-1957',
-                    'RADCURE-4026', 'RADCURE-1616', 'RADCURE-0926', 'RADCURE-1635', 'RADCURE-0547', 'RADCURE-1878',
-                    'RADCURE-1337', 'RADCURE-0701', 'RADCURE-1923', 'RADCURE-2293', 'RADCURE-2121', 'RADCURE-1895',
-                    'RADCURE-2102', 'RADCURE-1301', 'RADCURE-1320', 'RADCURE-1966', 'RADCURE-0724', 'RADCURE-1700',
-                    'RADCURE-2033', 'RADCURE-0684', 'RADCURE-2298', 'RADCURE-1720', 'RADCURE-1938', 'RADCURE-0999',
-                    'RADCURE-1765', 'RADCURE-0987', 'RADCURE-1513', 'RADCURE-1733', 'RADCURE-0748', 'RADCURE-1368',
-                    'RADCURE-0317', 'RADCURE-0415', 'RADCURE-1987', 'RADCURE-1282', 'RADCURE-0667', 'RADCURE-0567',
-                    'RADCURE-1438', 'RADCURE-2205', 'RADCURE-0406', 'RADCURE-0499', 'RADCURE-1252', 'RADCURE-1889',
-                    'RADCURE-1270', 'RADCURE-0953', 'RADCURE-1030', 'RADCURE-0897', 'RADCURE-3099', 'RADCURE-1582',
-                    'RADCURE-0912', 'RADCURE-2503', 'RADCURE-0079', "RADCURE-0543", "RADCURE-1856", "RADCURE-2503", 
-                    "RADCURE-0079", "RADCURE-2205", "RADCURE-1582", "RADCURE-2986", "RADCURE-2370", "RADCURE-1573",
-                    "RADCURE-2305", "RADCURE-0592", "RADCURE-2853", "RADCURE-2178"]
+        exclude_ = []
+        # exclude_ = ['RADCURE-2358', 'RADCURE-1645', 'RADCURE-0472', 'RADCURE-1870', 'RADCURE-0431', 'RADCURE-1461',
+        #             'RADCURE-1715', 'RADCURE-1856', 'RADCURE-2560', 'RADCURE-2620', 'RADCURE-1540', 'RADCURE-0314',
+        #             'RADCURE-0703', 'RADCURE-1295', 'RADCURE-1786', 'RADCURE-0526', 'RADCURE-1779', 'RADCURE-1570',
+        #             'RADCURE-1796', 'RADCURE-1707', 'RADCURE-1558', 'RADCURE-1314', 'RADCURE-0609', 'RADCURE-1774',
+        #             'RADCURE-1003', 'RADCURE-1617', 'RADCURE-0570', 'RADCURE-1787', 'RADCURE-0571', 'RADCURE-1957',
+        #             'RADCURE-4026', 'RADCURE-1616', 'RADCURE-0926', 'RADCURE-1635', 'RADCURE-0547', 'RADCURE-1878',
+        #             'RADCURE-1337', 'RADCURE-0701', 'RADCURE-1923', 'RADCURE-2293', 'RADCURE-2121', 'RADCURE-1895',
+        #             'RADCURE-2102', 'RADCURE-1301', 'RADCURE-1320', 'RADCURE-1966', 'RADCURE-0724', 'RADCURE-1700',
+        #             'RADCURE-2033', 'RADCURE-0684', 'RADCURE-2298', 'RADCURE-1720', 'RADCURE-1938', 'RADCURE-0999',
+        #             'RADCURE-1765', 'RADCURE-0987', 'RADCURE-1513', 'RADCURE-1733', 'RADCURE-0748', 'RADCURE-1368',
+        #             'RADCURE-0317', 'RADCURE-0415', 'RADCURE-1987', 'RADCURE-1282', 'RADCURE-0667', 'RADCURE-0567',
+        #             'RADCURE-1438', 'RADCURE-2205', 'RADCURE-0406', 'RADCURE-0499', 'RADCURE-1252', 'RADCURE-1889',
+        #             'RADCURE-1270', 'RADCURE-0953', 'RADCURE-1030', 'RADCURE-0897', 'RADCURE-3099', 'RADCURE-1582',
+        #             'RADCURE-0912', 'RADCURE-2503', 'RADCURE-0079', "RADCURE-0543", "RADCURE-1856", "RADCURE-2503", 
+        #             "RADCURE-0079", "RADCURE-2205", "RADCURE-1582", "RADCURE-2986", "RADCURE-2370", "RADCURE-1573",
+        #             "RADCURE-2305", "RADCURE-0592", "RADCURE-2853", "RADCURE-2178"]
+        
         try:
             # if os.path.isfile(self.hparams.is_config) is True:
             # ideally this should be a .json file in the format of self.data_config
@@ -268,7 +270,7 @@ class SegmentationModule(pl.LightningModule):
         if type(outputs) == tuple:
             outputs = outputs[0]
         
-        loss = self.criterion(outputs, targets, counts, normalize=True)
+        loss = self.criterion(outputs, targets, counts)
         # if loss is nan...
         # if torch.isnan(loss)[0] is True:
         nan_val = 10 + len(self.custom_order)
