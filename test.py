@@ -50,11 +50,25 @@ def main(args):
     hparams = glob.glob(weights_path + "*.yaml")
     checkpoints.sort()
     hparams.sort()
+    
     for i, checkpoint in enumerate(checkpoints):
         warnings.warn(f'Loading save model from {checkpoint}.')
-        model = SegmentationModule.load_from_checkpoint(checkpoint_path=checkpoint,
+        checkpoint_ = torch.load(checkpoint)
+        model_weights = checkpoint_["state_dict"]
+        # update keys by dropping `auto_encoder.`
+        for key in list(model_weights):
+            model_weights[key.replace("criterion.", "")] = model_weights.pop(key)
+        
+        checkpoint_["state_dict"] = model_weights
+        # update checkpoint 
+        torch.save(checkpoint_, checkpoint)
+        # save model weights
+        torch.save(model_weights, weights_path + f"weights_{i}.ckpt")
+        
+        model = SegmentationModule.load_from_checkpoint(checkpoint_path=weights_path + f"weights_{i}.ckpt",
                                                         hparams_file=hparams[i],
                                                         map_location=None)
+        
         trainer = Trainer(gpus=1, default_root_dir=model.hparams.root)
         trainer.test(model)
 
