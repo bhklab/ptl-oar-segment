@@ -61,6 +61,8 @@ def main(args):
             # model_weights[key.replace("ce.weight", "")] = model_weights.pop(key)
             warnings.warn(f'Dropping key {key} from checkpoint.')
         
+        val = model_weights.pop("")
+        
         checkpoint_["state_dict"] = model_weights
         # update checkpoint 
         torch.save(checkpoint_, checkpoint)
