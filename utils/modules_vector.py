@@ -270,7 +270,7 @@ class SegmentationModule(pl.LightningModule):
         if type(outputs) == tuple:
             outputs = outputs[0]
         
-        loss = self.criterion(outputs, targets, counts)
+        loss = self.criterion(outputs, targets, counts, normalize=True)
         # if loss is nan...
         # if torch.isnan(loss)[0] is True:
         nan_val = 10 + len(self.custom_order)
