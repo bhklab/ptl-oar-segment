@@ -1,7 +1,6 @@
-import torch, warnings, nrrd
+import torch, warnings, nrrd, string, random, glob
 import numpy as np
 from skimage import measure, morphology
-import string, random, glob
 
 ROIS = ["External", "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
         "Larynx", "Cricoid_P", "OpticChiasm", "Glnd_Lacrimal_L",
@@ -131,7 +130,8 @@ def getHeaderData(folders, structures=True, tag=None):
                 # com_dic[oar] = com
     return {"VOXINFO":voxel_dic, "IMGINFO":img_dic}
 
-def swi(image, net, n_classes):
+
+def swi(image, net, n_classes, roi_size=(2, 112, 176, 176)):
 
     # in our case we're looking for a 5D tensor...
     if len(image.size()) < 5:
@@ -141,15 +141,26 @@ def swi(image, net, n_classes):
     warnings.warn(f'Image shape is {image.size()}')
 
     # Z ...
-    start = [0, shape[2]//4, shape[2]-shape[2]//4 - 112, shape[2]-112]
-    end = [112, shape[2]//4+112, shape[2]-shape[2]//4, shape[2]]
+    start = [0, shape[2]//4, shape[2]-shape[2] //
+             4 - roi_size[1], shape[2]-roi_size[1]]
+    end = [roi_size[1], shape[2]//4+roi_size[1],
+           shape[2]-shape[2]//4, shape[2]]
     # Y
-    start_y = [0, shape[3]-176, shape[3]//12, shape[3]//6, shape[3] - shape[3]//4 - 176, shape[3] - shape[3]//6 - 176, shape[1] - shape[1]//12 - 176]
-    end_y = [176, shape[3], shape[3]//12 + 176, shape[3]//6 + 176, shape[3] - shape[3]//4, shape[3] - shape[3]//6, shape[1] - shape[1]//12]
+    start_y = [0, shape[3]-roi_size[2], shape[3]//12, shape[3]//6, shape[3] -
+               shape[3]//4 - roi_size[2], shape[3] - shape[3]//6 - roi_size[2],
+               shape[1] - shape[1]//12 - roi_size[2]]
+    
+    end_y = [roi_size[2], shape[3], shape[3]//12 + roi_size[2], shape[3]//6 + roi_size[2],
+             shape[3] - shape[3]//4, shape[3] - shape[3]//6, shape[1] - shape[1]//12]
     # X
-    start_x = [0, shape[4]-176, shape[4]//12, shape[4]//4, shape[4]//6, shape[4] - shape[4]//4 - 176, shape[4] - shape[4]//6 - 176, shape[4] - shape[4]//12 - 176]
-    end_x = [176, shape[4], shape[4]//12 + 176, shape[4]//4+176, shape[4]//6 + 176, shape[4] - shape[4]//4, shape[4] - shape[4]//6, shape[4] - shape[4]//12]
-    output_shape = (2, n_classes, shape[2], shape[3], shape[4])
+    start_x = [0, shape[4]-roi_size[2], shape[4]//12, shape[4]//4, shape[4]//6, shape[4] -
+               shape[4]//4 - roi_size[2], shape[4] - shape[4]//6 - roi_size[2],
+               shape[4] - shape[4]//12 - roi_size[2]]
+    
+    end_x = [roi_size[2], shape[4], shape[4]//12 + roi_size[2], shape[4]//4+roi_size[2], shape[4] //
+             6 + roi_size[2], shape[4] - shape[4]//4, shape[4] - shape[4]//6, shape[4] - shape[4]//12]
+    
+    output_shape = (roi_size[0], n_classes, shape[2], shape[3], shape[4])
 
     reference_ = torch.zeros(output_shape).to(image.device)
     reference = torch.zeros(output_shape).to(image.device)
@@ -159,7 +170,8 @@ def swi(image, net, n_classes):
             for k, va in enumerate(start_x):
                 im = image[:,:,val:end[i], v:end_y[j], va:end_x[k]]
                 sh = im.size() # shoud be 5D tensor...
-                if (sh[1], sh[2], sh[3], sh[4])!= (2, 112, 176, 176):
+                if (sh[1], sh[2], sh[3], sh[4]) != roi_size:
+                    warnings.warn(f'Image shape is {im.size()}...passing step...')
                     pass
                 else:
                     reference_[:,:,val:end[i], v:end_y[j], va:end_x[k]]+=1

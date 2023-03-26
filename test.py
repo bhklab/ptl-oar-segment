@@ -2,11 +2,11 @@
 Runs a presaved model on a single node across N-gpus.
 See https://williamfalcon.github.io/pytorch-lightning/
 """
-import os, torch, warnings
+import os, torch, warnings, glob
 import numpy as np
 from utils import SegmentationModule, config
-from lightning import Trainer, seed_everything
-from pytorch_lightning.callbacks import ModelCheckpoint
+from lightning import Trainer # , seed_everything
+# from pytorch_lightning.callbacks import ModelCheckpoint
 
 """
 .. warning:: `logging` package has been renamed to `loggers` since v0.7.0.
@@ -39,14 +39,19 @@ def main(args):
     on the offical project repo.
 
     :param hparams: weights_path
+    
     """
-    assert args.weights_path is not None
+    # implement override with user passed path
+    # assert args.weights_path is not None
     warnings.warn('Using presaved weights...')
-    warnings.warn(f'Loading save model from {args.weights_path}.')
-    model = SegmentationModule.load_from_checkpoint(checkpoint_path=args.weights_path)
-    #, strict=False) #,
-    trainer = Trainer(gpus=1, strategy='ddp')
-    trainer.test(model)
+    # inference for custom model...
+    weights_path = "/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_01_31_190855/weights_CUSTOM/"
+    checkpoints = glob.glob(weights_path + "*.ckpt")
+    for checkpoint in checkpoints:
+        warnings.warn(f'Loading save model from {checkpoint}.')
+        model = SegmentationModule.load_from_checkpoint(checkpoint_path=checkpoint)
+        trainer = Trainer(gpus=1, strategy='ddp')
+        trainer.test(model)
 
 if __name__ == '__main__':
     root_dir = os.path.dirname(os.path.realpath(__file__))

@@ -36,7 +36,9 @@ from .utils import *
 # v_ = getROIOrder(custom_order=custom_order)
 
 class LoadPatientVolumes(Dataset):
-    def __init__(self, folder_data, data_config, tag="neck", transform=None, cache_dir="/cluster/projects/radiomics/Temp/joe/scratch_1"): #"/h/jmarsilla/scratch"
+    def __init__(self, folder_data, data_config, tag="neck", transform=None,
+                 cache_dir="/cluster/projects/radiomics/Temp/joe/scratch_1",
+                 mode="train"): #"/h/jmarsilla/scratch"
         """
         This is the class that our Dataloader object
         will take to create batches for training.
@@ -49,6 +51,9 @@ class LoadPatientVolumes(Dataset):
         self.transform=transform
         self.cache_dir = cache_dir
         self.tag = tag
+        
+        if mode == "test":
+            self.config["data_path"] = "/cluster/projects/radiomics/Temp/joe/RADCURE_VECTOR_UPDATE_TEST/"
 
     def __len__(self):
         return len(self.data)
@@ -138,21 +143,12 @@ class LoadPatientVolumes(Dataset):
             except Exception as e:
                 warnings.warn(str(e))
                 raise Exception(f"Please check mask for folder {self.patient}.")
-
-            #     # if self.transform2 is not None:
-            #     #     img2, _ = self.transform2(self.img.copy(), self.mask.copy())
-            # else:
-            #     # only load if mask is zero from start...
-            #     self.img, self.mask = self.transform(self.img.copy(), self.mask.copy())
-            #     print(f"Check {self.patient}...loading in a mask with")
-            #     warnings.warn(f'Check {self.patient}...loading in a mask with ')
-            #     assert self.mask.max() > 0
-            #     # self.count *= 0.
-
+            
         try:
             assert self.mask.max() > 0
         except Exception:
             warnings.warn(f"Cropped out all class values for {self.patient}...")
+            
         img = torch.from_numpy(self.img).type(torch.FloatTensor)
         mask = torch.from_numpy(self.mask).type(torch.LongTensor)
         count = torch.from_numpy(self.count).type(torch.LongTensor)

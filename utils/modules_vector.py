@@ -518,43 +518,46 @@ class SegmentationModule(pl.LightningModule):
 
         # save data after each iteration...
         # final model score will be mean across all OARs...
-        self.eval_data.to_csv(f"{str(self.root)}/{self.model_name}_test.csv")
+        self.eval_data.to_csv(f"{str(self.root)}/{self.model_name}_{self.tag}_{self.hparams.fold}_test.csv")
 
-    def CropEvalImage(self,inputs):
+    def CropEvalImage(self,inputs, targets=None, zcrop=False):
         ###########################
         # IMAGE CROPPING/PADDING if required
         ###########################
         to_crop = RandomCrop3D( window=self.hparams.window, mode="test",
                                  factor=292,#self.hparams.crop_factor,
                                  crop_as=self.hparams.crop_as)
+        
         # pad 3rd to last dim if below 112 with MIN value of image
         a, diff = (None, None)
-        if og_shape[1]<112:
-            difference = 112 - og_shape[1]
+        if og_shape[1]<128:
+            difference = 128 - og_shape[1]
             a = difference//2
             diff = difference-a
             pad_ = (0,0,0,0,a,diff)
-            warnings.warn(f'Padding {inputs.size()} to 112')
+            warnings.warn(f'Padding {inputs.size()} to 128')
             inputs = F.pad(inputs, pad_, "constant", inputs.min())
+            targets = F.pad(targets, pad_, "constant", 0)
             warnings.warn(f'NEW size is {inputs.size()},')
-            targets=inputs.clone()
-            # og_shape[1] = 112
 
-        img, targ, center = to_crop(inputs,targets,in_)
+        img, targ, center = to_crop(inputs, targets, in_)
         # varry's depending on imgsize used to train the model...
-        roi_size = (112, 176, 176)
         shape = img.size()
         # assumes first and last eight of image are fluff
-        if 180<=shape[1]:
-            cropz = (shape[1]//12, shape[1]-shape[1]//12)
-        elif 165 <= shape[1] < 180:
-            diff = 180 - shape[1]
-            cropz = (shape[1]//13, shape[1]//13+152-diff)
+        if zcrop is True:
+            if 180<=shape[1]:
+                cropz = (shape[1]//12, shape[1]-shape[1]//12)
+            elif 165 <= shape[1] < 180:
+                diff = 180 - shape[1]
+                cropz = (shape[1]//13, shape[1]//13+152-diff)
+            else:
+                cropz = (0, shape[1])
         else:
-            cropz = (0, shape[1])
+           cropz = (0, shape[1])
 
         img = img[:,cropz[0]:cropz[1]]
-
+        targ = targ[:,cropz[0]:cropz[1]] 
+        
         return img, targ, center, cropz
 
 
@@ -566,13 +569,14 @@ class SegmentationModule(pl.LightningModule):
          #######################
          # setup paths and directories to save model exports
          self.step_type = "test"
-         inference_outputs_path = str(self.root) + f"/TESTING/"
+         inference_outputs_path = str(self.root) + f"/{self.tag}_TEST/"
          outputs_path = inference_outputs_path + f"FOLD_{self.hparams.fold}"
          os.makedirs(inference_outputs_path, exist_ok=True)
          os.makedirs(outputs_path, exist_ok=True)
          #######################
 
-         inputs, targets  = batch
+         inputs, targets, counts  = batch
+         
          if batch_idx == 0:
              print(inputs.max())
          og_shape = inputs.size()
@@ -583,14 +587,20 @@ class SegmentationModule(pl.LightningModule):
 
          shape = img.size()
          warnings.warn(f'First crop size is {shape},')
-         img, targ, center, cropz = self.CropEvalImage(inputs)
+         
+         img, targ, center, cropz = self.CropEvalImage(inputs, targets)
          ###########################
          ## SLIDING WINDOW INFERENCE EXAMPLES
          ###########################
+         roi_size = (self.hparams.batch_size,
+                     self.hparams.window*2,
+                     self.hparams.crop_factor,
+                     self.hparams.crop_factor)
+         
          a_time = time.time()
-         outputs = swi(img, self.forward, 20)
+         outputs = swi(img, self.forward, 20, roi_size)
          warnings.warn("Done iteration 1")
-         outputs_ = swi(img.permute(0,1,3,2), self.forward, 20)
+         outputs_ = swi(img.permute(0,1,3,2), self.forward, 20, roi_size)
          b_time = time.time()
          total_time = b_time - a_time # total inference time in seconds...
          warnings.warn("Done iteration 2")
@@ -598,6 +608,63 @@ class SegmentationModule(pl.LightningModule):
          outputs = torch.mean(torch.stack((outputs, outputs_), dim=0), dim=0)
          warnings.warn(f'Hello size is {outputs.size()},')
 
+         if type(outputs) == tuple:
+             outputs = outputs[0]
+         if self.hparams.crop_as != "3D":
+             outputs = outputs.squeeze(2)
+
+         warnings.warn(f'Hello size is {outputs.size()}')
+         out = outputs.clone() #.cpu()
+         outs = torch.softmax(out, dim=1)
+         warnings.warn(f'Hello size is {outs.size()} AFTER SOFTMAX')
+         # sum predictions after softmax BECAUSE originally
+         # trained with batch_size == 2
+         outs = torch.mean(outs, dim=0)
+         outs_raw = outs.cpu().numpy()
+         warnings.warn(f'Hello size is {outs.size()} AFTER SOFTMAX')
+         outs = torch.argmax(outs, dim=0)
+         
+         #######################
+         # here we can compute evaluation metrics...
+         # both outputs and targets have to be one hot encoded...
+         # self.CalcEvaluationMetric(outs, targets, batch_idx, total_time)
+         #######################
+         
+         inp = inputs[0]
+         warnings.warn(f'OUTPUT size is {outs.size()} with inputs {inp.size()}')
+         # assert outs.size() == inp.size()
+         out_full = torch.zeros(inp.size())
+         warnings.warn(f'Hello size is {inp.size()}')
+         out_full[cropz[0]:cropz[1], center[0]:center[0]+292,center[1]:center[1]+292] = outs
+         
+         # save targets and images...
+         targ_path = inference_outputs_path + f'targ_{batch_idx}_FULL.nrrd'
+         counts_path = inference_outputs_path + f'counts_{batch_idx}_FULL.npy'
+         #  img_path = inference_outputs_path +  f'input_{batch_idx}_FULL.nrrd'
+         # uncomment this if you'd like to resave targets, not necessary...
+         if os.path.isfile(targ_path) is False:
+            counts = counts.cpu().numpy()
+            targ_ = targets.cpu().numpy()
+            nrrd.write(targ_path, targ_[0].astype('uint8'), compression_level=9)
+            np.save(counts_path, counts[0].astype('uint8'))
+         
+        # save FULL outputs...
+         outs_ = out_full.cpu().numpy()
+         warnings.warn(f'Max pred is {out_full.max()}')
+         nrrd.write(f"{outputs_path}/outs_{batch_idx+idx}_RAW.nrrd", outs_raw)
+         nrrd.write(f"{outputs_path}/outs_{batch_idx+idx}_FULL.nrrd", outs_.astype('uint8'), compression_level=9)
+         np.save( f"{outputs_path}/center_{batch_idx+idx}.npy", np.array([cropz[0], cropz[1], center[0], center[1]]))
+         
+         ##########################
+         # uncomment this if you'd like to resave targets, not necessary...
+         # if os.path.isfile(targ_path) is True:
+         #     pass
+         # else:
+         #     in_ = inp.cpu().numpy()
+         #     targ_ = targets.cpu().numpy()
+         #     nrrd.write(img_path, in_)
+         #     nrrd.write(targ_path, targ_[0].astype('uint8'), compression_level=9)
+         # save FULL outputs...
          ###########################
          # this is the infernece using built in MONAI...
          # to_crop = RandomCrop3D(
@@ -612,58 +679,7 @@ class SegmentationModule(pl.LightningModule):
          # outputs = torch.mean(outputs, 0)
          ############################
          ############################
-
-         if type(outputs) == tuple:
-             outputs = outputs[0]
-         if self.hparams.crop_as != "3D":
-             outputs = outputs.squeeze(2)
-
-         ############################
-         ##### This save(s) model outputs...
-         ############################
-         # targ = targets.clone() #.cpu()
-         warnings.warn(f'Hello size is {outputs.size()}')
-         out = outputs.clone() #.cpu()
-         outs = torch.softmax(out, dim=1)
-         warnings.warn(f'Hello size is {outs.size()} AFTER SOFTMAX')
-         # sum predictions after softmax BECAUSE originally
-         # trained with batch_size == 2
-         outs = torch.mean(outs, dim=0)
-         outs_raw = outs.cpu().numpy()
-         warnings.warn(f'Hello size is {outs.size()} AFTER SOFTMAX')
-         outs = torch.argmax(outs, dim=0)
-         # runs calculation of evaluation metric...
-         self.CalcEvaluationMetric(outs, targets, batch_idx, total_time)
-         #######################
-         # here we can compute evaluation metrics...
-         # both outputs and targets have to be one hot encoded...
-         #######################
-         inp = inputs[0]
-         warnings.warn(f'OUTPUT size is {outs.size()} with inputs {inp.size()}')
-         # assert outs.size() == inp.size()
-         out_full = torch.zeros(inp.size())
-         warnings.warn(f'Hello size is {inp.size()}')
-         out_full[cropz[0]:cropz[1], center[0]:center[0]+292,center[1]:center[1]+292] = outs
-
-         idx=0
-         targ_path = outputs_path + f'targ_{batch_idx+idx}_FULL.nrrd'
-         img_path =  outputs_path + f'input_{batch_idx+idx}_FULL.nrrd'
-
-         # uncomment this if you'd like to resave targets, not necessary...
-         # if os.path.isfile(targ_path) is True:
-         #     pass
-         # else:
-         #     in_ = inp.cpu().numpy()
-         #     targ_ = targets.cpu().numpy()
-         #     nrrd.write(img_path, in_)
-         #     nrrd.write(targ_path, targ_[0].astype('uint8'), compression_level=9)
-         # save FULL outputs...
-         outs_ = out_full.cpu().numpy()
-         warnings.warn(f'Max pred is {out_full.max()}')
-         nrrd.write(f"{path}/outs_{batch_idx+idx}_RAW.nrrd", outs_raw)
-         nrrd.write(f"{path}/outs_{batch_idx+idx}_FULL.nrrd", outs_.astype('uint8'), compression_level=9)
-         np.save( f"{path}/center_{batch_idx+idx}.npy", np.array([cropz[0], cropz[1], center[0], center[1]]))
-
+         
         #####################################
         # USE TO AVERAGE PREDICTIONS FROM ENSEMBLE
         # import torch, os, glob, nrrd
@@ -996,8 +1012,9 @@ class SegmentationModule(pl.LightningModule):
         # during inference we will run each model on the test sets according to
         # the data_config which you will provide which each model...
         # should be able to load in own test_csv with folder names just like for trianing/validation...
-        if os.path.isfile(self.hparams.test_csv) is not True:
-            self.test_data = pd.read_csv(self.hparams.test_csv, index_col=0)
+        # if os.path.isfile(self.hparams.test_csv) is not True:
+        #     self.test_data = pd.read_csv(self.hparams.test_csv, index_col=0)
+        
         transform = Compose([ HistogramClipping(min_hu=self.hparams.clip_min,
                                                 max_hu=self.hparams.clip_max),
                               NormBabe(mean=self.mean, std=self.std,
@@ -1005,5 +1022,4 @@ class SegmentationModule(pl.LightningModule):
 
         return self.get_dataloader( df=self.test_data, mode="test",transform=transform, # transform,  # should be default
                                     transform2=None, resample=self.hparams.resample,
-                                    batch_size=self.hparams.batch_size,
-        )
+                                    batch_size=self.hparams.batch_size,)
