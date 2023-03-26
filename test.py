@@ -57,7 +57,8 @@ def main(args):
         model_weights = checkpoint_["state_dict"]
         # update keys by dropping `auto_encoder.`
         for key in list(model_weights):
-            model_weights[key.replace("criterion.", "")] = model_weights.pop(key)
+            model_weights[key.replace("criterion.", "").replace("ce.weight", "")]=model_weights.pop(key)
+            # model_weights[key.replace("ce.weight", "")] = model_weights.pop(key)
             warnings.warn(f'Dropping key {key} from checkpoint.')
         
         checkpoint_["state_dict"] = model_weights
@@ -65,9 +66,7 @@ def main(args):
         torch.save(checkpoint_, checkpoint)
         # save model weights
         torch.save(model_weights, weights_path + f"weights_{i}.ckpt")
-        
-        model = SegmentationModule.load_from_checkpoint(checkpoint_path=checkpoint)
-        
+        model = SegmentationModule.load_from_checkpoint(checkpoint_path=checkpoint) 
         trainer = Trainer(gpus=1, default_root_dir=model.hparams.root)
         trainer.test(model)
 
