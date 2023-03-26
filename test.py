@@ -5,7 +5,7 @@ See https://williamfalcon.github.io/pytorch-lightning/
 import os, torch, warnings, glob
 import numpy as np
 from utils import SegmentationModule, config
-from lightning import Trainer # , seed_everything
+from pytorch_lightning import Trainer # , seed_everything
 # from pytorch_lightning.callbacks import ModelCheckpoint
 
 """
