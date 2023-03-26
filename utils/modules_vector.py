@@ -267,7 +267,8 @@ class SegmentationModule(pl.LightningModule):
         outputs = self.forward(inputs) # WOLNET
         if type(outputs) == tuple:
             outputs = outputs[0]
-        loss = self.criterion(outputs, targets, counts)
+        
+        loss = self.criterion(outputs, targets, counts, normalize=True)
         # if loss is nan...
         # if torch.isnan(loss)[0] is True:
         nan_val = 10 + len(self.custom_order)
@@ -350,7 +351,7 @@ class SegmentationModule(pl.LightningModule):
         outputs = self.forward(inputs)
         if type(outputs) == tuple:
             outputs = outputs[0]
-        loss = self.criterion(outputs, targets, counts)
+        loss = self.criterion(outputs, targets, counts, normalize=True)
         # (self.criterion(outputs, targets.unsqueeze(1)).cpu() if self.criterion is not None else 0)
         nan_val = 10 + len(self.custom_order)
         loss = torch.nan_to_num(loss, nan=nan_val, posinf=nan_val)

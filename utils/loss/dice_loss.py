@@ -473,13 +473,16 @@ class FocalTversky_and_topk_loss(nn.Module):
         self.hd = HD_Loss3D(gamma=gamma, weight=ce_kwargs['weight'])
         # self.ad = montran.AsDiscrete(argmax)
 
-    def forward(self, net_output, target, mask=None):
-
-        # ft_loss = 0
-        # s = net_output.size()
-        # for i in range(s[0]):
-        #     ft_loss += self.ft(net_output[i].unsqueeze(0), target[i].unsqueeze(0))
-        # ft_loss/=s[0]
+    def forward(self, net_output, target, mask=None, normalize=False):
+        
+        #################################################
+        if normalize is True:
+            for i, val in enumerate(mask[0]):
+                net_output[:,i] *= val
+            # normalize before computing loss...
+            net_output = nn.functional.normalize(net_output)
+        #################################################
+        
         ft_loss = self.ft(net_output,target, mask)
         ce_loss = self.ce(net_output, target, mask)
         # use this instead of ft_loss in second round of finetuning...
@@ -492,7 +495,7 @@ class FocalTversky_and_topk_loss(nn.Module):
         # fold 4 same as fold 2 (version_2784520)
         # we need to use a switch here, after convergence in dice, change to HD
         # minimization.
-
+        
         if self.aggregate == "sum":
             result = ce_loss + ft_loss + hd_loss
         elif self.aggregate == "sumcorrect":
@@ -500,7 +503,6 @@ class FocalTversky_and_topk_loss(nn.Module):
         else:
             raise NotImplementedError("nah son") # reserved for other stuff (later?)
         return result
-
 
 class AsymLoss(nn.Module):
     def __init__(self, apply_nonlin=None, batch_dice=False, do_bg=True, smooth=1.,
