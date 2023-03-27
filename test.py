@@ -61,7 +61,11 @@ def main(args):
             # model_weights[key.replace("ce.weight", "")] = model_weights.pop(key)
             warnings.warn(f'Dropping key {key} from checkpoint.')
         
-        model_weights.pop("")
+        try: 
+            model_weights.pop("")
+        except Exception:
+            warnings.warn(f'Checkpoint {checkpoint} does not contain any out of order model weights.')
+            pass
         
         checkpoint_["state_dict"] = model_weights
         # update checkpoint 
