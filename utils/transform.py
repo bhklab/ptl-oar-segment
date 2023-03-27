@@ -370,7 +370,7 @@ class RandomCrop3D(MTTransform):
             com_ = measure.center_of_mass(img_)
             img_ = img_[int(com_[0])]
         
-        com = measure.center_of_mass(img_)
+        com = measure.center_of_mass(img__)
         self.center = [int(com_[0]), int(com[0]), int(com[1])]
 
         # else:
