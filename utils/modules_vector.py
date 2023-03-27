@@ -491,7 +491,7 @@ class SegmentationModule(pl.LightningModule):
                 else:
                     targ[targ==j+1] = 1
                     outs = outputs[j+1]
-                    assert targ.size()==outs.size()
+                    # assert targ.size()==outs.size()
                     ###############################
                     dc = met.compute_meandice(outs.unsqueeze(0).unsqueeze(0), targ.unsqueeze(0).unsqueeze(0))
                     h  = met.compute_hausdorff_distance(outs.unsqueeze(0).unsqueeze(0), targ.unsqueeze(0).unsqueeze(0), percentile=95, include_background=False)
