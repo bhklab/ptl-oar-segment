@@ -321,9 +321,15 @@ class RandomCrop3D(MTTransform):
     @staticmethod
     def segment_head(img):
         # function to make (fake) external for center cropping of image...
+        try:
+            img = img.cpu().numpy()
+        except Exception as e:
+            pass
+        
         otsu = threshold_otsu(img)  # Compute the Ostu threshold
         binary_img = np.array(img > otsu, dtype=int )  # Convert image into binary mask (numbers bigger then otsu set to 1, else 0)
         fill = binary_fill_holes(binary_img)  # Fill any regions of 0s that are enclosed by 1s
+        
         return fill
 
     def get_shifts(self, img):
@@ -551,6 +557,7 @@ class RandomCrop3D(MTTransform):
 
         # initiate parameters (get shifing coeff)
         if self.mode=='test':
+            img = img.cpu().numpy()
             self.get_params(img)
             self.get_shifts(img)
         else:
