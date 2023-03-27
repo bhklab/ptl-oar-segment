@@ -585,10 +585,11 @@ class SegmentationModule(pl.LightningModule):
          in_ = inputs.cpu().numpy()
          og_shape = inputs.size()
 
-         shape = img.size()
-         warnings.warn(f'First crop size is {shape},')
-         
          img, targ, center, cropz = self.CropEvalImage(inputs, targets)
+         
+         shape = img.size()
+         warnings.warn(f'First crop size is {shape}, using patient {self.test_data.iloc[batch_idx][0]}')
+         
          ###########################
          ## SLIDING WINDOW INFERENCE EXAMPLES
          ###########################
@@ -601,12 +602,12 @@ class SegmentationModule(pl.LightningModule):
          outputs = swi(img, self.forward, 20, roi_size)
          warnings.warn("Done iteration 1")
          outputs_ = swi(img.permute(0,1,3,2), self.forward, 20, roi_size)
-         b_time = time.time()
-         total_time = b_time - a_time # total inference time in seconds...
          warnings.warn("Done iteration 2")
          outputs_ = outputs_.permute(0,1,2,4,3)
          outputs = torch.mean(torch.stack((outputs, outputs_), dim=0), dim=0)
          warnings.warn(f'Hello size is {outputs.size()},')
+         b_time = time.time()
+         total_time = b_time - a_time # total inference time in seconds...
 
          if type(outputs) == tuple:
              outputs = outputs[0]
@@ -627,7 +628,7 @@ class SegmentationModule(pl.LightningModule):
          #######################
          # here we can compute evaluation metrics...
          # both outputs and targets have to be one hot encoded...
-         # self.CalcEvaluationMetric(outs, targets, batch_idx, total_time)
+         self.CalcEvaluationMetric(outs, targ, batch_idx, total_time)
          #######################
          
          inp = inputs[0]
@@ -639,7 +640,7 @@ class SegmentationModule(pl.LightningModule):
          
          # save targets and images...
          targ_path = inference_outputs_path + f'targ_{batch_idx}_FULL.nrrd'
-         counts_path = inference_outputs_path + f'counts_{batch_idx}_FULL.npy'
+         counts_path = inference_outputs_path + f'counts_{batch_idx}.npy'
          #  img_path = inference_outputs_path +  f'input_{batch_idx}_FULL.nrrd'
          # uncomment this if you'd like to resave targets, not necessary...
          if os.path.isfile(targ_path) is False:

@@ -182,7 +182,9 @@ def swi(image, net, n_classes, roi_size=(2, 112, 176, 176)):
                     warnings.warn(f'NET OUTS SIZE IS {output.size()}')
                     reference[:,:, val:end[i], v:end_y[j], va:end_x[k]] += output
                     iter_ += 1
-    warnings.warn(f'Iterated {iter_} times with sliding window.')
+                    if iter_%20 == 0:
+                        warnings.warn(f'Iterated {iter_} times with sliding window.')
+    
     return reference/reference_
 
 #takes in an image slice and returns a list of all contours indexed by the class labels
