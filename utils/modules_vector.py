@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import torch.nn.functional as F
 from sklearn.model_selection import KFold, ShuffleSplit
+import monai.metrics as met
 # monai slifing window inference...
 # from sliding_window import sliding_window_inference
 # from .sliding_window import sliding_window_inference as swi
@@ -500,7 +501,7 @@ class SegmentationModule(pl.LightningModule):
                     haus.append(h[0][0].item())
                     asds.append(s[0][0].item())
                     eval.append(dc[0][0].item()/(h[0][0].item()+s[0][0].item()))
-                    pats.append(folder)
+                    pats.append(self.patient)
                     p_idx.append(batch_idx)
                     time.append(total_time)
 
@@ -520,27 +521,28 @@ class SegmentationModule(pl.LightningModule):
         # final model score will be mean across all OARs...
         self.eval_data.to_csv(f"{str(self.root)}/{self.model_name}_{self.tag}_{self.hparams.fold}_test.csv")
 
-    def CropEvalImage(self,inputs, targets=None, zcrop=False):
+    def CropEvalImage(self, inputs, targets=None, zcrop=False):
         ###########################
         # IMAGE CROPPING/PADDING if required
         ###########################
         to_crop = RandomCrop3D( window=self.hparams.window, mode="test",
-                                 factor=292,#self.hparams.crop_factor,
+                                 factor=292, #self.hparams.crop_factor,
                                  crop_as=self.hparams.crop_as)
         
         # pad 3rd to last dim if below 112 with MIN value of image
+        og_shape = inputs.size()
         a, diff = (None, None)
-        if og_shape[1]<128:
-            difference = 128 - og_shape[1]
+        if og_shape[1]<self.hparams.window*2:
+            difference = self.hparams.window*2 - og_shape[1]
             a = difference//2
             diff = difference-a
             pad_ = (0,0,0,0,a,diff)
-            warnings.warn(f'Padding {inputs.size()} to 128')
+            warnings.warn(f'Padding {inputs.size()} to {self.hparams.window*2}')
             inputs = F.pad(inputs, pad_, "constant", inputs.min())
             targets = F.pad(targets, pad_, "constant", 0)
             warnings.warn(f'NEW size is {inputs.size()},')
 
-        img, targ, center = to_crop(inputs, targets, in_)
+        img, targ, center = to_crop(inputs, targets)
         # varry's depending on imgsize used to train the model...
         shape = img.size()
         # assumes first and last eight of image are fluff
@@ -582,7 +584,7 @@ class SegmentationModule(pl.LightningModule):
          og_shape = inputs.size()
          if og_shape[1] == 512:
             inputs = inputs.permute(0,3,1,2)
-         in_ = inputs.cpu().numpy()
+         # in_ = inputs.cpu().numpy()
          og_shape = inputs.size()
 
          img, targ, center, cropz = self.CropEvalImage(inputs, targets)
@@ -652,9 +654,9 @@ class SegmentationModule(pl.LightningModule):
         # save FULL outputs...
          outs_ = out_full.cpu().numpy()
          warnings.warn(f'Max pred is {out_full.max()}')
-         nrrd.write(f"{outputs_path}/outs_{batch_idx+idx}_RAW.nrrd", outs_raw)
-         nrrd.write(f"{outputs_path}/outs_{batch_idx+idx}_FULL.nrrd", outs_.astype('uint8'), compression_level=9)
-         np.save( f"{outputs_path}/center_{batch_idx+idx}.npy", np.array([cropz[0], cropz[1], center[0], center[1]]))
+         nrrd.write(f"{outputs_path}/outs_{batch_idx}_RAW.nrrd", outs_raw)
+         nrrd.write(f"{outputs_path}/outs_{batch_idx}_FULL.nrrd", outs_.astype('uint8'), compression_level=9)
+         np.save( f"{outputs_path}/center_{batch_idx}.npy", np.array([cropz[0], cropz[1], center[0], center[1]]))
          
          ##########################
          # uncomment this if you'd like to resave targets, not necessary...
