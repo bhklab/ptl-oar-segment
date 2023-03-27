@@ -462,7 +462,7 @@ class SegmentationModule(pl.LightningModule):
 
     def CalcEvaluationMetric(self, outputs, targs, batch_idx, total_time):
 
-        self.patient = str(self.data.iloc[batch_idx][0])
+        self.patient = str(self.test_data.iloc[batch_idx][0])
         roi_order = self.config["roi_order"]
         # only do this if targets not loaded in with data
         # however, targets will be loaded in given sample dataloader was used...
@@ -544,7 +544,7 @@ class SegmentationModule(pl.LightningModule):
 
         img, targ, center = to_crop(inputs, targets)
         # varry's depending on imgsize used to train the model...
-        shape = img.
+        shape = img.size()
         # assumes first and last eight of image are fluff
         if zcrop is True:
             if 180<=shape[1]:
@@ -601,9 +601,9 @@ class SegmentationModule(pl.LightningModule):
                      self.hparams.crop_factor)
          
          a_time = time.time()
-         outputs = swi(img, self.forward, 20, roi_size)
+         outputs = swi(img, self.forward, 29, roi_size)
          warnings.warn("Done iteration 1")
-         outputs_ = swi(img.permute(0,1,3,2), self.forward, 20, roi_size)
+         outputs_ = swi(img.permute(0,1,3,2), self.forward, 29, roi_size)
          warnings.warn("Done iteration 2")
          outputs_ = outputs_.permute(0,1,2,4,3)
          outputs = torch.mean(torch.stack((outputs, outputs_), dim=0), dim=0)
