@@ -472,7 +472,7 @@ class SegmentationModule(pl.LightningModule):
         dice = []
         haus = []
         asds = []
-        eval = []
+        eval_ = []
         pats = []
         p_idx = []
         time = []
@@ -500,16 +500,16 @@ class SegmentationModule(pl.LightningModule):
                     dice.append(dc[0][0].item())
                     haus.append(h[0][0].item())
                     asds.append(s[0][0].item())
-                    eval.append(dc[0][0].item()/(h[0][0].item()+s[0][0].item()))
+                    eval_.append(dc[0][0].item()/(h[0][0].item()+s[0][0].item()))
                     pats.append(self.patient)
                     p_idx.append(batch_idx)
                     time.append(total_time)
 
             except Exception as e:
-                # print(e)
+                warnings.warn(str(e))
                 pass
 
-        data = {"ID":p_idx,"PATIENT":pats,"OAR":oars, "DICE":dice, "95HD":haus, "ASD":asds, "EVAL":eval}
+        data = {"ID":p_idx,"PATIENT":pats,"OAR":oars, "DICE":dice, "95HD":haus, "ASD":asds, "EVAL":eval_}
         if self.eval_data is None:
             self.eval_data = pd.DataFrame.from_dict({data})
         else:
