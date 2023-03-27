@@ -544,7 +544,7 @@ class SegmentationModule(pl.LightningModule):
 
         img, targ, center = to_crop(inputs, targets)
         # varry's depending on imgsize used to train the model...
-        shape = img.size()
+        shape = img.
         # assumes first and last eight of image are fluff
         if zcrop is True:
             if 180<=shape[1]:

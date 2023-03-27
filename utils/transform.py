@@ -557,7 +557,6 @@ class RandomCrop3D(MTTransform):
 
         # initiate parameters (get shifing coeff)
         if self.mode=='test':
-            img = img.cpu().numpy()
             self.get_params(img)
             self.get_shifts(img)
         else:
