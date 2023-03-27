@@ -463,7 +463,7 @@ class SegmentationModule(pl.LightningModule):
     def CalcEvaluationMetric(self, outputs, targs, batch_idx, total_time):
 
         self.patient = str(self.test_data.iloc[batch_idx][0])
-        roi_order = self.config["roi_order"]
+        # roi_order = self.config["roi_order"]
         # only do this if targets not loaded in with data
         # however, targets will be loaded in given sample dataloader was used...
         # structure_path = self.config["data_path"] + f'/{self.patient}/structures/'
@@ -476,16 +476,17 @@ class SegmentationModule(pl.LightningModule):
         pats = []
         p_idx = []
         time = []
-        for j, c in enumerate(roi_order):
-            oar = roi_order[j]
+        for j, oar in enumerate(self.oars): #(roi_order):
+            # oar = roi_order[j]
             try:
                 # ideally this should be done outside this function...
                 # some OARs will not be included in the targets...
                 # allows us to save only OARs that we have ground truth information for.
-                targ = targs.copy()
+                targ = targs.clone()
                 targ = targ.cpu().numpy()
                 targ[targ!=j+1] = 0
                 if len(targ[targ==j+1]) == 0:
+                    warnings.warn(f"No ground truth information for OAR {oar}...")
                     pass
                 else:
                     targ[targ==j+1] = 1
