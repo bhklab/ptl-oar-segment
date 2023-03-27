@@ -461,7 +461,10 @@ class SegmentationModule(pl.LightningModule):
         #################################
 
     def CalcEvaluationMetric(self, outputs, targs, batch_idx, total_time):
-
+        
+        print("Outputs: ", outputs.shape)
+        print("Targets: ", targs.shape)
+        
         self.patient = str(self.test_data.iloc[batch_idx][0])
         # roi_order = self.config["roi_order"]
         # only do this if targets not loaded in with data
@@ -491,6 +494,7 @@ class SegmentationModule(pl.LightningModule):
                 else:
                     targ[targ==j+1] = 1
                     outs = outputs[j+1]
+                    warnings.warn(f"Shapes are {str(outs.size())}, {str(targ.size())}")
                     # assert targ.size()==outs.size()
                     ###############################
                     dc = met.compute_meandice(outs.unsqueeze(0).unsqueeze(0), targ.unsqueeze(0).unsqueeze(0))
