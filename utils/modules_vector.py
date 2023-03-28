@@ -485,7 +485,7 @@ class SegmentationModule(pl.LightningModule):
                 # ideally this should be done outside this function...
                 # some OARs will not be included in the targets...
                 # allows us to save only OARs that we have ground truth information for.
-                targ = targs.clone()
+                targ = targs[0].clone()
                 outs = outputs.clone()
                 targ[targ!=j+1] = 0
                 outs[outs!=j+1] = 0
