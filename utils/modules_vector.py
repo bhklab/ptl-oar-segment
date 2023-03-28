@@ -486,14 +486,15 @@ class SegmentationModule(pl.LightningModule):
                 # some OARs will not be included in the targets...
                 # allows us to save only OARs that we have ground truth information for.
                 targ = targs.clone()
-                # targ = targ.cpu().numpy()
+                outs = outputs.clone()
                 targ[targ!=j+1] = 0
+                outs[outs!=j+1] = 0
                 if len(targ[targ==j+1]) == 0:
                     warnings.warn(f"No ground truth information for OAR {oar}...")
                     pass
                 else:
                     targ[targ==j+1] = 1
-                    outs = outputs[j+1]
+                    # outs = outputs[j+1]
                     warnings.warn(f"Shapes are {str(outs.size())}, {str(targ.size())}")
                     # assert targ.size()==outs.size()
                     ###############################
