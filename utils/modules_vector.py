@@ -479,6 +479,11 @@ class SegmentationModule(pl.LightningModule):
         pats = []
         p_idx = []
         time = []
+        
+        # add a background class if there is none...
+        if "BACK" not in self.oars:
+            self.oars = ["BACK"] + self.oars
+            
         for j, oar in enumerate(self.oars): #(roi_order):
             # oar = roi_order[j]
             try:
@@ -487,31 +492,40 @@ class SegmentationModule(pl.LightningModule):
                 # allows us to save only OARs that we have ground truth information for.
                 targ = targs[0].clone()
                 outs = outputs.clone()
-                targ[targ!=j+1] = 0
-                outs[outs!=j+1] = 0
-                if len(targ[targ==j+1]) == 0:
+                targ[targ!=j] = 0
+                outs[outs!=j] = 0
+                if len(targ[targ==j]) == 0:
                     warnings.warn(f"No ground truth information for OAR {oar}...")
                     pass
                 else:
-                    targ[targ==j+1] = 1
+                    targ[targs[0]== j] = 1
+                    outs[outputs == j] = 1
                     # outs = outputs[j+1]
-                    warnings.warn(f"Shapes are {str(outs.size())}, {str(targ.size())}")
-                    # assert targ.size()==outs.size()
-                    ###############################
-                    dc = met.compute_meandice(outs.unsqueeze(0).unsqueeze(0), targ.unsqueeze(0).unsqueeze(0))
-                    h  = met.compute_hausdorff_distance(outs.unsqueeze(0).unsqueeze(0), targ.unsqueeze(0).unsqueeze(0), percentile=95, include_background=False)
-                    s  = met.compute_average_surface_distance(outs.unsqueeze(0).unsqueeze(0), targ.unsqueeze(0).unsqueeze(0), include_background=False)
-                    # print(self.patient, c, dc, h)
-                    # save metrics...
-                    oars.append(oar)
-                    dice.append(dc[0][0].item())
-                    haus.append(h[0][0].item())
-                    asds.append(s[0][0].item())
-                    eval_.append(dc[0][0].item()/(h[0][0].item()+s[0][0].item()))
-                    pats.append(self.patient)
-                    p_idx.append(batch_idx)
-                    time.append(total_time)
-
+                    try:
+                        warnings.warn(f"Shapes are {str(outs.size())}, {str(targ.size())}")
+                        # assert targ.size()==outs.size()
+                        ###############################
+                        dc = met.compute_meandice(outs.unsqueeze(
+                            0).unsqueeze(0), targ.unsqueeze(0).unsqueeze(0))
+                        h = met.compute_hausdorff_distance(outs.unsqueeze(0).unsqueeze(
+                            0), targ.unsqueeze(0).unsqueeze(0), percentile=95, include_background=False)
+                        s = met.compute_average_surface_distance(outs.unsqueeze(0).unsqueeze(
+                            0), targ.unsqueeze(0).unsqueeze(0), include_background=False)
+                        # print(self.patient, c, dc, h)
+                        # save metrics...
+                        oars.append(oar)
+                        dice.append(dc[0][0].item())
+                        haus.append(h[0][0].item())
+                        asds.append(s[0][0].item())
+                        eval_.append(dc[0][0].item()/(h[0][0].item()+s[0][0].item()))
+                        pats.append(self.patient)
+                        p_idx.append(batch_idx)
+                        time.append(total_time)
+                        warnings.warn(f"OAR: {oar}, Dice: {dc[0][0].item()}, Hausdorff Distance: {h[0][0].item()} for {self.patient}")
+                    except Exception as e:
+                        warnings.warn(str(e))
+                        warnings.warn(f"Skipping OAR: {oar} for {self.patient}.")
+                    
             except Exception as e:
                 warnings.warn(str(e))
                 pass
@@ -626,7 +640,7 @@ class SegmentationModule(pl.LightningModule):
          warnings.warn(f'Hello size is {outputs.size()}')
          out = outputs.clone() #.cpu()
          outs = torch.softmax(out, dim=1)
-         warnings.warn(f'Hello size is {outs.size()} AFTER SOFTMAX')
+         warnings.warn(f'Hello size is {outs.size()} AFTER SOFTMAX, with max_class {outs.max()}')
          # sum predictions after softmax BECAUSE originally
          # trained with batch_size == 2
          outs = torch.mean(outs, dim=0)
