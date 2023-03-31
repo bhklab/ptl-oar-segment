@@ -651,7 +651,9 @@ class SegmentationModule(pl.LightningModule):
          #######################
          # here we can compute evaluation metrics...
          # both outputs and targets have to be one hot encoded...
-         self.CalcEvaluationMetric(outs, targ, batch_idx, total_time)
+         if self.tag != "NECKLEVEL":
+            # exclude necklevel from metric calculation...
+            self.CalcEvaluationMetric(outs, targ, batch_idx, total_time)
          #######################
          
          inp = inputs[0]
