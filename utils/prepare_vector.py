@@ -47,13 +47,12 @@ class LoadPatientVolumes(Dataset):
         param: data_config: Dictionary with all loading and
         """
         self.data = folder_data
+        if mode == "test":
+            data_config["data_path"] = "/cluster/projects/radiomics/Temp/joe/RADCURE_VECTOR_UPDATE_TEST/"
         self.config = data_config
         self.transform=transform
         self.cache_dir = cache_dir
         self.tag = tag
-        
-        if mode == "test":
-            self.config["data_path"] = "/cluster/projects/radiomics/Temp/joe/RADCURE_VECTOR_UPDATE_TEST/"
 
     def __len__(self):
         return len(self.data)
