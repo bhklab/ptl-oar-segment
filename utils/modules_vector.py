@@ -624,10 +624,13 @@ class SegmentationModule(pl.LightningModule):
          a_time = time.time()
          outputs = swi(img, self.forward, 29, roi_size)
          warnings.warn("Done iteration 1")
-         outputs_ = swi(img.permute(0,1,3,2), self.forward, 29, roi_size)
-         warnings.warn("Done iteration 2")
-         outputs_ = outputs_.permute(0,1,2,4,3)
-         outputs = torch.mean(torch.stack((outputs, outputs_), dim=0), dim=0)
+         if self.tag == "NECKLEVEL":
+            # we will run sliding window on both ends of image (both dimensions)
+            outputs_ = swi(img.permute(0,1,3,2), self.forward, 29, roi_size)
+            warnings.warn("Done iteration 2")
+            outputs_ = outputs_.permute(0,1,2,4,3)
+            outputs = torch.mean(torch.stack((outputs, outputs_), dim=0), dim=0)
+         
          warnings.warn(f'Hello size is {outputs.size()},')
          b_time = time.time()
          total_time = b_time - a_time # total inference time in seconds...
