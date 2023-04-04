@@ -1044,7 +1044,9 @@ class SegmentationModule(pl.LightningModule):
         # should be able to load in own test_csv with folder names just like for trianing/validation...
         # if os.path.isfile(self.hparams.test_csv) is not True:
         #     self.test_data = pd.read_csv(self.hparams.test_csv, index_col=0)
-        
+
+        # update for testing using radcure vector dataset...
+        self.test_data = pd.read_csv("/cluster/home/jmarsill/ptl-oar-segmentation/test_update.csv", index_col=0)
         transform = Compose([ HistogramClipping(min_hu=self.hparams.clip_min,
                                                 max_hu=self.hparams.clip_max),
                               NormBabe(mean=self.mean, std=self.std,
