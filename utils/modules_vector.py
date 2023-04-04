@@ -1052,6 +1052,6 @@ class SegmentationModule(pl.LightningModule):
                               NormBabe(mean=self.mean, std=self.std,
                                        type=self.hparams.norm),])
 
-        return self.get_dataloader( df=self.test_data, mode="test",transform=transform, # transform,  # should be default
+        return self.get_dataloader( df=self.test_data, mode="test", transform=transform, # transform,  # should be default
                                     transform2=None, resample=self.hparams.resample,
                                     batch_size=self.hparams.batch_size,)
