@@ -990,7 +990,8 @@ class SegmentationModule(pl.LightningModule):
                         shuffle=False, transform2=None, batch_size=None):
 
         dataset = LoadPatientVolumes(folder_data=df, data_config=self.config,
-                                     tag=self.hparams.tag,transform=transform)
+                                     tag=self.hparams.tag,transform=transform,
+                                     mode=mode)
 
         batch_size = self.hparams.batch_size if batch_size is None else batch_size
         # best practices to turn shuffling off during validation...
