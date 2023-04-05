@@ -464,8 +464,6 @@ class SegmentationModule(pl.LightningModule):
         
         print("Outputs: ", outputs.shape)
         print("Targets: ", targs.shape)
-        
-        self.patient = str(self.test_data.iloc[batch_idx][0])
         # roi_order = self.config["roi_order"]
         # only do this if targets not loaded in with data
         # however, targets will be loaded in given sample dataloader was used...
@@ -592,6 +590,7 @@ class SegmentationModule(pl.LightningModule):
          #######################
          # setup paths and directories to save model exports
          self.step_type = "test"
+         self.patient = str(self.test_data.iloc[batch_idx][0])
          inference_outputs_path = str(self.root) + f"/{self.tag}_TEST/"
          outputs_path = inference_outputs_path + f"FOLD_{self.hparams.fold}"
          os.makedirs(inference_outputs_path, exist_ok=True)
@@ -622,11 +621,11 @@ class SegmentationModule(pl.LightningModule):
                      self.hparams.crop_factor)
          
          a_time = time.time()
-         outputs = swi(img, self.forward, 29, roi_size)
+         outputs = swi(img, self.forward, self.hparams.n_classes + 1, roi_size)
          warnings.warn("Done iteration 1")
          if self.tag == "NECKLEVEL":
             # we will run sliding window on both ends of image (both dimensions)
-            outputs_ = swi(img.permute(0,1,3,2), self.forward, 29, roi_size)
+            outputs_ = swi(img.permute(0,1,3,2), self.forward, self.hparams.n_classes + 1, roi_size)
             warnings.warn("Done iteration 2")
             outputs_ = outputs_.permute(0,1,2,4,3)
             outputs = torch.mean(torch.stack((outputs, outputs_), dim=0), dim=0)
@@ -646,7 +645,8 @@ class SegmentationModule(pl.LightningModule):
          warnings.warn(f'Hello size is {outs.size()} AFTER SOFTMAX, with max_class {outs.max()}')
          # sum predictions after softmax BECAUSE originally
          # trained with batch_size == 2
-         outs = torch.mean(outs, dim=0)
+         if batch_size > 1:
+            outs = torch.mean(outs, dim=0)
          outs_raw = outs.cpu().numpy()
          warnings.warn(f'Hello size is {outs.size()} AFTER SOFTMAX')
          outs = torch.argmax(outs, dim=0)
@@ -654,9 +654,14 @@ class SegmentationModule(pl.LightningModule):
          #######################
          # here we can compute evaluation metrics...
          # both outputs and targets have to be one hot encoded...
-         if self.tag != "NECKLEVEL":
-            # exclude necklevel from metric calculation...
-            self.CalcEvaluationMetric(outs, targ, batch_idx, total_time)
+         try:
+            if self.tag != "NECKLEVEL":
+                # exclude necklevel from metric calculation...
+                self.CalcEvaluationMetric(outs, targ, batch_idx, total_time)
+         except Exception as e:
+            warnings.warn(str(e))
+            warnings.warn(f"Check {self.patient} exports...")
+
          #######################
          
          inp = inputs[0]

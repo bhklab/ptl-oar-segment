@@ -135,14 +135,18 @@ class LoadPatientVolumes(Dataset):
 
         self.load_data(idx)
         # if self.transform is not None:
+        warnings.warn(f"{self.mask.shape} mask vs {self.img.shape} img")
         if self.mask.max() > 0:
-            warnings.warn(f"{self.mask.shape} mask vs {self.img.shape} img")
             try:
                 self.img, self.mask = self.transform(self.img.copy(), self.mask.copy())
             except Exception as e:
                 warnings.warn(str(e))
                 raise Exception(f"Please check mask for folder {self.patient}.")
-            
+        else:
+            warnings.warn("No masks for segmentation task.")
+            # use image twice...
+            self.img, self.mask = self.transform(self.img.copy(), self.img.copy())
+        
         try:
             assert self.mask.max() > 0
         except Exception:
