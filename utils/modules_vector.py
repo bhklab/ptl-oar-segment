@@ -650,9 +650,13 @@ class SegmentationModule(pl.LightningModule):
          # trained with batch_size == 2
          if self.hparams.batch_size > 1:
             outs = torch.mean(outs, dim=0)
+         else:
+             outs = outs[0]
+        
          outs_raw = outs.cpu().numpy()
          warnings.warn(f'Hello size is {outs.size()} AFTER SOFTMAX')
          outs = torch.argmax(outs, dim=0)
+         warnings.warn(f'Hello size is {outs.size()} AFTER ARGMAX')
          
          #######################
          # here we can compute evaluation metrics...
