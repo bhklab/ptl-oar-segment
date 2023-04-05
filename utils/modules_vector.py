@@ -648,7 +648,7 @@ class SegmentationModule(pl.LightningModule):
          warnings.warn(f'Hello size is {outs.size()} AFTER SOFTMAX, with max_class {outs.max()}')
          # sum predictions after softmax BECAUSE originally
          # trained with batch_size == 2
-         if batch_size > 1:
+         if self.hparams.batch_size > 1:
             outs = torch.mean(outs, dim=0)
          outs_raw = outs.cpu().numpy()
          warnings.warn(f'Hello size is {outs.size()} AFTER SOFTMAX')
