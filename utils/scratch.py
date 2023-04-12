@@ -1,14 +1,42 @@
+# Combine L/R masks into one mask...
 # Add scratch code here
-# ROIS = ["External", "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
-#         "Larynx", "Cricoid_P", "OpticChiasm", "Glnd_Lacrimal_L",
-#         "Glnd_Lacrimal_R", "Lens_L", "Lens_R", "Eye_L", "Eye_R",
-#         "Nrv_Optic_L", "Nrv_Optic_R", "Parotid_L", "Parotid_R",
-#         "SpinalCord", "Mandible_Bone", "Glnd_Submand_L",
-#         "Glnd_Submand_R", "Cochlea_L", "Cochlea_R", "Lips",
-#         "Spc_Retrophar_R", "Spc_Retrophar_L", "BrachialPlex_R",
-#         "BrachialPlex_L", "BRAIN", "OralCavity", "Musc_Constrict_I",
-#         "Musc_Constrict_S", "Musc_Constrict_M", "LEVEL_IA", "LEVEL_IB_RT",
-#         "LEVEL_III_RT", "LEVEL_II_RT", "LEVEL_IV_RT", "LEVEL_VIIA_RT", "LEVEL_V_RT",
+
+# roi_ref = {"CTVn":["LCTVn", "RCTVn"], "Glnd_Lacrimal":["Glnd_Lacrimal_L","Glnd_Lacrimal_R"],
+#            "Spc_Retrophar":["Spc_Retrophar_R", "Spc_Retrophar_L"],
+#            "Lens":["Lens_L", "Lens_R"], "Eye":["Eye_L", "Eye_R"],
+#            "Nrv_Optic":["Nrv_Optic_L", "Nrv_Optic_R"], "Parotid":["Parotid_L", "Parotid_R"],
+#            "Cochlea":["Cochlea_L", "Cochlea_R"],"Glnd_Submand":["Glnd_Submand_L",
+#            "Glnd_Submand_R"], "BrachialPlex":["BrachialPlex_R", "BrachialPlex_L"],
+#            "Musc_Constrict":["Musc_Constrict_I", "Musc_Constrict_S", "Musc_Constrict_M"]}
+
+# folders = glob.glob("*")
+# for f in folders:
+#     fold = glob.glob(f+"/structures/*")
+#     fold_ = [f.split("/")[-1].partition(".")[0] for f in fold]
+#     for c in list(roi_ref.keys()):
+#         vals = roi_ref[c]
+#         count = 0
+#         for v in vals:
+#             if v in fold_:
+#                 count +=1
+#         if count == 2:
+#             if os.path.isfile(f+f"/structures/{c}.nrrd") is False:
+#                 paths = [f+f"/structures/{v}.nrrd" for v in vals]
+#                 mask = nrrd.read(paths[0])
+#                 header = mask[1]
+#                 mask = mask[0]
+#                 mask_ = nrrd.read(paths[1])
+#                 mask += mask_[0]
+#                 header["ROI"] = c
+#                 header["Voxels"] = len(mask[mask==1])
+#                 nrrd.write(f+f"/structures/{c}.nrrd", mask, header=header)
+#                 print(f"Saved {c} for {f}.")
+#             # break
+#     # break
+
+# ROIS_REMAIN = ["External", "GTVp", "BRAIN", "OralCavity", "Lips", "Brainstem", "Esophagus",
+#         "Larynx", "Cricoid_P", "OpticChiasm", "SpinalCord", "Mandible_Bone", 
+#         "LEVEL_IA", "LEVEL_IB_RT", "LEVEL_III_RT", "LEVEL_II_RT", "LEVEL_IV_RT", "LEVEL_VIIA_RT", "LEVEL_V_RT",
 #         "LEVEL_IB_LT", "LEVEL_III_LT", "LEVEL_II_LT", "LEVEL_IV_LT", "LEVEL_VIIA_LT", "LEVEL_V_LT"]
 
 # naming = { "Brainstem":["BRAIN_STEM"], "OpticChiasm":["CHIASM"], "Lens_L":["L_LENS", "LT_LENS"], "Lens_R": ["R_LENS", "RT_LENS"], "Eye_L": ["L_EYE", "LT_EYE"], "Eye_R": ["R_EYE", "RT_EYE"],
