@@ -12,7 +12,8 @@ ROIS = ["External", "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
         "BrachialPlex_L", "Brain", "OralCavity", "Musc_Constrict_I",
         "Musc_Constrict_S", "Musc_Constrict_M", "LEVEL_IA", "LEVEL_IB_RT",
         "LEVEL_III_RT", "LEVEL_II_RT", "LEVEL_IV_RT", "LEVEL_VIIA_RT","LEVEL_V_RT",
-        "LEVEL_IB_LT","LEVEL_III_LT","LEVEL_II_LT","LEVEL_IV_LT","LEVEL_VIIA_LT","LEVEL_V_LT"]
+        "LEVEL_IB_LT","LEVEL_III_LT","LEVEL_II_LT","LEVEL_IV_LT","LEVEL_VIIA_LT","LEVEL_V_LT",
+        "LEVEL_IB", "LEVEL_II", "LEVEL_III", "LEVEL_IV", "LEVEL_V", "LEVEL_VIIA"]
 
 # this was the original order used for the OG segmentation study...
 custom_order = [1,4,5,6,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,28,29,30,32,33,34]
@@ -88,6 +89,8 @@ def getCustomOrder(tag):
         custom_order = [13,8,14,15,16,11,12,23,24,25,26,27,29,28,9,10,17,18,21,22,19,20,4,3,1,2]
     elif tag == "NECKLEVEL":
         custom_order = [35,36,37,38,39,40,41,42,43,44,45,46,47]
+    elif tag == "NECKLEVEL2":
+        custom_order = [35, 48, 49, 50, 51, 52, 53]
     else:
         custom_order = [1, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 32, 33, 34]
         # custom_order = [1, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 22, 25, 26, 27, 30, 31] #custom_order

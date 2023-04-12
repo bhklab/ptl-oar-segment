@@ -246,6 +246,8 @@ class SegmentationModule(pl.LightningModule):
             self.custom_order = [19,20,21,22,23,24,25,26,27,28,29,30,31,17,18,4]
         elif self.tag == "NECKLEVEL":
             self.custom_order = [35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47]
+        elif self.tag == "NECKLEVEL2":
+            self.custom_order = [35, 48, 49, 50, 51, 52, 53]
         else:
             self.custom_order=custom_order
             warnings.warn("Tag not specified...using general ordering.")
