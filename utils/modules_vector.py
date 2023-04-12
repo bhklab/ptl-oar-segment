@@ -262,6 +262,7 @@ class SegmentationModule(pl.LightningModule):
         print("AT TRAIN START")
         self.step_type = "train"
         inputs, targets, counts = batch
+        
         if inputs.shape != targets.shape:
             warnings.warn("Input Shape Not Same size as label...")
         if batch_idx == 0:
@@ -271,7 +272,11 @@ class SegmentationModule(pl.LightningModule):
         if type(outputs) == tuple:
             outputs = outputs[0]
         
-        loss = self.criterion(outputs, targets, counts, normalize=True)
+        if self.tag == "NECKLEVEL":
+            loss = self.criterion(outputs, targets, counts, normalize=False)
+        else:
+            loss = self.criterion(outputs, targets, counts, normalize=True)
+        
         # if loss is nan...
         # if torch.isnan(loss)[0] is True:
         nan_val = 10 + len(self.custom_order)
