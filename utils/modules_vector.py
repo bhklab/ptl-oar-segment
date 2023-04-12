@@ -361,7 +361,10 @@ class SegmentationModule(pl.LightningModule):
         if type(outputs) == tuple:
             outputs = outputs[0]
         
-        loss = self.criterion(outputs, targets, counts, normalize=True)
+        if self.tag == "NECKLEVEL":
+            loss = self.criterion(outputs, targets, counts, normalize=False)
+        else:
+            loss = self.criterion(outputs, targets, counts, normalize=True)
         
         # (self.criterion(outputs, targets.unsqueeze(1)).cpu() if self.criterion is not None else 0)
         nan_val = 10 + len(self.custom_order)
