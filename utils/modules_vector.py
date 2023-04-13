@@ -76,6 +76,7 @@ class SegmentationModule(pl.LightningModule):
         # kf = KFold(n_splits=5, shuffle=True, random_state=234)
         path_ = self.hparams.root + f"/config_{self.tag}_{self.hparams.fold}.json"
         # this excludes all the data with three contours in their files or less...
+        neck_tags = ["NECKLEVEL", "NECKLEVEL2"]
         exclude_ = []
         # exclude_ = ['RADCURE-2358', 'RADCURE-1645', 'RADCURE-0472', 'RADCURE-1870', 'RADCURE-0431', 'RADCURE-1461',
         #             'RADCURE-1715', 'RADCURE-1856', 'RADCURE-2560', 'RADCURE-2620', 'RADCURE-1540', 'RADCURE-0314',
@@ -130,7 +131,7 @@ class SegmentationModule(pl.LightningModule):
                 data_ = getROIOrder(tag=self.tag, inverse=True)
                 oars = list(data_.values())
                 
-                if self.tag != "NECKLEVEL":
+                if self.tag not in neck_tags:
                     data = pd.read_csv(f"{self.hparams.home_path}radcure_oar_summary.csv", index_col=0)
                     oar_data = data[data["ROI"].isin(oars)]
                     # exclude_ = ["RADCURE-0543", "RADCURE-3154", "RADCURE-0768"]
@@ -142,7 +143,7 @@ class SegmentationModule(pl.LightningModule):
                 # current = glob.glob("/cluster/projects/radiomics/Temp/joe/RADCURE_VECTOR_UPDATE/*")
                 current = [c.split("/")[-1] for c in current]
                 
-                if self.tag != "NECKLEVEL":
+                if self.tag not in neck_tags:
                     # split by how many OAR(s) are in select pateints...
                     current = [c for c in current if c in vals_]
                 
