@@ -7,38 +7,52 @@
 #            "Nrv_Optic":["Nrv_Optic_L", "Nrv_Optic_R"], "Parotid":["Parotid_L", "Parotid_R"],
 #            "Cochlea":["Cochlea_L", "Cochlea_R"],"Glnd_Submand":["Glnd_Submand_L",
 #            "Glnd_Submand_R"], "BrachialPlex":["BrachialPlex_R", "BrachialPlex_L"],}
-#         #    "Musc_Constrict":["Musc_Constrict_I", "Musc_Constrict_S", "Musc_Constrict_M"]}
 
-# # "External", "GTVp", "BRAIN", "OralCavity", "Lips", "Brainstem", 
-# # "Esophagus", "Larynx", "Cricoid_P", "OpticChiasm", "SpinalCord", 
-# # "Mandible_Bone",  "LEVEL_IA", 
+# ROIS = [ "Brain", "Lips", "Brainstem", "Esophagus", "Larynx", "OpticChiasm", "SpinalCord", 
+#          "Mandible_Bone", "CTVn", "Glnd_Lacrimal","Spc_Retrophar", "Lens", "Eye","Nrv_Optic", 
+#          "Parotid", "Cochlea", "Glnd_Submand", "BrachialPlex"]
 
+# "Musc_Constrict":["Musc_Constrict_I", "Musc_Constrict_S", "Musc_Constrict_M"]}
+# "External",    "LEVEL_IA"
 # roi_ref= {"LEVEL_IB":["LEVEL_IB_RT","LEVEL_IB_LT"], "LEVEL_III":["LEVEL_III_RT","LEVEL_III_LT"], "LEVEL_II":["LEVEL_II_RT","LEVEL_II_LT"], 
 #           "LEVEL_IV":["LEVEL_IV_RT", "LEVEL_IV_LT"], "LEVEL_V":["LEVEL_V_RT","LEVEL_V_LT"], "LEVEL_VIIA":["LEVEL_VIIA_RT", "LEVEL_VIIA_LT"]}
 
+# import random
+# new_ids = []
+# oars = []
 # folders = glob.glob("*")
-
-# for i, f in enumerate(folders):
-#     fold = glob.glob(f+"/structures/*")
+# random.shuffle(folders)
+# for i, fo in enumerate(folders):
+#     fold = glob.glob(fo+"/structures/*")
 #     fold_ = [f.split("/")[-1].partition(".")[0] for f in fold]
-#     for c in list(roi_ref.keys()):
-#         vals = roi_ref[c]
-#         count = 0
-#         for v in vals:
-#             if v in fold_:
-#                 count +=1
-#         if count == 2:
-#             if os.path.isfile(f+f"/structures/{c}.nrrd") is False:
-#                 paths = [f+f"/structures/{v}.nrrd" for v in vals]
-#                 mask = nrrd.read(paths[0])
-#                 header = mask[1]
-#                 mask = mask[0]
-#                 mask_ = nrrd.read(paths[1])
-#                 mask += mask_[0]
-#                 header["ROI"] = c
-#                 header["Voxels"] = len(mask[mask==1])
-#                 nrrd.write(f+f"/structures/{c}.nrrd", mask, header=header)
-#                 print(f"Saved {c} for {f}. {i}")
+    # after combining L/R sides...
+    # oars += fold_
+    # new_ids += [fo for i in range(len(fold_))]
+    # for c in list(roi_ref.keys()):
+    #     vals = roi_ref[c]
+    #     count = 0
+    #     for v in vals:
+    #         if v in fold_:
+    #             count +=1
+    #     if count == 2:
+    #         if os.path.isfile(f+f"/structures/{c}.nrrd") is False:
+    #             paths = [f+f"/structures/{v}.nrrd" for v in vals]
+    #             mask = nrrd.read(paths[0])
+    #             header = mask[1]
+    #             mask = mask[0]
+    #             mask_ = nrrd.read(paths[1])
+    #             mask += mask_[0]
+    #             header["ROI"] = c
+    #             header["Voxels"] = len(mask[mask==1])
+    #             nrrd.write(f+f"/structures/{c}.nrrd", mask, header=header)
+    #             print(f"Saved {c} for {f}. {i}")
+    
+
+# fold = glob.glob(f+"/structures/*")
+# fold_ = [f.split("/")[-1].partition(".")[0] for f in fold]
+# ids_ = [f for i in range()]
+
+
 #             # break
 #     # break
 
