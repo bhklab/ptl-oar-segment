@@ -249,6 +249,8 @@ class SegmentationModule(pl.LightningModule):
             self.custom_order = [35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47]
         elif self.tag == "NECKLEVEL2":
             self.custom_order = [35, 48, 49, 50, 51, 52, 53]
+        elif self.tag == "LRCOMBINED":
+            self.custom_order = [54, 55, 4, 5, 6, 56, 57, 58, 59, 60, 61, 62, 63, 8, 30]
         else:
             self.custom_order=custom_order
             warnings.warn("Tag not specified...using general ordering.")
@@ -1021,7 +1023,7 @@ class SegmentationModule(pl.LightningModule):
 
         batch_size = self.hparams.batch_size if batch_size is None else batch_size
         # best practices to turn shuffling off during validation...
-        validate = ['valid', 'test']
+        validate = ['test']
         shuffle = False if mode in validate else True
 
         return DataLoader( dataset=dataset, num_workers=self.hparams.workers,
