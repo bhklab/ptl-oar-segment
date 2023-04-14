@@ -36,9 +36,12 @@ class TopKLoss(CrossentropyND):
     Network has to have NO LINEARITY!
     """
     def __init__(self, weight=None, ignore_index=-100, k=10):
+        super(TopKLoss, self).__init__
         self.k = k
-        # self.weight = weight
-        super(TopKLoss, self).__init__(weight, False, ignore_index, reduce=False)
+        self.weight = weight
+        self.ignore_index = ignore_index
+        self.reduce = False
+        # (weight, False, ignore_index, reduce=False)
 
     def forward(self, inp, target, mask=None):
         
@@ -52,6 +55,8 @@ class TopKLoss(CrossentropyND):
                     weights[i] *= mask[:][i]
             else:
                 pass
+        else:
+            weights = None
 
         target = target.long() # [:, 0]
         res = super(TopKLoss, self).forward(inp, target, weights)
