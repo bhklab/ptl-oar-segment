@@ -364,6 +364,7 @@ class TverskyLoss(nn.Module):
             axes = [0] + list(range(2, len(shp_x)))
         else:
             axes = list(range(2, len(shp_x)))
+        
         if self.apply_nonlin is not None:
             x = self.apply_nonlin(x)
 
@@ -371,11 +372,15 @@ class TverskyLoss(nn.Module):
         tversky = (tp + self.smooth) / (tp + self.alpha*fp + self.beta*fn + self.smooth)
 
         if self.weight is not None:
+            weights = self.weight.clone()
             if mask is not None:
-                mask = mask.type_as(self.weight)
-                weights = self.weight.clone()
-            for i, val in enumerate(range(y.max())):
-                tversky[:,i] *= weights[i]*mask[0][i]
+                mask = mask.type_as(self.weight)   
+                # we need to take into account all classes..
+                for i, val in enumerate(range(len(tversky[0]))):
+                    tversky[:,i] *= weights[i]*mask[:][i]
+            else:
+                for i, val in enumerate(range(len(tversky[0]))):
+                    tversky[:,i] *= weights[i] # *mask[:][i]
 
         if not self.do_bg:
             if self.batch_dice:
@@ -443,13 +448,16 @@ class HD_Loss3D(nn.Module):
                                                 include_background=True)
 
         out = torch.nan_to_num(out, nan=50., posinf=50)
+        
         if self.weight is not None:
+            weights = self.weight.clone()
             if mask is not None:
                 mask = mask.type_as(self.weight)
-                weights = self.weight.clone()
-
-            for i, val in enumerate(range(len(net_output[0,:]))):
-                out[:,i] *= weights[i]*mask[0][i]
+                for i, val in enumerate(range(len(net_output[0,:]))):
+                    out[:,i] *= weights[i]*mask[0][i]
+            else:
+                for i, val in enumerate(range(len(net_output[0,:]))):
+                    out[:,i] *= weights[i] # *mask[0][i]
 
         # if mask is not None:
         # # use counts to filter out which metrics to log for set OAR...

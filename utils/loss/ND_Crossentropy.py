@@ -35,12 +35,23 @@ class TopKLoss(CrossentropyND):
     """
     def __init__(self, weight=None, ignore_index=-100, k=10):
         self.k = k
+        self.weight = weight
         super(TopKLoss, self).__init__(weight, False, ignore_index, reduce=False)
 
     def forward(self, inp, target, mask=None):
-        # if mask is not None:
-        #     weights = self.weight.type_as(mask)
-        #     weights*=mask[0]
+        
+        if self.weight is not None:
+            weights = self.weight.clone()
+            if mask is not None:
+                mask = mask.type_as(self.weight)
+                # we need to take into account all classes..
+                # otherwise mask automatically has to be 1 if unavaliable
+                for i, val in enumerate(range(len(inp[0]))):
+                    inp[:,i] *= weights[i]*mask[:][i]
+            else:
+                for i, val in enumerate(range(len(inp[0]))):
+                    inp[:,i] *= weights[i]#*mask[:][i]
+
         target = target.long() # [:, 0]
         res = super(TopKLoss, self).forward(inp, target)
         num_voxels = np.prod(res.shape)
