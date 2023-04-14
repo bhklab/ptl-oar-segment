@@ -10,7 +10,7 @@ class CrossentropyND(torch.nn.CrossEntropyLoss):
     """
     Network has to have NO NONLINEARITY!
     """
-    def forward(self, inp, target):
+    def forward(self, inp, target, weight=None):
         target = target.long()
         num_classes = inp.size()[1]
 
@@ -24,10 +24,12 @@ class CrossentropyND(torch.nn.CrossEntropyLoss):
 
         inp = inp.contiguous()
         inp = inp.view(-1, num_classes)
-
         target = target.view(-1,)
 
-        return super(CrossentropyND, self).forward(inp, target)
+        if weight is None:
+            return super(CrossentropyND, self).forward(inp, target)
+        else:
+            return super(CrossentropyND, self).forward(inp, target, weight=weight)
 
 class TopKLoss(CrossentropyND):
     """
@@ -35,7 +37,7 @@ class TopKLoss(CrossentropyND):
     """
     def __init__(self, weight=None, ignore_index=-100, k=10):
         self.k = k
-        self.weight = weight
+        # self.weight = weight
         super(TopKLoss, self).__init__(weight, False, ignore_index, reduce=False)
 
     def forward(self, inp, target, mask=None):
@@ -47,13 +49,12 @@ class TopKLoss(CrossentropyND):
                 # we need to take into account all classes..
                 # otherwise mask automatically has to be 1 if unavaliable
                 for i, val in enumerate(range(len(inp[0]))):
-                    inp[:,i] *= weights[i]*mask[:][i]
+                    weights[i] *= mask[:][i]
             else:
-                for i, val in enumerate(range(len(inp[0]))):
-                    inp[:,i] *= weights[i]#*mask[:][i]
+                pass
 
         target = target.long() # [:, 0]
-        res = super(TopKLoss, self).forward(inp, target)
+        res = super(TopKLoss, self).forward(inp, target, weights)
         num_voxels = np.prod(res.shape)
         res, _ = torch.topk(res.view((-1, )), int(num_voxels * self.k / 100), sorted=False)
         return res.mean()
