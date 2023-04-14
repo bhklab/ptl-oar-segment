@@ -114,7 +114,10 @@ def getHeaderData(folders, structures=True, tag=None):
             oar = p.split('/')[-1].partition('.')[0]
             if oar in oars_used:
                 class_idx = roi_order[oar]
-                header = nrrd.read_header(p)
+                try:
+                    header = nrrd.read_header(p)
+                except Exception:
+                    warnings.warn(f"Cant read header for {p}")
                 voxels = header["Voxels"]
                 try:
                     data = voxel_dic[oar]
@@ -135,6 +138,7 @@ def getHeaderData(folders, structures=True, tag=None):
                 warnings.warn(f"{oar} not in list of chosen ROIS. If this is a mistake please update roi_order.")
                 pass
                 # com_dic[oar] = com
+            
     return {"VOXINFO":voxel_dic, "IMGINFO":img_dic}
 
 
