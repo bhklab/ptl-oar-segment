@@ -41,10 +41,11 @@ class TopKLoss(CrossentropyND):
         # self.reduce = False
 
     def forward(self, inp, target, mask=None):
+        
         # Adjust the input, not the weight before entering loss...
         if mask is not None:
             mask = mask.type_as(self.weight)
-            for i, val in enumerate(range(len(net_output[0,:]))):
+            for i, val in enumerate(range(len(inp[0,:]))):
                 inp[:,i] *= mask[:][i]
                 
         target = target.long() # [:, 0]
