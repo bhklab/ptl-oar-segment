@@ -454,7 +454,7 @@ class HD_Loss3D(nn.Module):
             if mask is not None:
                 mask = mask.type_as(self.weight)
                 for i, val in enumerate(range(len(net_output[0,:]))):
-                    out[:,i] *= weights[i]*mask[0][i]
+                    out[:,i] *= weights[i]*mask[:][i]
             else:
                 for i, val in enumerate(range(len(net_output[0,:]))):
                     out[:,i] *= weights[i] # *mask[0][i]

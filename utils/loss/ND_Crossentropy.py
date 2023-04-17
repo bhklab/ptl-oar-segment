@@ -10,7 +10,7 @@ class CrossentropyND(torch.nn.CrossEntropyLoss):
     """
     Network has to have NO NONLINEARITY!
     """
-    def forward(self, inp, target, weight=None):
+    def forward(self, inp, target):
         target = target.long()
         num_classes = inp.size()[1]
 
@@ -26,10 +26,7 @@ class CrossentropyND(torch.nn.CrossEntropyLoss):
         inp = inp.view(-1, num_classes)
         target = target.view(-1,)
 
-        if weight is None:
-            return super(CrossentropyND, self).forward(inp, target)
-        else:
-            return super(CrossentropyND, self).forward(inp, target, weight=weight)
+        return super(CrossentropyND, self).forward(inp, target)
 
 class TopKLoss(CrossentropyND):
     """
@@ -38,27 +35,20 @@ class TopKLoss(CrossentropyND):
     def __init__(self, weight=None, ignore_index=-100, k=10):
         super(TopKLoss, self).__init__(weight, False, ignore_index, reduce=False)
         self.k = k
+        # self.weights = weight
         # self.weight = weight
         # self.ignore_index = ignore_index
         # self.reduce = False
 
     def forward(self, inp, target, mask=None):
-        
-        if self.weight is not None:
-            weights = self.weight.clone()
-            if mask is not None:
-                mask = mask.type_as(self.weight)
-                # we need to take into account all classes..
-                # otherwise mask automatically has to be 1 if unavaliable
-                for i, val in enumerate(range(len(inp[0]))):
-                    weights[i] *= mask[:][i]
-            else:
-                pass
-        else:
-            weights = None
-
+        # Adjust the input, not the weight before entering loss...
+        if mask is not None:
+            mask = mask.type_as(self.weight)
+            for i, val in enumerate(range(len(net_output[0,:]))):
+                inp[:,i] *= mask[:][i]
+                
         target = target.long() # [:, 0]
-        res = super(TopKLoss, self).forward(inp, target, weights)
+        res = super(TopKLoss, self).forward(inp, target)
         num_voxels = np.prod(res.shape)
         res, _ = torch.topk(res.view((-1, )), int(num_voxels * self.k / 100), sorted=False)
         return res.mean()
