@@ -46,7 +46,8 @@ class TopKLoss(CrossentropyND):
         if mask is not None:
             mask = mask.type_as(self.weight)
             for i, val in enumerate(range(len(inp[0,:]))):
-                inp[:,i] *= mask[:][i]
+                for j in range(len(mask)): 
+                    inp[j,i] *= mask[j][i]
                 
         target = target.long() # [:, 0]
         res = super(TopKLoss, self).forward(inp, target)

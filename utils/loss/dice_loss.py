@@ -377,7 +377,8 @@ class TverskyLoss(nn.Module):
                 mask = mask.type_as(self.weight)   
                 # we need to take into account all classes..
                 for i, val in enumerate(range(len(tversky[0]))):
-                    tversky[:,i] *= weights[i]*mask[:][i]
+                    for j in range(len(mask)): 
+                        tversky[j,i] *= weights[i]*mask[j][i]
             else:
                 for i, val in enumerate(range(len(tversky[0]))):
                     tversky[:,i] *= weights[i] # *mask[:][i]
@@ -454,7 +455,8 @@ class HD_Loss3D(nn.Module):
             if mask is not None:
                 mask = mask.type_as(self.weight)
                 for i, val in enumerate(range(len(net_output[0,:]))):
-                    out[:,i] *= weights[i]*mask[:][i]
+                    for j in range(len(mask)): 
+                        out[j,i] *= weights[i]*mask[j][i]
             else:
                 for i, val in enumerate(range(len(net_output[0,:]))):
                     out[:,i] *= weights[i] # *mask[0][i]
