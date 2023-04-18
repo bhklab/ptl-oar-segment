@@ -29,10 +29,11 @@ def main(args):
     :param hparams:
     """
     # try:
-    #     assert args.weights_path is not None
+    #     
     #     warnings.warn('Using presaved weights...')
     #     warnings.warn(f'Loading save model from {args.weights_path}.')
-    model = SegmentationModule(args) # .load_from_checkpoint(args.weights_path)
+    assert args.weights_path is not None
+    model = SegmentationModule(args).load_from_checkpoint(args.weights_path)
     # trainer = Trainer(resume_from_checkpoint=args.weights_path)
     # except Exception:
     #     warnings.warn('Using randomized weights...')

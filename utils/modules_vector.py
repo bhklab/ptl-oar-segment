@@ -191,6 +191,7 @@ class SegmentationModule(pl.LightningModule):
         self.oars = list(self.config["order_dic"].values())
         self.config["data_path"] = self.hparams.data_path
         self.config["oar_order"] = self.oars
+        self.config["window"] = self.hparams.window
         warnings.warn(f"OARs chosen are {self.oars}")
         self.eval_data = None
         self.__get_loss()
@@ -994,6 +995,7 @@ class SegmentationModule(pl.LightningModule):
             # can add weight class if necessary ...
             loss = FocalTversky_and_topk_loss(tversky_kwargs, ce_kwargs)
             self.criterion = loss
+            
         elif self.hparams.loss == "TAL":
             loss = TALWrapper(weight=self.class_weights, do_bg=False)
             self.criterion = loss
