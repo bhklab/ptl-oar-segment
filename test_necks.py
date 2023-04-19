@@ -48,33 +48,37 @@ def main(args):
     weights_path = "/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_04_12_141555/neckTEST/" # "/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_01_31_190855/weights_NECKLEVELS/"
     checkpoints = glob.glob(weights_path + "*.ckpt")
     # hparams = glob.glob(weights_path + "*.yaml")
-    checkpoints.sort()
-    # hparams.sort()
+    model = SegmentationModule()
+    trainer = Trainer(gpus=1, default_root_dir=model.hparams.root, resume_from_checkpoint=checkpoints[0])
+    trainer.test(model)
     
-    for i, checkpoint in enumerate(checkpoints):
-        warnings.warn(f'Loading save model from {checkpoint}.')
-        checkpoint_ = torch.load(checkpoint)
-        model_weights = checkpoint_["state_dict"]
-        # update keys by dropping `auto_encoder.`
-        for key in list(model_weights):
-            model_weights[key.replace("criterion.", "").replace("ce.weight", "")]=model_weights.pop(key)
-            # model_weights[key.replace("ce.weight", "")] = model_weights.pop(key)
-            warnings.warn(f'Dropping key {key} from checkpoint.')
+    # checkpoints.sort()
+    # hparams.sort()
+    # if we have the ensemble working...
+    # for i, checkpoint in enumerate(checkpoints):
+    #     warnings.warn(f'Loading save model from {checkpoint}.')
+    #     checkpoint_ = torch.load(checkpoint)
+    #     model_weights = checkpoint_["state_dict"]
+    #     # update keys by dropping `auto_encoder.`
+    #     for key in list(model_weights):
+    #         model_weights[key.replace("criterion.", "").replace("ce.weight", "")]=model_weights.pop(key)
+    #         # model_weights[key.replace("ce.weight", "")] = model_weights.pop(key)
+    #         warnings.warn(f'Dropping key {key} from checkpoint.')
         
-        try: 
-            model_weights.pop("")
-        except Exception:
-            warnings.warn(f'Checkpoint {checkpoint} does not contain any out of order model weights.')
-            pass
+    #     try: 
+    #         model_weights.pop("")
+    #     except Exception:
+    #         warnings.warn(f'Checkpoint {checkpoint} does not contain any out of order model weights.')
+    #         pass
         
-        checkpoint_["state_dict"] = model_weights
-        # update checkpoint 
-        torch.save(checkpoint_, checkpoint)
-        # save model weights
-        torch.save(model_weights, weights_path + f"weights_{i+1}.ckpt")
-        model = SegmentationModule.load_from_checkpoint(checkpoint_path=checkpoint) 
-        trainer = Trainer(gpus=1, default_root_dir=model.hparams.root)
-        trainer.test(model)
+    #     checkpoint_["state_dict"] = model_weights
+    #     # update checkpoint 
+    #     torch.save(checkpoint_, checkpoint)
+    #     # save model weights
+    #     torch.save(model_weights, weights_path + f"weights_{i+1}.ckpt")
+    #     model = SegmentationModule.load_from_checkpoint(checkpoint_path=checkpoint) 
+    #     trainer = Trainer(gpus=1, default_root_dir=model.hparams.root)
+    #     trainer.test(model)
 
 if __name__ == '__main__':
     root_dir = os.path.dirname(os.path.realpath(__file__))
