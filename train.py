@@ -32,8 +32,23 @@ def main(args):
     #     
     #     warnings.warn('Using presaved weights...')
     #     warnings.warn(f'Loading save model from {args.weights_path}.')
-    assert args.weights_path is not None
-    model = SegmentationModule(args).load_from_checkpoint(args.weights_path)
+    # assert args.weights_path is not None
+    # warnings.warn(f'Loading save model from {checkpoint}.')
+    # checkpoint_ = torch.load(checkpoint)
+    # model_weights = checkpoint_["state_dict"]
+    # # update keys by dropping `auto_encoder.`
+    # for key in list(model_weights):
+    #     model_weights[key.replace("criterion.", "").replace("ce.weight", "")]=model_weights.pop(key)
+    #     # model_weights[key.replace("ce.weight", "")] = model_weights.pop(key)
+    #     warnings.warn(f'Dropping key {key} from checkpoint.')
+        
+    # try: 
+    #     model_weights.pop("")
+    # except Exception:
+    #     warnings.warn(f'Checkpoint {checkpoint} does not contain any out of order model weights.')
+    #     pass
+   
+    model = SegmentationModule(args) # .load_from_checkpoint(args.weights_path)
     # trainer = Trainer(resume_from_checkpoint=args.weights_path)
     # except Exception:
     #     warnings.warn('Using randomized weights...')
@@ -58,9 +73,9 @@ def main(args):
             sync_batchnorm=True,
             # precision=16,
             accumulate_grad_batches={150:2, 400:4},#2, # changing this parameter affects outputs
-            callbacks=[checkpoint_callback])
+            callbacks=[checkpoint_callback],
             # checkpoint_callback=checkpoint_callback)# < 1.4.0
-            # resume_from_checkpoint=args.weights_path)
+            resume_from_checkpoint=args.weights_path)
 
     # ------------------------
     # 3 START TRAINING
