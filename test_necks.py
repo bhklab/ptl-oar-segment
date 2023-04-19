@@ -45,11 +45,11 @@ def main(args):
     # assert args.weights_path is not None
     warnings.warn('Using presaved weights...')
     # inference for custom model...
-    weights_path = "/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_01_31_190855/weights_NECKLEVELS/"
+    weights_path = "/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_04_12_141555/neckTEST/" # "/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_01_31_190855/weights_NECKLEVELS/"
     checkpoints = glob.glob(weights_path + "*.ckpt")
-    hparams = glob.glob(weights_path + "*.yaml")
+    # hparams = glob.glob(weights_path + "*.yaml")
     checkpoints.sort()
-    hparams.sort()
+    # hparams.sort()
     
     for i, checkpoint in enumerate(checkpoints):
         warnings.warn(f'Loading save model from {checkpoint}.')
