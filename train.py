@@ -73,9 +73,9 @@ def main(args):
             sync_batchnorm=True,
             # precision=16,
             accumulate_grad_batches={150:2, 400:4},#2, # changing this parameter affects outputs
-            callbacks=[checkpoint_callback],
+            callbacks=[checkpoint_callback])
             # checkpoint_callback=checkpoint_callback)# < 1.4.0
-            resume_from_checkpoint=args.weights_path)
+            # resume_from_checkpoint=args.weights_path) # this is how you resume training from lightning checkpoint...
 
     # ------------------------
     # 3 START TRAINING
