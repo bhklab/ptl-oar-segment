@@ -95,6 +95,8 @@ def getCustomOrder(tag):
         custom_order = [35, 48, 49, 50, 51, 52, 53]
     elif tag == "LRCOMBINED":
         custom_order = [54, 55, 4, 5, 6, 56, 57, 58, 59, 60, 61, 62, 63, 8, 30]
+    elif tag == "LRCOMBINED2":
+        custom_order = [1, 54, 55, 4, 5, 6, 19, 20, 56, 57, 58, 59, 60, 25, 61, 62, 63, 8, 30]
     else:
         custom_order = [1, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 32, 33, 34]
         # custom_order = [1, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 22, 25, 26, 27, 30, 31] #custom_order
@@ -138,7 +140,7 @@ def getHeaderData(folders, structures=True, tag=None):
                 warnings.warn(f"{oar} not in list of chosen ROIS. If this is a mistake please update roi_order.")
                 pass
                 # com_dic[oar] = com
-            
+      
     return {"VOXINFO":voxel_dic, "IMGINFO":img_dic}
 
 
