@@ -1083,12 +1083,13 @@ class SegmentationModule(pl.LightningModule):
             # load the same pateint in twice...
             test.append(val)
             test.append(val)
-        self.test_data["NEWID"] = test
+        # evaluate on the first 10 images...
+        self.test = pd.DataFrame({"NEWID":test})
         transform = Compose([ HistogramClipping(min_hu=self.hparams.clip_min,
                                                 max_hu=self.hparams.clip_max),
                               NormBabe(mean=self.mean, std=self.std,
                                        type=self.hparams.norm),])
 
-        return self.get_dataloader( df=self.test_data, mode="test", transform=transform, # transform,  # should be default
+        return self.get_dataloader( df=self.test, mode="test", transform=transform, # transform,  # should be default
                                     transform2=None, resample=self.hparams.resample,
                                     batch_size=self.hparams.batch_size,)
