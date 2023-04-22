@@ -355,30 +355,18 @@ class RandomCrop3D(MTTransform):
             shape = img.shape
         
         warnings.warn(f"Shape is {str(shape)}")
-        # if self.mode == 'test':
-        # TOPHEAD CLASSES
-        # img = img[shape[0]//2:shape[0]-shape[0]//3]
-        # EVERYTHING ELSE...
-        try:
-            img_ = img[shape[0]//2:shape[0]-shape[0]//3]
+        img_ = img[shape[0]//4:shape[0]-shape[0]//4]
+        if self.mode == 'test':
             img_ = self.segment_head(img_)
             com_ = measure.center_of_mass(img_)
             img_ = img_[int(com_[0])]
-        except Exception as e:
-            warnings.warn("Cropped out all mask values pre-maturely, use full image...")
-            img_ = self.segment_head(img)
+        else:
+            # during training/valudation don't use patient image as crop...
             com_ = measure.center_of_mass(img_)
             img_ = img_[int(com_[0])]
-        
+
         com = measure.center_of_mass(img_)
         self.center = [int(com_[0]), int(com[0]), int(com[1])]
-
-        # else:
-        #     # prodcues a mask, where we take COM from...
-        #
-        #     com = [com[0], com[1], com[2]]
-        #     assert len(com) == 3
-        #     self.center = com
 
     def get_params(self, img):
         if len(img.shape) == 3:
