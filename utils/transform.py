@@ -332,7 +332,7 @@ class RandomCrop3D(MTTransform):
         
         return fill
 
-    def get_shifts(self, img):
+    def get_shifts(self, img, ismask=True):
         # Assumes there is NO external contour then use this...
         # image if '3D' is a binary or similar mask...
         # if mask is not avaliable use image with otsu thresholding...
@@ -356,7 +356,7 @@ class RandomCrop3D(MTTransform):
         
         warnings.warn(f"Shape is {str(shape)}")
         img_ = img[shape[0]//4:shape[0]-shape[0]//4]
-        if self.mode == 'test':
+        if ismask is False:
             img_ = self.segment_head(img_)
             com_ = measure.center_of_mass(img_)
             img_ = img_[int(com_[0])]
@@ -547,16 +547,18 @@ class RandomCrop3D(MTTransform):
         # initiate parameters (get shifing coeff)
         if self.mode=='test':
             self.get_params(img)
-            self.get_shifts(img)
+            self.get_shifts(img, ismask=False)
         else:
             try:
                 self.get_params(img)
                 self.get_shifts(mask)
+                warnings.warn("Cropping using mask...")
             except Exception as e:
                 warnings.warn(str(e))
                 try:
                     self.get_params(img)
-                    self.get_shifts(img)
+                    self.get_shifts(img, ismask=False)
+                    warnings.warn("Cropping using image...")
                 except Exception as e:
                     warnings.warn(str(e))
                     raise Exception(f"Please check mask of size {img.shape}. Failed in transform.py 567")
