@@ -24,7 +24,7 @@ def add_args(return_="parser"):
     arg("--lr", type=float, default=0.001)
     arg("--workers", type=int, default=6)
     arg("--clean", action="store_true")
-    arg("--decay", type=float, default=0)
+    arg("--decay", type=float, default=0.1)
     arg("--gamma", type=float, default=0.99,help="Value for learning rate decay")
     arg("--deform", type=bool, default=False)
     arg("--project", type=bool, default=False)

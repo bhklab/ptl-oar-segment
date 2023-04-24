@@ -114,7 +114,7 @@ class LoadPatientVolumes(Dataset):
             self.mask = np.zeros(shape)
             # meta = {}
             self.count = np.zeros(len(self.oars)+1)
-            # self.count[0] = 1
+            self.count[0] = 1
             # only the case if EXTERNAL NOT included in cases...
             for path in mask_paths:
                 oar = path.split('/')[-1].partition('.')[0]

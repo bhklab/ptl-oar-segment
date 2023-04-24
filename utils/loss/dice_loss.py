@@ -407,8 +407,15 @@ class FocalTversky_loss(nn.Module):
 
     def forward(self, net_output, target, mask=None):
         tversky_loss = 1 + self.tversky(net_output, target, mask) # = 1-tversky(net_output, target)
+        
+        if mask is not None:
+            # take the variability of labels into count...
+            self.gamma = (torch.sum(torch.ones_like(mask))/torch.sum(mask))
+            # if all labels are present for each ROI...favour that!
+            if self.gamma == 1:
+                self.gamma = 0.75
+        
         focal_tversky = torch.pow(tversky_loss, self.gamma)
-
         return focal_tversky
 
 # this is the function to one-hot-encode data

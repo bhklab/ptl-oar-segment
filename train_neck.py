@@ -49,14 +49,14 @@ def main(args):
             strategy='ddp', # should be same as args.backend..., # stochastic_weight_avg=True, # pass to callbacks if required...
             reload_dataloaders_every_n_epochs=1,
             # limit_train_batches=0.2,
-            limit_train_batches=0.6,
-            limit_val_batches=0.3,
+            limit_train_batches=0.7,
+            limit_val_batches=0.4,
             default_root_dir=model.hparams.root,
             max_epochs=model.hparams.n_epochs,
             # log_gpu_memory='min_max',
             sync_batchnorm=True,
             # precision=16,
-            accumulate_grad_batches={150:2, 400:4},#2, # changing this parameter affects outputs
+            accumulate_grad_batches={200:2, 400:4},#2, # changing this parameter affects outputs
             callbacks=[checkpoint_callback])
             # checkpoint_callback=checkpoint_callback)# < 1.4.0
             # resume_from_checkpoint=args.weights_path)
