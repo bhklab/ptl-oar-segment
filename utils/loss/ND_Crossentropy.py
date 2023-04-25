@@ -26,7 +26,7 @@ class CrossentropyND(torch.nn.CrossEntropyLoss):
         inp = inp.view(-1, num_classes)
         target = target.view(-1,)
 
-        return super(CrossentropyND, self).forward(inp, target, weight)
+        return super(CrossentropyND, self).forward(inp, target, weight=weight)
 
 class TopKLoss(CrossentropyND):
     """
