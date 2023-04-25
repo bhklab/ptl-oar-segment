@@ -52,7 +52,7 @@ class TopKLoss(CrossentropyND):
                     inp[j,i] *= mask[j][i]
                 
         target = target.long() # [:, 0]
-        res = super(TopKLoss, self).forward(inp, target, weight)
+        res = super(TopKLoss, self).forward(inp, target, self.weight)
         num_voxels = np.prod(res.shape)
         res, _ = torch.topk(res.view((-1, )), int(num_voxels * self.k / 100), sorted=False)
         # we can run an oblation test determining best position to correct for label variability?
