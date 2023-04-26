@@ -64,18 +64,19 @@ def main(args):
             devices=-1, # set to -1 to use all avaliable gpus...
             strategy='ddp', # should be same as args.backend..., # stochastic_weight_avg=True, # pass to callbacks if required...
             reload_dataloaders_every_n_epochs=1,
-            limit_train_batches=0.15,#0.2,
+            limit_train_batches=0.75,#0.2,
             # limit_train_batches=0.6,
-            limit_val_batches=0.15,#0.2,
+            limit_val_batches=0.10,#0.2,
             default_root_dir=model.hparams.root,
             max_epochs=model.hparams.n_epochs,
             # log_gpu_memory='min_max',
             sync_batchnorm=True,
             # precision=16,
             accumulate_grad_batches={150:2, 400:4},#2, # changing this parameter affects outputs
-            callbacks=[checkpoint_callback])
+            callbacks=[checkpoint_callback], #)
             # checkpoint_callback=checkpoint_callback)# < 1.4.0
-            # resume_from_checkpoint=args.weights_path) # this is how you resume training from lightning checkpoint...
+            resume_from_checkpoint="/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_04_24_172930/lightning_logs/version_8624239/checkpoints/last.ckpt")
+            #args.weights_path) # this is how you resume training from lightning checkpoint...
 
     # ------------------------
     # 3 START TRAINING

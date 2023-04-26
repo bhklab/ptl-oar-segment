@@ -355,17 +355,17 @@ class RandomCrop3D(MTTransform):
             shape = img.shape
         
         warnings.warn(f"Shape is {str(shape)}")
-        img_ = img[shape[0]//4:shape[0]-shape[0]//4]
+        img = img[shape[0]//4:shape[0]-shape[0]//4]
         if ismask is False:
-            img_ = self.segment_head(img_)
-            com_ = measure.center_of_mass(img_)
-            img_ = img_[int(com_[0])]
+            img = self.segment_head(img)
+            com_ = measure.center_of_mass(img)
+            img = img[int(com_[0])]
         else:
             # during training/valudation don't use patient image as crop...
-            com_ = measure.center_of_mass(img_)
-            img_ = img_[int(com_[0])]
+            com_ = measure.center_of_mass(img)
+            img = img[int(com_[0])]
 
-        com = measure.center_of_mass(img_)
+        com = measure.center_of_mass(img)
         self.center = [int(com_[0]), int(com[0]), int(com[1])]
 
     def get_params(self, img):
@@ -400,7 +400,7 @@ class RandomCrop3D(MTTransform):
 
         if self.mode == "train":
             assert len(self.center) == 3
-            a = np.arange(-64, 64)
+            a = np.arange(-128, 128)
             startx += np.random.choice(a)
             starty += np.random.choice(a)
 
@@ -454,7 +454,8 @@ class RandomCrop3D(MTTransform):
             if shape[0] > self.window*2: # 128
                 warnings.warn(f'Cropping images/masks from {shape[0]} to 120.')
                 # self.window = 56 # 64
-                a = np.arange(-64,64)
+                # val_ = shape[0] - self.window
+                a = np.arange(-shape[0]//2, shape[0]//2)
                 if self.mode == 'train':
                     centerz += np.random.choice(a)
                 end = shape[0] - self.window

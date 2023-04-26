@@ -57,9 +57,9 @@ def main(args):
             sync_batchnorm=True,
             # precision=16,
             accumulate_grad_batches={200:2, 400:4},#2, # changing this parameter affects outputs
-            callbacks=[checkpoint_callback])
+            callbacks=[checkpoint_callback],
             # checkpoint_callback=checkpoint_callback)# < 1.4.0
-            # resume_from_checkpoint=args.weights_path)
+            resume_from_checkpoint="/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_04_24_172930/lightning_logs/version_8624238/checkpoints/last.ckpt")
 
     # ------------------------
     # 3 START TRAINING
