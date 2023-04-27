@@ -437,15 +437,17 @@ class RandomCrop3D(MTTransform):
                 warnings.warn('COM of mask < 1/4 of crop factor in y.')
                 starty = 1
             try:
-                assert startx < (self.x - self.factor//2 - 1)
+                assert startx < (self.x - self.factor - 1)
             except Exception:
                 warnings.warn('Startx needs to be changed for effective crop.')
-                startx = self.x - self.factor//2 - 2
+                # set to center if cropped too far outside of window params...
+                startx = np.int(centerx) - (self.factor // 2) - 1
             try:
-                assert starty < (self.y - self.factor//2 - 1)
+                assert starty < (self.y - self.factor - 1)
             except Exception:
+                # set to center if cropped too far outside of window params...
                 warnings.warn('Starty needs to be changed for effective crop.')
-                starty = self.y - self.factor//2 - 2
+                starty = np.int(centery) - (self.factor // 2) - 1
 
         # Use during training.
         # for vlidation stay cropped around GTV...
