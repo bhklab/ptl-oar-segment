@@ -415,15 +415,15 @@ class RandomCrop3D(MTTransform):
                 warnings.warn('COM of mask < 1/4 of crop factor in y.')
                 starty = 1
             try:
-                assert startx < (self.x - self.factor//2 - 1)
+                assert startx < (self.x - self.factor - 1)
             except Exception:
                 warnings.warn('Startx needs to be changed for effective crop.')
-                startx = self.x - self.factor//2 - 2
+                startx = np.int(centery) - (self.factor // 2) - 1
             try:
-                assert starty < (self.y - self.factor//2 - 1)
+                assert starty < (self.y - self.factor - 1)
             except Exception:
                 warnings.warn('Starty needs to be changed for effective crop.')
-                starty = self.y - self.factor//2 - 2
+                starty = np.int(centery) - (self.factor // 2) - 1
  
         else:
             try:
@@ -668,7 +668,6 @@ class RandomFlip3D(MTTransform):
             else:
                 return img
 
-
 class ElasticTransform3D(MTTransform):
     def __init__( self, sigma=25, points=3, axis=(1, 2), order=0, p=1.0,\
                   mode="nearest", prefilter=True):
@@ -783,7 +782,6 @@ class Clahe(MTTransform):
         else:
             raise ValueError("Input sample must be a 3D or 2D numpy array.")
 
-
 class HistogramClipping(MTTransform):
     def __init__(
         self,
@@ -853,7 +851,6 @@ class NormBabe(MTTransform):
         else:
 
             return array
-
 
 class Normalize(MTTransform):
 
