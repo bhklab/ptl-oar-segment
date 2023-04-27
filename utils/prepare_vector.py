@@ -70,6 +70,7 @@ class LoadPatientVolumes(Dataset):
         # assumes directory structure where patient name is enclosing folder...
         custom_order = self.config['roi_order']
         self.window = self.config["window"]
+        self.crop_width = self.config["crop_width"]
         self.order_dic = getROIOrder(tag=self.tag)
         self.oars = list(self.order_dic.keys())
         self.load_nrrd()
@@ -156,7 +157,9 @@ class LoadPatientVolumes(Dataset):
         if self.mask.max() > 0:
             try:
                 self.img, self.mask = self.transform(self.img.copy(), self.mask.copy())
+                assert (self.img.shape[1], self.img.shape[2]) == (self.crop_width, self.crop_width)
             except Exception as e:
+                # if shape is not 2x window size we need to recrop...
                 warnings.warn(str(e))
                 raise Exception(f"Please check mask for folder {self.patient}.")
         else:

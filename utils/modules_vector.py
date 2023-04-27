@@ -192,6 +192,7 @@ class SegmentationModule(pl.LightningModule):
         self.config["data_path"] = self.hparams.data_path
         self.config["oar_order"] = self.oars
         self.config["window"] = self.hparams.window
+        self.config["crop_width"] = self.hparams.crop_factor
         warnings.warn(f"OARs chosen are {self.oars}")
         self.eval_data = None
         self.__get_loss()
