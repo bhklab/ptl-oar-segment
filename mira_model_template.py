@@ -2,7 +2,7 @@ import logging, platform, torch, os, glob, nrrd
 import numpy as np
 from utils import SegmentationModule, ROIS, custom_order
 # packages that were dependent for model training
-from lightning.pytorch import Trainer
+import lightning.pytorch as pl
 import SimpleITK as sitk
 
 # from typing import Tuple
@@ -80,7 +80,7 @@ def run_model(model_path: str, patient:str) -> dict[str, sitk.Image]:
     
     # ensure model_path is location of ptl_oar_segmentation folder...
     # inference may require GPU(s) depending on avaliability adjust gpus/cpus flag acordingly
-    trainer = Trainer(gpus=0, default_root_dir=model_path) # strategy='ddp_notebook'
+    trainer = pl.Trainer(gpus=0, default_root_dir=model_path) # strategy='ddp_notebook'
     splits = glob.glob(model_path+"/wolnet-sample/weights/*.ckpt")
     for split in splits:
         model = SegmentationModule.load_from_checkpoint(checkpoint_path=split)
