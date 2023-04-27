@@ -395,8 +395,8 @@ class RandomCrop3D(MTTransform):
             centerx = np.int(self.center[1]) if self.center is not None else self.x // 2
             centery = np.int(self.center[0]) if self.center is not None else self.y // 2
 
-        startx = np.int(centerx) - (self.factor // 2)
-        starty = np.int(centery) - (self.factor // 2)
+        startx = np.int(centerx) - (self.factor // 2) - 1
+        starty = np.int(centery) - (self.factor // 2) - 1
 
         if self.mode == "train":
             assert len(self.center) == 3
@@ -424,7 +424,7 @@ class RandomCrop3D(MTTransform):
             except Exception:
                 warnings.warn('Starty needs to be changed for effective crop.')
                 starty = self.y - self.factor//2 - 2
-
+ 
         else:
             try:
                 assert startx > 0
