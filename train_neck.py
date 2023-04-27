@@ -8,8 +8,8 @@ https://williamfalcon.github.io/pytorch-lightning/
 import os, torch, warnings
 import numpy as np
 from utils import SegmentationModule, config
-from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.callbacks import ModelCheckpoint
+import lightning.pytorch as pl
+from lightning.pytorch.callbacks import ModelCheckpoint
 
 """
 .. warning:: `logging` package has been renamed to `loggers` since v0.7.0.
@@ -19,7 +19,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 SEED = 234
 # torch.manual_seed(SEED)
 # np.random.seed(SEED)
-seed_everything(SEED, workers=True)
+pl.seed_everything(SEED, workers=True)
 # print('__CUDNN VERSION:', torch.backends.cudnn.version())
 # print('__Number CUDA Devices:', torch.cuda.device_count())
 
@@ -43,7 +43,7 @@ def main(args):
                                            mode="min",
                                            save_last=True,
                                            save_top_k=3,)
-    trainer = Trainer(
+    trainer = pl.Trainer(
             accelerator="gpu",
             devices=-1, # set to -1 to use all avaliable gpus...
             strategy='ddp', # should be same as args.backend..., # stochastic_weight_avg=True, # pass to callbacks if required...

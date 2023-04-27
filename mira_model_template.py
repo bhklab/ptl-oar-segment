@@ -2,7 +2,7 @@ import logging, platform, torch, os, glob, nrrd
 import numpy as np
 from utils import SegmentationModule, ROIS, custom_order
 # packages that were dependent for model training
-from lightning import Trainer
+from lightning.pytorch import Trainer
 import SimpleITK as sitk
 
 # from typing import Tuple
