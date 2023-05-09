@@ -36,7 +36,7 @@ def getJson(path):
     return obj
 
 class SegmentationModule(pl.LightningModule):
-    def __init__(self, hparams):
+    def __init__(self, hparams, update_lr=None):
         """
         Pass in parsed HyperOptArgumentParser to the model
         :param hparams:
@@ -48,6 +48,9 @@ class SegmentationModule(pl.LightningModule):
         self.get_model_root_dir()
         self.__build_model()
         self.__getCutomOrder()
+        # override learning rate (for re-training)
+        if update_lr is not None:
+            self.hparams.lr = update_lr
 
     def setup(self, stage=None):
 
