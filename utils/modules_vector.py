@@ -5,11 +5,13 @@ from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 from torch.utils.data.distributed import DistributedSampler
 import matplotlib.pyplot as plt
-import pytorch_lightning as pl
+import lightning.pytorch as pl # pytorch_lightning as pl
 from collections import OrderedDict
 import numpy as np
 import pandas as pd
 import torch.nn.functional as F
+from sklearn.model_selection import KFold, ShuffleSplit
+import monai.metrics as met
 # monai slifing window inference...
 # from sliding_window import sliding_window_inference
 # from .sliding_window import sliding_window_inference as swi
@@ -68,10 +70,31 @@ class SegmentationModule(pl.LightningModule):
         # the un-windowed meanHU and stdHU are saved in the meta header for each image...
         # for clipped image(s) from -500 to 1000; expect mean/std values to
         # fall within the following ranges... -390 < meanHU < -420; 205 < stdHU < 245
-
-        path_ = self.hparams.root + f"/config_{self.tag}.json"
-        exclude_ = ["RADCURE-0543", "RADCURE-1856", "RADCURE-2503", "RADCURE-0079",
-                    "RADCURE-2205", "RADCURE-1582","RADCURE-2986"]
+        # set the KFold class variable to the number of folds you want to use for cross-validation
+        # random_state makes the predictions deterministic
+        ss = ShuffleSplit(n_splits=5, test_size=0.1, random_state=234)
+        # kf = KFold(n_splits=5, shuffle=True, random_state=234)
+        path_ = self.hparams.root + f"/config_{self.tag}_{self.hparams.fold}.json"
+        # this excludes all the data with three contours in their files or less...
+        neck_tags = ["NECKLEVEL", "NECKLEVEL2"]
+        exclude_ = []
+        # exclude_ = ['RADCURE-2358', 'RADCURE-1645', 'RADCURE-0472', 'RADCURE-1870', 'RADCURE-0431', 'RADCURE-1461',
+        #             'RADCURE-1715', 'RADCURE-1856', 'RADCURE-2560', 'RADCURE-2620', 'RADCURE-1540', 'RADCURE-0314',
+        #             'RADCURE-0703', 'RADCURE-1295', 'RADCURE-1786', 'RADCURE-0526', 'RADCURE-1779', 'RADCURE-1570',
+        #             'RADCURE-1796', 'RADCURE-1707', 'RADCURE-1558', 'RADCURE-1314', 'RADCURE-0609', 'RADCURE-1774',
+        #             'RADCURE-1003', 'RADCURE-1617', 'RADCURE-0570', 'RADCURE-1787', 'RADCURE-0571', 'RADCURE-1957',
+        #             'RADCURE-4026', 'RADCURE-1616', 'RADCURE-0926', 'RADCURE-1635', 'RADCURE-0547', 'RADCURE-1878',
+        #             'RADCURE-1337', 'RADCURE-0701', 'RADCURE-1923', 'RADCURE-2293', 'RADCURE-2121', 'RADCURE-1895',
+        #             'RADCURE-2102', 'RADCURE-1301', 'RADCURE-1320', 'RADCURE-1966', 'RADCURE-0724', 'RADCURE-1700',
+        #             'RADCURE-2033', 'RADCURE-0684', 'RADCURE-2298', 'RADCURE-1720', 'RADCURE-1938', 'RADCURE-0999',
+        #             'RADCURE-1765', 'RADCURE-0987', 'RADCURE-1513', 'RADCURE-1733', 'RADCURE-0748', 'RADCURE-1368',
+        #             'RADCURE-0317', 'RADCURE-0415', 'RADCURE-1987', 'RADCURE-1282', 'RADCURE-0667', 'RADCURE-0567',
+        #             'RADCURE-1438', 'RADCURE-2205', 'RADCURE-0406', 'RADCURE-0499', 'RADCURE-1252', 'RADCURE-1889',
+        #             'RADCURE-1270', 'RADCURE-0953', 'RADCURE-1030', 'RADCURE-0897', 'RADCURE-3099', 'RADCURE-1582',
+        #             'RADCURE-0912', 'RADCURE-2503', 'RADCURE-0079', "RADCURE-0543", "RADCURE-1856", "RADCURE-2503", 
+        #             "RADCURE-0079", "RADCURE-2205", "RADCURE-1582", "RADCURE-2986", "RADCURE-2370", "RADCURE-1573",
+        #             "RADCURE-2305", "RADCURE-0592", "RADCURE-2853", "RADCURE-2178"]
+        
         try:
             # if os.path.isfile(self.hparams.is_config) is True:
             # ideally this should be a .json file in the format of self.data_config
@@ -104,32 +127,50 @@ class SegmentationModule(pl.LightningModule):
                 self.valid_data = pd.read_csv(valid_csv_path)
                 self.test_data  = pd.read_csv(test_csv_path)
             else:
-                data = pd.read_csv(f"{self.hparams.home_path}radcure_oar_summary.csv", index_col=0)
-                # cust_ = custom_order.remove(1)
+                
                 data_ = getROIOrder(tag=self.tag, inverse=True)
                 oars = list(data_.values())
-                oar_data = data[data["ROI"].isin(oars)]
-                # exclude_ = ["RADCURE-0543", "RADCURE-3154", "RADCURE-0768"]
-                vals_ = list(oar_data["NEWID"].unique())
-                #################
+                
+                if self.tag not in neck_tags:
+                    data = pd.read_csv(f"{self.hparams.home_path}radcure_oar_summary.csv", index_col=0)
+                    oar_data = data[data["ROI"].isin(oars)]
+                    # exclude_ = ["RADCURE-0543", "RADCURE-3154", "RADCURE-0768"]
+                    vals_ = list(oar_data["NEWID"].unique())
+                    #################
+                    
                 # H$H specific...
-                current = glob.glob("/cluster/projects/radiomics/Temp/joe/RADCURE_VECTOR_UPDATE/*")
+                current = glob.glob(self.hparams.data_path+"*")
+                # current = glob.glob("/cluster/projects/radiomics/Temp/joe/RADCURE_VECTOR_UPDATE/*")
                 current = [c.split("/")[-1] for c in current]
-                current = [c for c in current if c in vals_]
+                
+                if self.tag not in neck_tags:
+                    # split by how many OAR(s) are in select pateints...
+                    current = [c for c in current if c in vals_]
+                
                 #################
                 oar_data = pd.DataFrame.from_dict({"NEWID":current})
                 oar_data = oar_data[~oar_data["NEWID"].isin(exclude_)]
-                self.train_data = oar_data[:int(len(oar_data)*.9)]
-                self.valid_data = oar_data[int(len(oar_data)*.9):]
+                
+                # ..use Kfold instance from sklearn to split the data...
+                current = list(oar_data["NEWID"])
+                for i, (train_index, test_index) in enumerate(ss.split(current)):
+                    # this will only run to create train/test splits after each fold...
+                    # makes data splitting for ensembling easier...
+                    if i == self.hparams.fold:
+                        self.train_data = pd.DataFrame.from_dict({"NEWID": [current[j] for j in train_index]})
+                        self.valid_data = pd.DataFrame.from_dict({"NEWID": [current[j] for j in test_index]})
+                
                 # select random test div for sitsagiigles
                 test_csv_path = str(self.hparams.home_path)  + "wolnet-sample/vector_test.csv"
                 self.test_data  = pd.read_csv(test_csv_path)
                 warnings.warn(f"Creating model with {len(oars)} oars which are {oars}.")
 
             config = self.__getDataHparam(self.train_data)
-            config["train_data"] = list(self.train_data["NEWID"])
-            config["valid_data"] = list(self.valid_data["NEWID"])
-            config["test_data"] =  list(self.test_data["NEWID"])
+            config["train_data"] =  list(self.train_data["NEWID"])
+            config["valid_data"] =  list(self.valid_data["NEWID"])
+            config["test_data"]  =  list(self.test_data["NEWID"])
+            
+            # config["version"] = 
             with open(path_, "w") as f:
                 json.dump(config,f)
 
@@ -150,6 +191,8 @@ class SegmentationModule(pl.LightningModule):
         self.oars = list(self.config["order_dic"].values())
         self.config["data_path"] = self.hparams.data_path
         self.config["oar_order"] = self.oars
+        self.config["window"] = self.hparams.window
+        self.config["crop_width"] = self.hparams.crop_factor
         warnings.warn(f"OARs chosen are {self.oars}")
         self.eval_data = None
         self.__get_loss()
@@ -173,9 +216,9 @@ class SegmentationModule(pl.LightningModule):
     def __getCutomOrder(self):
 
         self.tag = self.hparams.tag
-        if self.tag == "NECK":
+        if self.tag == "GTV":
             # includes GTV...
-            self.custom_order = [3,1,2]
+            self.custom_order = [1,2,3]
         elif self.tag == "BRACP":
             self.custom_order = [28,29]
         elif self.tag == "NECKMUS":
@@ -204,6 +247,14 @@ class SegmentationModule(pl.LightningModule):
             self.custom_order = [23,24,17,18,19,20,21,22,9,10,4,5,6]
         elif self.tag == "OTHER":
             self.custom_order = [19,20,21,22,23,24,25,26,27,28,29,30,31,17,18,4]
+        elif self.tag == "NECKLEVEL":
+            self.custom_order = [35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47]
+        elif self.tag == "NECKLEVEL2":
+            self.custom_order = [35, 48, 49, 50, 51, 52, 53]
+        elif self.tag == "LRCOMBINED":
+            self.custom_order = [54, 55, 4, 5, 6, 56, 57, 58, 59, 60, 61, 62, 63, 8, 30]
+        elif self.tag == "LRCOMBINED2":
+            self.custom_order = [1, 54, 55, 4, 5, 6, 19, 20, 56, 57, 58, 59, 60, 25, 61, 62, 63, 8, 30]
         else:
             self.custom_order=custom_order
             warnings.warn("Tag not specified...using general ordering.")
@@ -220,6 +271,7 @@ class SegmentationModule(pl.LightningModule):
         print("AT TRAIN START")
         self.step_type = "train"
         inputs, targets, counts = batch
+        
         if inputs.shape != targets.shape:
             warnings.warn("Input Shape Not Same size as label...")
         if batch_idx == 0:
@@ -228,7 +280,12 @@ class SegmentationModule(pl.LightningModule):
         outputs = self.forward(inputs) # WOLNET
         if type(outputs) == tuple:
             outputs = outputs[0]
-        loss = self.criterion(outputs, targets, counts)
+        
+        # if self.tag == "NECKLEVEL":
+        loss = self.criterion(outputs, targets, counts, normalize=False)
+        # else:
+        #     loss = self.criterion(outputs, targets, counts, normalize=True)
+        
         # if loss is nan...
         # if torch.isnan(loss)[0] is True:
         nan_val = 10 + len(self.custom_order)
@@ -296,6 +353,7 @@ class SegmentationModule(pl.LightningModule):
     # This can be modulated in Trainer() when running train.py
     # ---------------------
     def validation_step(self, batch, batch_idx):
+        
         """
         Lightning calls this inside the validation loop
         """
@@ -311,7 +369,12 @@ class SegmentationModule(pl.LightningModule):
         outputs = self.forward(inputs)
         if type(outputs) == tuple:
             outputs = outputs[0]
-        loss = self.criterion(outputs, targets, counts)
+        
+        # if self.tag == "NECKLEVEL":
+        loss = self.criterion(outputs, targets, counts, normalize=False)
+        # else:
+        #     loss = self.criterion(outputs, targets, counts, normalize=True)
+        
         # (self.criterion(outputs, targets.unsqueeze(1)).cpu() if self.criterion is not None else 0)
         nan_val = 10 + len(self.custom_order)
         loss = torch.nan_to_num(loss, nan=nan_val, posinf=nan_val)
@@ -338,36 +401,46 @@ class SegmentationModule(pl.LightningModule):
         counts = counts[0].cpu().numpy()
         bool_counts = (counts == 1)
         counts_ = np.where(bool_counts)[0]
+        
         print(counts, bool_counts, counts_)
+        print(dices)
+        
         try:
-            try:
-                dices_ = dices[counts_]
-            except Exception:
-                try:
-                    counts_ = counts_[:len(counts_)-1]
-                    dices_ = dices[counts_]
-                    bool_counts = bool_counts[:len(counts_)-1]
-                except Exception:
-                    try:
-                        counts_ = counts_[:len(counts_)-2]
-                        dices_ = dices[counts_]
-                        bool_counts = bool_counts[:len(counts_)-2]
-                    except Exception:
-                        counts_ = counts_[:len(counts_)-3]
-                        dices_ = dices[counts_]
-                        bool_counts = bool_counts[:len(counts_)-3]
-
-            print(dices_)
-            hdfds_ = hdfds[counts_]
-            print(hdfds_)
-            asds_ = asds[counts_]
-            print(asds_)
             if "BACK" not in self.oars:
                 self.oars = ["BACK"] + self.oars
-            oars_ = np.array(self.oars)[bool_counts]
+            oars_ = [self.oars[j] for j in counts_]
             print(oars_, bool_counts)
-            for i, val in enumerate(dices_):
+            for i, val in enumerate(dices):
+                warnings.warn(f"Logging Dice for OAR: {str(oars_[i])}:{str(val)}...")
                 self.log(f'val_dice_{oars_[i]}', val, on_step=True, prog_bar=True, logger=True)
+        except Exception as e:
+            warnings.warn(str(e))
+            warnings.warn(f"Skipping Logging Validation Dice for OAR {batch_idx}.")
+        
+        # try:
+        # try:
+        #     dices_ = dices[counts_]
+        # except Exception:
+        #     try:
+        #         counts_ = counts_[:len(counts_)-1]
+        #         dices_ = dices[counts_]
+        #         bool_counts = bool_counts[:len(counts_)-1]
+        #     except Exception:
+        #         try:
+        #             counts_ = counts_[:len(counts_)-2]
+        #             dices_ = dices[counts_]
+        #             bool_counts = bool_counts[:len(counts_)-2]
+        #         except Exception:
+        #             counts_ = counts_[:len(counts_)-3]
+        #             dices_ = dices[counts_]
+        #             bool_counts = bool_counts[:len(counts_)-3]
+
+        # print(dices_)
+        # hdfds_ = hdfds[counts_]
+        # print(hdfds_)
+        # asds_ = asds[counts_]
+        # print(asds_)
+
                 # logging individual evaluation metrics...
                 # if you have the order of OAR(s) - given that they're variable, i can be replaced with ROI name...
                 # if counts[i] == 1:
@@ -375,8 +448,8 @@ class SegmentationModule(pl.LightningModule):
                 # self.log(f"val_asds_{oars_[i]}", asds_[i], on_step=True, logger=True)
                 # logging evaluation metrics ...
                 # self.log(f"val_EVAL_{oars_[i]}", val*100/(hdfds_[i]+asds_[i]), on_step=True, logger=True)
-        except Exception:
-            warnings.warn(f"Couldn't log metrics for validation step {batch_idx}.")
+        # except Exception:
+        #     warnings.warn(f"Couldn't log metrics for validation step {batch_idx}.")
 
         ###### EXTRA STUFF ##########
         # Can change this to incorporate sliding window...
@@ -408,9 +481,10 @@ class SegmentationModule(pl.LightningModule):
         #################################
 
     def CalcEvaluationMetric(self, outputs, targs, batch_idx, total_time):
-
-        self.patient = str(self.data.iloc[batch_idx][0])
-        roi_order = self.config["roi_order"]
+        
+        print("Outputs: ", outputs.shape)
+        print("Targets: ", targs.shape)
+        # roi_order = self.config["roi_order"]
         # only do this if targets not loaded in with data
         # however, targets will be loaded in given sample dataloader was used...
         # structure_path = self.config["data_path"] + f'/{self.patient}/structures/'
@@ -419,44 +493,62 @@ class SegmentationModule(pl.LightningModule):
         dice = []
         haus = []
         asds = []
-        eval = []
+        eval_ = []
         pats = []
         p_idx = []
         time = []
-        for j, c in enumerate(roi_order):
-            oar = roi_order[j]
+        
+        # add a background class if there is none...
+        if "BACK" not in self.oars:
+            self.oars = ["BACK"] + self.oars
+            
+        for j, oar in enumerate(self.oars): #(roi_order):
+            # oar = roi_order[j]
             try:
                 # ideally this should be done outside this function...
                 # some OARs will not be included in the targets...
                 # allows us to save only OARs that we have ground truth information for.
-                targ = targs.copy()
-                targ = targ.cpu().numpy()
-                targ[targ!=j+1] = 0
-                if len(targ[targ==j+1]) == 0:
+                targ = targs[0].clone()
+                outs = outputs.clone()
+                targ[targ!=j] = 0
+                outs[outs!=j] = 0
+                if len(targ[targ==j]) == 0:
+                    warnings.warn(f"No ground truth information for OAR {oar}...")
                     pass
                 else:
-                    targ[targ==j+1] = 1
-                    outs = outputs[0,j+1]
-                    ###############################
-                    dc = met.compute_meandice(outs.unsqueeze(0).unsqueeze(0), targ.unsqueeze(0).unsqueeze(0))
-                    h  = met.compute_hausdorff_distance(outs.unsqueeze(0).unsqueeze(0), targ.unsqueeze(0).unsqueeze(0), percentile=95, include_background=False)
-                    s  = met.compute_average_surface_distance(outs.unsqueeze(0).unsqueeze(0), targ.unsqueeze(0).unsqueeze(0), include_background=False)
-                    # print(self.patient, c, dc, h)
-                    # save metrics...
-                    oars.append(oar)
-                    dice.append(dc[0][0].item())
-                    haus.append(h[0][0].item())
-                    asds.append(s[0][0].item())
-                    eval.append(dc[0][0].item()/(h[0][0].item()+s[0][0].item()))
-                    pats.append(folder)
-                    p_idx.append(batch_idx)
-                    time.append(total_time)
-
+                    targ[targs[0]== j] = 1
+                    outs[outputs == j] = 1
+                    # outs = outputs[j+1]
+                    try:
+                        warnings.warn(f"Shapes are {str(outs.size())}, {str(targ.size())}")
+                        # assert targ.size()==outs.size()
+                        ###############################
+                        dc = met.compute_meandice(outs.unsqueeze(
+                            0).unsqueeze(0), targ.unsqueeze(0).unsqueeze(0))
+                        h = met.compute_hausdorff_distance(outs.unsqueeze(0).unsqueeze(
+                            0), targ.unsqueeze(0).unsqueeze(0), percentile=95, include_background=False)
+                        s = met.compute_average_surface_distance(outs.unsqueeze(0).unsqueeze(
+                            0), targ.unsqueeze(0).unsqueeze(0), include_background=False)
+                        # print(self.patient, c, dc, h)
+                        # save metrics...
+                        oars.append(oar)
+                        dice.append(dc[0][0].item())
+                        haus.append(h[0][0].item())
+                        asds.append(s[0][0].item())
+                        eval_.append(dc[0][0].item()/(h[0][0].item()+s[0][0].item()))
+                        pats.append(self.patient)
+                        p_idx.append(batch_idx)
+                        time.append(total_time)
+                        warnings.warn(f"OAR: {oar}, Dice: {dc[0][0].item()}, Hausdorff Distance: {h[0][0].item()} for {self.patient}")
+                    except Exception as e:
+                        warnings.warn(str(e))
+                        warnings.warn(f"Skipping OAR: {oar} for {self.patient}.")
+                    
             except Exception as e:
-                # print(e)
+                warnings.warn(str(e))
                 pass
 
-        data = {"ID":p_idx,"PATIENT":pats,"OAR":oars, "DICE":dice, "95HD":haus, "ASD":asds, "EVAL":eval}
+        data = {"ID":p_idx,"PATIENT":pats,"OAR":oars, "DICE":dice, "95HD":haus, "ASD":asds, "EVAL":eval_}
         if self.eval_data is None:
             self.eval_data = pd.DataFrame.from_dict({data})
         else:
@@ -466,43 +558,47 @@ class SegmentationModule(pl.LightningModule):
 
         # save data after each iteration...
         # final model score will be mean across all OARs...
-        self.eval_data.to_csv(f"{str(self.root)}/{self.model_name}_test.csv")
+        self.eval_data.to_csv(f"{str(self.root)}/{self.model_name}_{self.tag}_{self.hparams.fold}_test.csv")
 
-    def CropEvalImage(self,inputs):
+    def CropEvalImage(self, inputs, targets=None, zcrop=False):
         ###########################
         # IMAGE CROPPING/PADDING if required
         ###########################
         to_crop = RandomCrop3D( window=self.hparams.window, mode="test",
-                                 factor=292,#self.hparams.crop_factor,
+                                 factor=292, #self.hparams.crop_factor,
                                  crop_as=self.hparams.crop_as)
+        
         # pad 3rd to last dim if below 112 with MIN value of image
+        og_shape = inputs.size()
         a, diff = (None, None)
-        if og_shape[1]<112:
-            difference = 112 - og_shape[1]
+        if og_shape[1]<self.hparams.window*2:
+            difference = self.hparams.window*2 - og_shape[1]
             a = difference//2
             diff = difference-a
             pad_ = (0,0,0,0,a,diff)
-            warnings.warn(f'Padding {inputs.size()} to 112')
+            warnings.warn(f'Padding {inputs.size()} to {self.hparams.window*2}')
             inputs = F.pad(inputs, pad_, "constant", inputs.min())
+            targets = F.pad(targets, pad_, "constant", 0)
             warnings.warn(f'NEW size is {inputs.size()},')
-            targets=inputs.clone()
-            # og_shape[1] = 112
 
-        img, targ, center = to_crop(inputs,targets,in_)
+        img, targ, center = to_crop(inputs, targets)
         # varry's depending on imgsize used to train the model...
-        roi_size = (112, 176, 176)
         shape = img.size()
         # assumes first and last eight of image are fluff
-        if 180<=shape[1]:
-            cropz = (shape[1]//12, shape[1]-shape[1]//12)
-        elif 165 <= shape[1] < 180:
-            diff = 180 - shape[1]
-            cropz = (shape[1]//13, shape[1]//13+152-diff)
+        if zcrop is True:
+            if 180<=shape[1]:
+                cropz = (shape[1]//12, shape[1]-shape[1]//12)
+            elif 165 <= shape[1] < 180:
+                diff = 180 - shape[1]
+                cropz = (shape[1]//13, shape[1]//13+152-diff)
+            else:
+                cropz = (0, shape[1])
         else:
-            cropz = (0, shape[1])
+           cropz = (0, shape[1])
 
         img = img[:,cropz[0]:cropz[1]]
-
+        targ = targ[:,cropz[0]:cropz[1]] 
+        
         return img, targ, center, cropz
 
 
@@ -514,38 +610,120 @@ class SegmentationModule(pl.LightningModule):
          #######################
          # setup paths and directories to save model exports
          self.step_type = "test"
-         inference_outputs_path = str(self.root) + f"/TESTING/"
+         self.patient = str(self.test_data.iloc[batch_idx][0])
+         inference_outputs_path = str(self.root) + f"/{self.tag}_TEST/"
          outputs_path = inference_outputs_path + f"FOLD_{self.hparams.fold}"
          os.makedirs(inference_outputs_path, exist_ok=True)
          os.makedirs(outputs_path, exist_ok=True)
          #######################
 
-         inputs, targets  = batch
+         inputs, targets, counts  = batch
+         
          if batch_idx == 0:
              print(inputs.max())
          og_shape = inputs.size()
          if og_shape[1] == 512:
             inputs = inputs.permute(0,3,1,2)
-         in_ = inputs.cpu().numpy()
+         # in_ = inputs.cpu().numpy()
          og_shape = inputs.size()
 
+         img, targ, center, cropz = self.CropEvalImage(inputs, targets)
+         
          shape = img.size()
-         warnings.warn(f'First crop size is {shape},')
-         img, targ, center, cropz = self.CropEvalImage(inputs)
+         warnings.warn(f'First crop size is {shape}, using patient {self.test_data.iloc[batch_idx][0]}')
+         
          ###########################
          ## SLIDING WINDOW INFERENCE EXAMPLES
          ###########################
+         roi_size = (self.hparams.batch_size,
+                     self.hparams.window*2,
+                     self.hparams.crop_factor,
+                     self.hparams.crop_factor)
+         
          a_time = time.time()
-         outputs = swi(img, self.forward, 20)
+         outputs = swi(img, self.forward, self.hparams.n_classes + 1, roi_size)
          warnings.warn("Done iteration 1")
-         outputs_ = swi(img.permute(0,1,3,2), self.forward, 20)
+         tags = ["NECKLEVEL", "NECKLEVEL2"]
+         if self.tag in tags:
+            # we will run sliding window on both ends of image (both dimensions)
+            outputs_ = swi(img.permute(0,1,3,2), self.forward, self.hparams.n_classes + 1, roi_size)
+            warnings.warn("Done iteration 2")
+            outputs_ = outputs_.permute(0,1,2,4,3)
+            outputs = torch.mean(torch.stack((outputs, outputs_), dim=0), dim=0)
+         
+         warnings.warn(f'Hello size is {outputs.size()},')
          b_time = time.time()
          total_time = b_time - a_time # total inference time in seconds...
-         warnings.warn("Done iteration 2")
-         outputs_ = outputs_.permute(0,1,2,4,3)
-         outputs = torch.mean(torch.stack((outputs, outputs_), dim=0), dim=0)
-         warnings.warn(f'Hello size is {outputs.size()},')
 
+         if type(outputs) == tuple:
+             outputs = outputs[0]
+         if self.hparams.crop_as != "3D":
+             outputs = outputs.squeeze(2)
+
+         warnings.warn(f'Hello size is {outputs.size()}')
+         out = outputs.clone() #.cpu()
+         outs = torch.softmax(out, dim=1)
+         warnings.warn(f'Hello size is {outs.size()} AFTER SOFTMAX, with max_class {outs.max()}')
+         # sum predictions after softmax BECAUSE originally
+         # trained with batch_size == 2
+         if self.hparams.batch_size > 1:
+            outs = torch.mean(outs, dim=0)
+         else:
+             outs = outs[0]
+        
+         outs_raw = outs.cpu().numpy()
+         warnings.warn(f'Hello size is {outs.size()} AFTER SOFTMAX')
+         outs = torch.argmax(outs, dim=0)
+         warnings.warn(f'Hello size is {outs.size()} AFTER ARGMAX')
+         
+         #######################
+         # here we can compute evaluation metrics...
+         # both outputs and targets have to be one hot encoded...
+         try:
+            if self.tag != "NECKLEVEL":
+                # exclude necklevel from metric calculation...
+                self.CalcEvaluationMetric(outs, targ, batch_idx, total_time)
+         except Exception as e:
+            warnings.warn(str(e))
+            warnings.warn(f"Check {self.patient} exports...")
+
+         #######################
+         
+         inp = inputs[0]
+         warnings.warn(f'OUTPUT size is {outs.size()} with inputs {inp.size()}')
+         # assert outs.size() == inp.size()
+         out_full = torch.zeros(inp.size())
+         warnings.warn(f'Hello size is {inp.size()}')
+         out_full[cropz[0]:cropz[1], center[0]:center[0]+292,center[1]:center[1]+292] = outs
+         
+         # save targets and images...
+         targ_path = inference_outputs_path + f'targ_{batch_idx}_FULL.nrrd'
+         counts_path = inference_outputs_path + f'counts_{batch_idx}.npy'
+         #  img_path = inference_outputs_path +  f'input_{batch_idx}_FULL.nrrd'
+         # uncomment this if you'd like to resave targets, not necessary...
+         if os.path.isfile(targ_path) is False:
+            counts = counts.cpu().numpy()
+            targ_ = targets.cpu().numpy()
+            nrrd.write(targ_path, targ_[0].astype('uint8'), compression_level=9)
+            np.save(counts_path, counts[0].astype('uint8'))
+         
+        # save FULL outputs...
+         outs_ = out_full.cpu().numpy()
+         warnings.warn(f'Max pred is {out_full.max()}')
+         nrrd.write(f"{outputs_path}/outs_{batch_idx}_RAW.nrrd", outs_raw)
+         nrrd.write(f"{outputs_path}/outs_{batch_idx}_FULL.nrrd", outs_.astype('uint8'), compression_level=9)
+         np.save( f"{outputs_path}/center_{batch_idx}.npy", np.array([cropz[0], cropz[1], center[0], center[1]]))
+         
+         ##########################
+         # uncomment this if you'd like to resave targets, not necessary...
+         # if os.path.isfile(targ_path) is True:
+         #     pass
+         # else:
+         #     in_ = inp.cpu().numpy()
+         #     targ_ = targets.cpu().numpy()
+         #     nrrd.write(img_path, in_)
+         #     nrrd.write(targ_path, targ_[0].astype('uint8'), compression_level=9)
+         # save FULL outputs...
          ###########################
          # this is the infernece using built in MONAI...
          # to_crop = RandomCrop3D(
@@ -560,58 +738,7 @@ class SegmentationModule(pl.LightningModule):
          # outputs = torch.mean(outputs, 0)
          ############################
          ############################
-
-         if type(outputs) == tuple:
-             outputs = outputs[0]
-         if self.hparams.crop_as != "3D":
-             outputs = outputs.squeeze(2)
-
-         ############################
-         ##### This save(s) model outputs...
-         ############################
-         # targ = targets.clone() #.cpu()
-         warnings.warn(f'Hello size is {outputs.size()}')
-         out = outputs.clone() #.cpu()
-         outs = torch.softmax(out, dim=1)
-         warnings.warn(f'Hello size is {outs.size()} AFTER SOFTMAX')
-         # sum predictions after softmax BECAUSE originally
-         # trained with batch_size == 2
-         outs = torch.mean(outs, dim=0)
-         outs_raw = outs.cpu().numpy()
-         warnings.warn(f'Hello size is {outs.size()} AFTER SOFTMAX')
-         outs = torch.argmax(outs, dim=0)
-         # runs calculation of evaluation metric...
-         self.CalcEvaluationMetric(outs, targets, batch_idx, total_time)
-         #######################
-         # here we can compute evaluation metrics...
-         # both outputs and targets have to be one hot encoded...
-         #######################
-         inp = inputs[0]
-         warnings.warn(f'OUTPUT size is {outs.size()} with inputs {inp.size()}')
-         # assert outs.size() == inp.size()
-         out_full = torch.zeros(inp.size())
-         warnings.warn(f'Hello size is {inp.size()}')
-         out_full[cropz[0]:cropz[1], center[0]:center[0]+292,center[1]:center[1]+292] = outs
-
-         idx=0
-         targ_path = outputs_path + f'targ_{batch_idx+idx}_FULL.nrrd'
-         img_path =  outputs_path + f'input_{batch_idx+idx}_FULL.nrrd'
-
-         # uncomment this if you'd like to resave targets, not necessary...
-         # if os.path.isfile(targ_path) is True:
-         #     pass
-         # else:
-         #     in_ = inp.cpu().numpy()
-         #     targ_ = targets.cpu().numpy()
-         #     nrrd.write(img_path, in_)
-         #     nrrd.write(targ_path, targ_[0].astype('uint8'), compression_level=9)
-         # save FULL outputs...
-         outs_ = out_full.cpu().numpy()
-         warnings.warn(f'Max pred is {out_full.max()}')
-         nrrd.write(f"{path}/outs_{batch_idx+idx}_RAW.nrrd", outs_raw)
-         nrrd.write(f"{path}/outs_{batch_idx+idx}_FULL.nrrd", outs_.astype('uint8'), compression_level=9)
-         np.save( f"{path}/center_{batch_idx+idx}.npy", np.array([cropz[0], cropz[1], center[0], center[1]]))
-
+         
         #####################################
         # USE TO AVERAGE PREDICTIONS FROM ENSEMBLE
         # import torch, os, glob, nrrd
@@ -718,17 +845,33 @@ class SegmentationModule(pl.LightningModule):
         This will define data_config dictionaries based on a dataframe of images
         and structures...
         '''
-
         folders = list(data["NEWID"])
         if self.hparams.data_path[-1] != "/":
             self.hparams.data_path += "/"
+        warnings.warn(self.hparams.data_path)
         # we want this to be a list of list(s)
         # contain the paths to the structures for each patient
         folders = [glob.glob(self.hparams.data_path + fold + "/structures/*") for fold in folders]
         config = getHeaderData(folders, tag=self.tag)
-
         # config["IMGINFO"]["VOXINFO"] = voxel_info
         return config # ["IMGINFO"]
+    
+# test above function...
+# def __getDataHparam(data, path):
+#     '''
+#     This will define data_config dictionaries based on a dataframe of images
+#     and structures...
+#     '''
+#     folders = list(data["NEWID"])
+#     if path[-1] != "/":
+#         path += "/"
+#     warnings.warn(path)
+#     # we want this to be a list of list(s)
+#     # contain the paths to the structures for each patient
+#     folders = [glob.glob(path + fold + "/structures/*") for fold in folders]
+#     config = getHeaderData(folders, tag="NECKLEVEL")
+#     # config["IMGINFO"]["VOXINFO"] = voxel_info
+#     return config  # ["IMGINFO"]
 
     # ---------------------
     # MODEL SETUP
@@ -856,6 +999,7 @@ class SegmentationModule(pl.LightningModule):
             # can add weight class if necessary ...
             loss = FocalTversky_and_topk_loss(tversky_kwargs, ce_kwargs)
             self.criterion = loss
+            
         elif self.hparams.loss == "TAL":
             loss = TALWrapper(weight=self.class_weights, do_bg=False)
             self.criterion = loss
@@ -880,11 +1024,12 @@ class SegmentationModule(pl.LightningModule):
                         shuffle=False, transform2=None, batch_size=None):
 
         dataset = LoadPatientVolumes(folder_data=df, data_config=self.config,
-                                     tag=self.hparams.tag,transform=transform)
+                                     tag=self.hparams.tag,transform=transform,
+                                     mode=mode)
 
         batch_size = self.hparams.batch_size if batch_size is None else batch_size
         # best practices to turn shuffling off during validation...
-        validate = ['valid', 'test']
+        validate = ['test']
         shuffle = False if mode in validate else True
 
         return DataLoader( dataset=dataset, num_workers=self.hparams.workers,
@@ -928,14 +1073,24 @@ class SegmentationModule(pl.LightningModule):
         # during inference we will run each model on the test sets according to
         # the data_config which you will provide which each model...
         # should be able to load in own test_csv with folder names just like for trianing/validation...
-        if os.path.isfile(self.hparams.test_csv) is not True:
-            self.test_data = pd.read_csv(self.hparams.test_csv, index_col=0)
+        # if os.path.isfile(self.hparams.test_csv) is not True:
+        #     self.test_data = pd.read_csv(self.hparams.test_csv, index_col=0)
+        # update for testing using radcure vector dataset...
+        self.test_data = pd.read_csv("/cluster/home/jmarsill/ptl-oar-segmentation/test_update.csv", index_col=0)
+        # getting the first 10 patients for testing...
+        self.test_data = self.test_data[:5]
+        test = []
+        for i, val in enumerate(list(self.test_data["NEWID"])):
+            # load the same pateint in twice...
+            test.append(val)
+            test.append(val)
+        # evaluate on the first 10 images...
+        self.test = pd.DataFrame({"NEWID":test})
         transform = Compose([ HistogramClipping(min_hu=self.hparams.clip_min,
                                                 max_hu=self.hparams.clip_max),
                               NormBabe(mean=self.mean, std=self.std,
                                        type=self.hparams.norm),])
 
-        return self.get_dataloader( df=self.test_data, mode="test",transform=transform, # transform,  # should be default
+        return self.get_dataloader( df=self.test, mode="test", transform=transform, # transform,  # should be default
                                     transform2=None, resample=self.hparams.resample,
-                                    batch_size=self.hparams.batch_size,
-        )
+                                    batch_size=self.hparams.batch_size,)

@@ -11,7 +11,6 @@ import elasticdeform as edf
 Adapted from medical torch for 3D volumes of numpy arrays.
 """
 
-
 class MTTransform(object):
     def __call__(self, sample):
         raise NotImplementedError("You need to implement the transform() method.")
@@ -41,7 +40,6 @@ class UndoTransform(object):
 class Compose(object):
 
     """
-
     Composes several transforms together.
     Modiefied to edit both image & mask at one time.
     Args:
@@ -51,7 +49,6 @@ class Compose(object):
         >>>     transforms.CenterCrop(10),
         >>>     transforms.ToTensor(),
         >>> ])
-
     """
 
     def __init__(self, transforms):
@@ -324,12 +321,18 @@ class RandomCrop3D(MTTransform):
     @staticmethod
     def segment_head(img):
         # function to make (fake) external for center cropping of image...
+        try:
+            img = img.cpu().numpy()
+        except Exception as e:
+            pass
+        
         otsu = threshold_otsu(img)  # Compute the Ostu threshold
         binary_img = np.array(img > otsu, dtype=int )  # Convert image into binary mask (numbers bigger then otsu set to 1, else 0)
         fill = binary_fill_holes(binary_img)  # Fill any regions of 0s that are enclosed by 1s
+        
         return fill
 
-    def get_shifts(self, img):
+    def get_shifts(self, img, ismask=True):
         # Assumes there is NO external contour then use this...
         # image if '3D' is a binary or similar mask...
         # if mask is not avaliable use image with otsu thresholding...
@@ -342,31 +345,28 @@ class RandomCrop3D(MTTransform):
         except Exception:
             shape = img.size()
             img = img.cpu().numpy()
-
+            warnings.warn("Loaded in a tensor...converting to numpy array...")
+        
         if len(shape)==4:
             img = img[0,:,:,:]
             shape = img.shape
         elif len(shape)==5:
             img=img[0,0,:,:,:]
             shape = img.shape
+        
+        warnings.warn(f"Shape is {str(shape)}")
+        img = img[shape[0]//4:shape[0]-shape[0]//4]
+        if ismask is False:
+            img = self.segment_head(img)
+            com_ = measure.center_of_mass(img)
+            img = img[int(com_[0])]
+        else:
+            # during training/valudation don't use patient image as crop...
+            com_ = measure.center_of_mass(img)
+            img = img[int(com_[0])]
 
-        # if self.mode == 'test':
-        # TOPHEAD CLASSES
-        # img = img[shape[0]//2:shape[0]-shape[0]//3]
-        # EVERYTHING ELSE...
-        img = img[shape[0]//2:shape[0]-shape[0]//3]
-        img = self.segment_head(img)
-        com_ = measure.center_of_mass(img)
-        img = img[int(com_[0])]
         com = measure.center_of_mass(img)
         self.center = [int(com_[0]), int(com[0]), int(com[1])]
-
-        # else:
-        #     # prodcues a mask, where we take COM from...
-        #
-        #     com = [com[0], com[1], com[2]]
-        #     assert len(com) == 3
-        #     self.center = com
 
     def get_params(self, img):
         if len(img.shape) == 3:
@@ -395,12 +395,12 @@ class RandomCrop3D(MTTransform):
             centerx = np.int(self.center[1]) if self.center is not None else self.x // 2
             centery = np.int(self.center[0]) if self.center is not None else self.y // 2
 
-        startx = np.int(centerx) - (self.factor // 2)
-        starty = np.int(centery) - (self.factor // 2)
+        startx = np.int(centerx) - (self.factor // 2) - 1
+        starty = np.int(centery) - (self.factor // 2) - 1
 
         if self.mode == "train":
             assert len(self.center) == 3
-            a = np.arange(-64, 64)
+            a = np.arange(-128, 128)
             startx += np.random.choice(a)
             starty += np.random.choice(a)
 
@@ -415,16 +415,16 @@ class RandomCrop3D(MTTransform):
                 warnings.warn('COM of mask < 1/4 of crop factor in y.')
                 starty = 1
             try:
-                assert startx < (self.x - self.factor//2 - 1)
+                assert startx < (self.x - self.factor - 1)
             except Exception:
                 warnings.warn('Startx needs to be changed for effective crop.')
-                startx = self.x - self.factor//2 - 2
+                startx = np.int(centery) - (self.factor // 2) - 1
             try:
-                assert starty < (self.y - self.factor//2 - 1)
+                assert starty < (self.y - self.factor - 1)
             except Exception:
                 warnings.warn('Starty needs to be changed for effective crop.')
-                starty = self.y - self.factor//2 - 2
-
+                starty = np.int(centery) - (self.factor // 2) - 1
+ 
         else:
             try:
                 assert startx > 0
@@ -437,15 +437,17 @@ class RandomCrop3D(MTTransform):
                 warnings.warn('COM of mask < 1/4 of crop factor in y.')
                 starty = 1
             try:
-                assert startx < (self.x - self.factor//2 - 1)
+                assert startx < (self.x - self.factor - 1)
             except Exception:
                 warnings.warn('Startx needs to be changed for effective crop.')
-                startx = self.x - self.factor//2 - 2
+                # set to center if cropped too far outside of window params...
+                startx = np.int(centerx) - (self.factor // 2) - 1
             try:
-                assert starty < (self.y - self.factor//2 - 1)
+                assert starty < (self.y - self.factor - 1)
             except Exception:
+                # set to center if cropped too far outside of window params...
                 warnings.warn('Starty needs to be changed for effective crop.')
-                starty = self.y - self.factor//2 - 2
+                starty = np.int(centery) - (self.factor // 2) - 1
 
         # Use during training.
         # for vlidation stay cropped around GTV...
@@ -454,7 +456,8 @@ class RandomCrop3D(MTTransform):
             if shape[0] > self.window*2: # 128
                 warnings.warn(f'Cropping images/masks from {shape[0]} to 120.')
                 # self.window = 56 # 64
-                a = np.arange(-64,64)
+                # val_ = shape[0] - self.window
+                a = np.arange(-shape[0]//2, shape[0]//2)
                 if self.mode == 'train':
                     centerz += np.random.choice(a)
                 end = shape[0] - self.window
@@ -545,13 +548,23 @@ class RandomCrop3D(MTTransform):
     def __call__(self, img, mask=None, mask2=None):
 
         # initiate parameters (get shifing coeff)
-
         if self.mode=='test':
             self.get_params(img)
-            self.get_shifts(img)
+            self.get_shifts(img, ismask=False)
         else:
-            self.get_params(img)
-            self.get_shifts(img)
+            try:
+                self.get_params(img)
+                self.get_shifts(mask)
+                warnings.warn("Cropping using mask...")
+            except Exception as e:
+                warnings.warn(str(e))
+                try:
+                    self.get_params(img)
+                    self.get_shifts(img, ismask=False)
+                    warnings.warn("Cropping using image...")
+                except Exception as e:
+                    warnings.warn(str(e))
+                    raise Exception(f"Please check mask of size {img.shape}. Failed in transform.py 567")
 
         if mask is not None:
             try:
@@ -654,7 +667,6 @@ class RandomFlip3D(MTTransform):
                 return img, mask
             else:
                 return img
-
 
 class ElasticTransform3D(MTTransform):
     def __init__( self, sigma=25, points=3, axis=(1, 2), order=0, p=1.0,\
@@ -770,7 +782,6 @@ class Clahe(MTTransform):
         else:
             raise ValueError("Input sample must be a 3D or 2D numpy array.")
 
-
 class HistogramClipping(MTTransform):
     def __init__(
         self,
@@ -840,7 +851,6 @@ class NormBabe(MTTransform):
         else:
 
             return array
-
 
 class Normalize(MTTransform):
 

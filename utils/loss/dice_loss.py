@@ -364,6 +364,7 @@ class TverskyLoss(nn.Module):
             axes = [0] + list(range(2, len(shp_x)))
         else:
             axes = list(range(2, len(shp_x)))
+        
         if self.apply_nonlin is not None:
             x = self.apply_nonlin(x)
 
@@ -371,11 +372,16 @@ class TverskyLoss(nn.Module):
         tversky = (tp + self.smooth) / (tp + self.alpha*fp + self.beta*fn + self.smooth)
 
         if self.weight is not None:
+            weights = self.weight.clone()
             if mask is not None:
-                mask = mask.type_as(self.weight)
-                weights = self.weight.clone()
-            for i, val in enumerate(range(y.max())):
-                tversky[:,i] *= weights[i]*mask[0][i]
+                mask = mask.type_as(self.weight)   
+                # we need to take into account all classes..
+                for i, val in enumerate(range(len(tversky[0]))):
+                    for j in range(len(mask)): 
+                        tversky[j,i] *= weights[i]*mask[j][i]
+            else:
+                for i, val in enumerate(range(len(tversky[0]))):
+                    tversky[:,i] *= weights[i] # *mask[:][i]
 
         if not self.do_bg:
             if self.batch_dice:
@@ -401,8 +407,15 @@ class FocalTversky_loss(nn.Module):
 
     def forward(self, net_output, target, mask=None):
         tversky_loss = 1 + self.tversky(net_output, target, mask) # = 1-tversky(net_output, target)
+        
+        if mask is not None:
+            # take the variability of labels into count...
+            self.gamma = (torch.sum(torch.ones_like(mask))/torch.sum(mask))
+            # if all labels are present for each ROI...favour that!
+            if self.gamma == 1:
+                self.gamma = 0.75
+        
         focal_tversky = torch.pow(tversky_loss, self.gamma)
-
         return focal_tversky
 
 # this is the function to one-hot-encode data
@@ -443,13 +456,17 @@ class HD_Loss3D(nn.Module):
                                                 include_background=True)
 
         out = torch.nan_to_num(out, nan=50., posinf=50)
+        
         if self.weight is not None:
+            weights = self.weight.clone()
             if mask is not None:
                 mask = mask.type_as(self.weight)
-                weights = self.weight.clone()
-
-            for i, val in enumerate(range(len(net_output[0,:]))):
-                out[:,i] *= weights[i]*mask[0][i]
+                for i, val in enumerate(range(len(net_output[0,:]))):
+                    for j in range(len(mask)): 
+                        out[j,i] *= weights[i]*mask[j][i]
+            else:
+                for i, val in enumerate(range(len(net_output[0,:]))):
+                    out[:,i] *= weights[i] # *mask[0][i]
 
         # if mask is not None:
         # # use counts to filter out which metrics to log for set OAR...
@@ -473,13 +490,16 @@ class FocalTversky_and_topk_loss(nn.Module):
         self.hd = HD_Loss3D(gamma=gamma, weight=ce_kwargs['weight'])
         # self.ad = montran.AsDiscrete(argmax)
 
-    def forward(self, net_output, target, mask=None):
-
-        # ft_loss = 0
-        # s = net_output.size()
-        # for i in range(s[0]):
-        #     ft_loss += self.ft(net_output[i].unsqueeze(0), target[i].unsqueeze(0))
-        # ft_loss/=s[0]
+    def forward(self, net_output, target, mask=None, normalize=False):
+        
+        #################################################
+        if normalize is True:
+            for i, val in enumerate(mask[0]):
+                net_output[:,i] *= val
+            # normalize before computing loss...
+            net_output = nn.functional.normalize(net_output)
+        #################################################
+        
         ft_loss = self.ft(net_output,target, mask)
         ce_loss = self.ce(net_output, target, mask)
         # use this instead of ft_loss in second round of finetuning...
@@ -492,7 +512,7 @@ class FocalTversky_and_topk_loss(nn.Module):
         # fold 4 same as fold 2 (version_2784520)
         # we need to use a switch here, after convergence in dice, change to HD
         # minimization.
-
+        
         if self.aggregate == "sum":
             result = ce_loss + ft_loss + hd_loss
         elif self.aggregate == "sumcorrect":
@@ -500,7 +520,6 @@ class FocalTversky_and_topk_loss(nn.Module):
         else:
             raise NotImplementedError("nah son") # reserved for other stuff (later?)
         return result
-
 
 class AsymLoss(nn.Module):
     def __init__(self, apply_nonlin=None, batch_dice=False, do_bg=True, smooth=1.,

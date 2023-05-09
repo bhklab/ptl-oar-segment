@@ -26,6 +26,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+*.vscode
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -141,3 +142,5 @@ dmypy.json
 **.txt
 **/OARSFINAL_2020_04_28_115655
 **/vols
+**.nrrd
+neck_level_summary022321**

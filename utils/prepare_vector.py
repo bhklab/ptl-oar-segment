@@ -36,7 +36,9 @@ from .utils import *
 # v_ = getROIOrder(custom_order=custom_order)
 
 class LoadPatientVolumes(Dataset):
-    def __init__(self, folder_data, data_config, tag="neck", transform=None, cache_dir="/cluster/projects/radiomics/Temp/joe/scratch_1"): #"/h/jmarsilla/scratch"
+    def __init__(self, folder_data, data_config, tag="neck", transform=None,
+                 cache_dir="/cluster/projects/radiomics/Temp/joe/scratch_1",
+                 mode="train"): #"/h/jmarsilla/scratch"
         """
         This is the class that our Dataloader object
         will take to create batches for training.
@@ -45,6 +47,8 @@ class LoadPatientVolumes(Dataset):
         param: data_config: Dictionary with all loading and
         """
         self.data = folder_data
+        if mode == "test":
+            data_config["data_path"] = "/cluster/projects/radiomics/Temp/joe/RADCURE_VECTOR_UPDATE_TEST/"
         self.config = data_config
         self.transform=transform
         self.cache_dir = cache_dir
@@ -65,6 +69,8 @@ class LoadPatientVolumes(Dataset):
         # can write your own custom finction to load in structures here...
         # assumes directory structure where patient name is enclosing folder...
         custom_order = self.config['roi_order']
+        self.window = self.config["window"]
+        self.crop_width = self.config["crop_width"]
         self.order_dic = getROIOrder(tag=self.tag)
         self.oars = list(self.order_dic.keys())
         self.load_nrrd()
@@ -109,7 +115,7 @@ class LoadPatientVolumes(Dataset):
             self.mask = np.zeros(shape)
             # meta = {}
             self.count = np.zeros(len(self.oars)+1)
-            # self.count[0] = 1
+            self.count[0] = 1
             # only the case if EXTERNAL NOT included in cases...
             for path in mask_paths:
                 oar = path.split('/')[-1].partition('.')[0]
@@ -125,34 +131,47 @@ class LoadPatientVolumes(Dataset):
             # save file to scratch folder...
             # meta["img_header"] = header
             # meta["count"] = self.count
+
             nrrd.write(cache_file, self.mask, header={"counts": list(self.count)}) #, compression_level=9)
+        
+        if shape[0]<self.window*2:
+            warnings.warn(f'Padding {self.patient} z shape of {shape[0]} to {self.window*2}')
+            difference = self.window*2 - shape[0]
+            a = difference//2
+            diff = difference-a
+            npad = ((a, diff), (0, 0), (0, 0))
+            self.img = np.pad(self.img, pad_width=npad, mode='constant', constant_values=self.img.min())
+            self.mask = np.pad(self.mask, pad_width=npad, mode='constant', constant_values=0)
+            warnings.warn(f'NEW size is {self.img.shape},')
+            # this is how we would pad the same tensor using pytorch if was a tensor...
+            # pad_ = (0,0,0,0,a,diff)
+            # npad is a tuple of (n_before, n_after) for each dimension
+            # self.img = F.pad(self.img, pad_, "constant", self.img.min())
+            # self.mask = F.pad(self.mask, pad_, "constant", 0)
 
     def __getitem__(self, idx):
 
         self.load_data(idx)
         # if self.transform is not None:
+        warnings.warn(f"{self.mask.shape} mask vs {self.img.shape} img")
         if self.mask.max() > 0:
-            warnings.warn(f"{self.mask.shape} mask vs {self.img.shape} img")
             try:
                 self.img, self.mask = self.transform(self.img.copy(), self.mask.copy())
+                assert (self.img.shape[1], self.img.shape[2]) == (self.crop_width, self.crop_width)
             except Exception as e:
+                # if shape is not 2x window size we need to recrop...
                 warnings.warn(str(e))
                 raise Exception(f"Please check mask for folder {self.patient}.")
-
-            #     # if self.transform2 is not None:
-            #     #     img2, _ = self.transform2(self.img.copy(), self.mask.copy())
-            # else:
-            #     # only load if mask is zero from start...
-            #     self.img, self.mask = self.transform(self.img.copy(), self.mask.copy())
-            #     print(f"Check {self.patient}...loading in a mask with")
-            #     warnings.warn(f'Check {self.patient}...loading in a mask with ')
-            #     assert self.mask.max() > 0
-            #     # self.count *= 0.
-
+        else:
+            warnings.warn("No masks for segmentation task.")
+            # use image twice...
+            self.img, self.mask = self.transform(self.img.copy(), self.img.copy())
+        
         try:
             assert self.mask.max() > 0
         except Exception:
             warnings.warn(f"Cropped out all class values for {self.patient}...")
+            
         img = torch.from_numpy(self.img).type(torch.FloatTensor)
         mask = torch.from_numpy(self.mask).type(torch.LongTensor)
         count = torch.from_numpy(self.count).type(torch.LongTensor)

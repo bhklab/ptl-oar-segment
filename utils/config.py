@@ -24,7 +24,7 @@ def add_args(return_="parser"):
     arg("--lr", type=float, default=0.001)
     arg("--workers", type=int, default=6)
     arg("--clean", action="store_true")
-    arg("--decay", type=float, default=0)
+    arg("--decay", type=float, default=0.1)
     arg("--gamma", type=float, default=0.99,help="Value for learning rate decay")
     arg("--deform", type=bool, default=False)
     arg("--project", type=bool, default=False)
@@ -54,7 +54,7 @@ def add_args(return_="parser"):
 
     # Load previous model
     arg("--load-from-mets", type=bool, default=False)
-    arg( "--weights-path", type=str, default="/home/gpudual/bhklab/private/jmarsill/models/WOLNET_2020_05_14_205841/lightning_logs/version_0/checkpoints/'epoch=0.ckpt'")
+    arg( "--weights-path", type=str, default="/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_04_12_141555/lightning_logs/version_8553296/checkpoints/last.ckpt")
     arg("--meta-path", type=str, default="/home/gpudual/bhklab/private/jmarsill/models/WOLNET_2020_05_14_205841/lightning_logs/version_0/checkpoints/meta_tags.csv")
     arg("--external",type=bool, default=False)
     arg("--resample", type=bool, default=False, help='Set to True if using PDDCA dataset...')

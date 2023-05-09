@@ -1,7 +1,31 @@
-import torch, warnings, nrrd
+import torch, warnings, nrrd, string, random, glob
 import numpy as np
 from skimage import measure, morphology
-import string, random, glob
+
+ROIS = ["External", "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
+        "Larynx", "Cricoid_P", "OpticChiasm", "Glnd_Lacrimal_L",
+        "Glnd_Lacrimal_R", "Lens_L", "Lens_R", "Eye_L", "Eye_R",
+        "Nrv_Optic_L", "Nrv_Optic_R", "Parotid_L", "Parotid_R",
+        "SpinalCord", "Mandible_Bone", "Glnd_Submand_L",
+        "Glnd_Submand_R", "Cochlea_L", "Cochlea_R", "Lips",
+        "Spc_Retrophar_R", "Spc_Retrophar_L", "BrachialPlex_R",
+        "BrachialPlex_L", "Brain", "OralCavity", "Musc_Constrict_I",
+        "Musc_Constrict_S", "Musc_Constrict_M", "LEVEL_IA", "LEVEL_IB_RT",
+        "LEVEL_III_RT", "LEVEL_II_RT", "LEVEL_IV_RT", "LEVEL_VIIA_RT","LEVEL_V_RT",
+        "LEVEL_IB_LT","LEVEL_III_LT","LEVEL_II_LT","LEVEL_IV_LT","LEVEL_VIIA_LT","LEVEL_V_LT",
+        "LEVEL_IB", "LEVEL_II", "LEVEL_III", "LEVEL_IV", "LEVEL_V", "LEVEL_VIIA",
+        "CTVn", "BrachialPlex", "Parotid", "Glnd_Lacrimal", "Cochlea", "Spc_Retrophar", 
+        "Glnd_Submand", "Lens", "Eye", "Nrv_Optic"]
+
+# this was the original order used for the OG segmentation study...
+custom_order = [1,4,5,6,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,28,29,30,32,33,34]
+#################################
+# original ROI standardization/naming...
+# rois = ["GTV", "BRAIN","BSTEM","SPCOR","ESOPH","LARYNX","MAND",
+#     "POSTCRI","LPAR","RPAR","LACOU","RACOU","LLAC","RLAC","RRETRO",
+#     "LRETRO","RPLEX","LPLEX","LLENS","RLENS","LEYE","REYE","LOPTIC",
+#     "ROPTIC","LSMAN","RSMAN","CHIASM","LIPS","OCAV","IPCM","SPCM",
+#     "MPCM"]
 
 # folders_ = [glob.glob(p) for p in structure_paths]
 # taken from prepare.py in utils
@@ -15,26 +39,6 @@ import string, random, glob
 #         "Spc_Retrophar_R", "Spc_Retrophar_L", "BrachialPlex_R", "BrachialPlex_L",
 #         "BRAIN",  "OralCavity", "Musc_Constrict_I",
 #         "Musc_Constrict_S", "Musc_Constrict_M"]
-
-ROIS = ["External", "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
-        "Larynx", "Cricoid_P", "OpticChiasm", "Glnd_Lacrimal_L",
-        "Glnd_Lacrimal_R", "Lens_L", "Lens_R", "Eye_L", "Eye_R",
-        "Nrv_Optic_L", "Nrv_Optic_R", "Parotid_L", "Parotid_R",
-        "SpinalCord", "Mandible_Bone", "Glnd_Submand_L",
-        "Glnd_Submand_R", "Cochlea_L", "Cochlea_R", "Lips",
-        "Spc_Retrophar_R", "Spc_Retrophar_L", "BrachialPlex_R",
-        "BrachialPlex_L", "BRAIN", "OralCavity", "Musc_Constrict_I",
-        "Musc_Constrict_S", "Musc_Constrict_M"]
-
-# this was the original order used for the OG segmentation study...
-# custom_order = [4,5,6,8,11,12,13,14,15,16,17,18,20,22,25,26,27,30,31]
-#################################
-# original ROI standardization...
-# rois = ["GTV", "BRAIN","BSTEM","SPCOR","ESOPH","LARYNX","MAND",
-#     "POSTCRI","LPAR","RPAR","LACOU","RACOU","LLAC","RLAC","RRETRO",
-#     "LRETRO","RPLEX","LPLEX","LLENS","RLENS","LEYE","REYE","LOPTIC",
-#     "ROPTIC","LSMAN","RSMAN","CHIASM","LIPS","OCAV","IPCM","SPCM",
-#     "MPCM"]
 #################################
 
 def getROIOrder(tag, rois=ROIS, inverse=False, include_external=True):
@@ -54,9 +58,9 @@ def getROIOrder(tag, rois=ROIS, inverse=False, include_external=True):
 # first step get ROI order
 ##########################
 def getCustomOrder(tag):
-    if tag == "NECK":
+    if tag == "GTV":
         # includes GTV...
-        custom_order = [3,1,2]
+        custom_order = [1,2,3]
     elif tag == "BRACP":
         custom_order = [29,28]
     elif tag == "LACRIM":
@@ -85,8 +89,17 @@ def getCustomOrder(tag):
         custom_order = [19,20,21,22,23,24,25,26,27,28,29,30,31,17,18,4]
     elif tag == "MAJOR":
         custom_order = [13,8,14,15,16,11,12,23,24,25,26,27,29,28,9,10,17,18,21,22,19,20,4,3,1,2]
+    elif tag == "NECKLEVEL":
+        custom_order = [35,36,37,38,39,40,41,42,43,44,45,46,47]
+    elif tag == "NECKLEVEL2":
+        custom_order = [35, 48, 49, 50, 51, 52, 53]
+    elif tag == "LRCOMBINED":
+        custom_order = [54, 55, 4, 5, 6, 56, 57, 58, 59, 60, 61, 62, 63, 8, 30]
+    elif tag == "LRCOMBINED2":
+        custom_order = [1, 54, 55, 4, 5, 6, 19, 20, 56, 57, 58, 59, 60, 25, 61, 62, 63, 8, 30]
     else:
-        custom_order=custom_order
+        custom_order = [1, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 32, 33, 34]
+        # custom_order = [1, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 22, 25, 26, 27, 30, 31] #custom_order
         warnings.warn("Tag not specified...using general ordering.")
         # will load in custom_order in utils.py...
     return custom_order
@@ -103,7 +116,10 @@ def getHeaderData(folders, structures=True, tag=None):
             oar = p.split('/')[-1].partition('.')[0]
             if oar in oars_used:
                 class_idx = roi_order[oar]
-                header = nrrd.read_header(p)
+                try:
+                    header = nrrd.read_header(p)
+                except Exception:
+                    warnings.warn(f"Cant read header for {p}")
                 voxels = header["Voxels"]
                 try:
                     data = voxel_dic[oar]
@@ -124,9 +140,11 @@ def getHeaderData(folders, structures=True, tag=None):
                 warnings.warn(f"{oar} not in list of chosen ROIS. If this is a mistake please update roi_order.")
                 pass
                 # com_dic[oar] = com
+      
     return {"VOXINFO":voxel_dic, "IMGINFO":img_dic}
 
-def swi(image, net, n_classes):
+
+def swi(image, net, n_classes, roi_size=(2, 112, 176, 176)):
 
     # in our case we're looking for a 5D tensor...
     if len(image.size()) < 5:
@@ -136,15 +154,26 @@ def swi(image, net, n_classes):
     warnings.warn(f'Image shape is {image.size()}')
 
     # Z ...
-    start = [0, shape[2]//4, shape[2]-shape[2]//4 - 112, shape[2]-112]
-    end = [112, shape[2]//4+112, shape[2]-shape[2]//4, shape[2]]
+    start = [0, shape[2]//4, shape[2]-shape[2] //
+             4 - roi_size[1], shape[2]-roi_size[1]]
+    end = [roi_size[1], shape[2]//4+roi_size[1],
+           shape[2]-shape[2]//4, shape[2]]
     # Y
-    start_y = [0, shape[3]-176, shape[3]//12, shape[3]//6, shape[3] - shape[3]//4 - 176, shape[3] - shape[3]//6 - 176, shape[1] - shape[1]//12 - 176]
-    end_y = [176, shape[3], shape[3]//12 + 176, shape[3]//6 + 176, shape[3] - shape[3]//4, shape[3] - shape[3]//6, shape[1] - shape[1]//12]
+    start_y = [0, shape[3]-roi_size[2], shape[3]//12, shape[3]//6, shape[3] -
+               shape[3]//4 - roi_size[2], shape[3] - shape[3]//6 - roi_size[2],
+               shape[1] - shape[1]//12 - roi_size[2]]
+    
+    end_y = [roi_size[2], shape[3], shape[3]//12 + roi_size[2], shape[3]//6 + roi_size[2],
+             shape[3] - shape[3]//4, shape[3] - shape[3]//6, shape[1] - shape[1]//12]
     # X
-    start_x = [0, shape[4]-176, shape[4]//12, shape[4]//4, shape[4]//6, shape[4] - shape[4]//4 - 176, shape[4] - shape[4]//6 - 176, shape[4] - shape[4]//12 - 176]
-    end_x = [176, shape[4], shape[4]//12 + 176, shape[4]//4+176, shape[4]//6 + 176, shape[4] - shape[4]//4, shape[4] - shape[4]//6, shape[4] - shape[4]//12]
-    output_shape = (2, n_classes, shape[2], shape[3], shape[4])
+    start_x = [0, shape[4]-roi_size[2], shape[4]//12, shape[4]//4, shape[4]//6, shape[4] -
+               shape[4]//4 - roi_size[2], shape[4] - shape[4]//6 - roi_size[2],
+               shape[4] - shape[4]//12 - roi_size[2]]
+    
+    end_x = [roi_size[2], shape[4], shape[4]//12 + roi_size[2], shape[4]//4+roi_size[2], shape[4] //
+             6 + roi_size[2], shape[4] - shape[4]//4, shape[4] - shape[4]//6, shape[4] - shape[4]//12]
+    
+    output_shape = (roi_size[0], n_classes, shape[2], shape[3], shape[4])
 
     reference_ = torch.zeros(output_shape).to(image.device)
     reference = torch.zeros(output_shape).to(image.device)
@@ -154,7 +183,8 @@ def swi(image, net, n_classes):
             for k, va in enumerate(start_x):
                 im = image[:,:,val:end[i], v:end_y[j], va:end_x[k]]
                 sh = im.size() # shoud be 5D tensor...
-                if (sh[1], sh[2], sh[3], sh[4])!= (2, 112, 176, 176):
+                if (sh[1], sh[2], sh[3], sh[4]) != roi_size:
+                    warnings.warn(f'Image shape is {im.size()}...passing step...')
                     pass
                 else:
                     reference_[:,:,val:end[i], v:end_y[j], va:end_x[k]]+=1
@@ -165,7 +195,9 @@ def swi(image, net, n_classes):
                     warnings.warn(f'NET OUTS SIZE IS {output.size()}')
                     reference[:,:, val:end[i], v:end_y[j], va:end_x[k]] += output
                     iter_ += 1
-    warnings.warn(f'Iterated {iter_} times with sliding window.')
+                    if iter_%20 == 0:
+                        warnings.warn(f'Iterated {iter_} times with sliding window.')
+    
     return reference/reference_
 
 #takes in an image slice and returns a list of all contours indexed by the class labels
