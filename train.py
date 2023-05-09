@@ -48,7 +48,7 @@ def main(args):
     #     warnings.warn(f'Checkpoint {checkpoint} does not contain any out of order model weights.')
     #     pass
    
-    model = SegmentationModule(args, lr=0.001) # .load_from_checkpoint(args.weights_path)
+    model = SegmentationModule(args, update_lr=0.001) # .load_from_checkpoint(args.weights_path)
     # trainer = Trainer(resume_from_checkpoint=args.weights_path)
     # except Exception:
     #     warnings.warn('Using randomized weights...')
