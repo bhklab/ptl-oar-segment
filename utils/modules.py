@@ -30,7 +30,7 @@ def cuda(x):
 
 
 class SegmentationModule(pl.LightningModule):
-    def __init__(self, hparams, dataset='OAR'):
+    def __init__(self, hparams, update_lr=None):
         """
         Pass in parsed HyperOptArgumentParser to the model
         :param hparams:
@@ -50,7 +50,8 @@ class SegmentationModule(pl.LightningModule):
 
         self.__build_model()
         self.__get_loss()
-
+        if update_lr is not None:
+            self.hparams.lr = update_lr
 
     # ---------------------
     # MODEL SETUP
@@ -905,7 +906,7 @@ class SegmentationModule(pl.LightningModule):
         ada = ['ADABOUND', 'AMSBOUND']
 
         # for retraining wolnet...
-        # self.hparams.lr = 0.00005
+        self.hparams.lr = 0.001
         # self.hparams.decay_after = 12
         # self.hparams.gamma = 0.25
 

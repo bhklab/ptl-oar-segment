@@ -48,7 +48,7 @@ def main(args):
     #     warnings.warn(f'Checkpoint {checkpoint} does not contain any out of order model weights.')
     #     pass
    
-    model = SegmentationModule(args) # .load_from_checkpoint(args.weights_path)
+    model = SegmentationModule(args, lr=0.001) # .load_from_checkpoint(args.weights_path)
     # trainer = Trainer(resume_from_checkpoint=args.weights_path)
     # except Exception:
     #     warnings.warn('Using randomized weights...')
@@ -64,9 +64,9 @@ def main(args):
             devices=-1, # set to -1 to use all avaliable gpus...
             strategy='ddp', # should be same as args.backend..., # stochastic_weight_avg=True, # pass to callbacks if required...
             reload_dataloaders_every_n_epochs=1,
-            limit_train_batches=0.075,#0.2,
+            limit_train_batches=0.07,#0.2,
             # limit_train_batches=0.6,
-            limit_val_batches=0.10,#0.2,
+            limit_val_batches=0.07,#0.2,
             default_root_dir=model.hparams.root,
             max_epochs=model.hparams.n_epochs,
             # log_gpu_memory='min_max',

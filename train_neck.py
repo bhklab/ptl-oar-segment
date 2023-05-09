@@ -32,7 +32,7 @@ def main(args):
     #     assert args.weights_path is not None
     #     warnings.warn('Using presaved weights...')
     #     warnings.warn(f'Loading save model from {args.weights_path}.')
-    model = SegmentationModule(args) # .load_from_checkpoint(args.weights_path)
+    model = SegmentationModule(args, update_lr=0.0015) # .load_from_checkpoint(args.weights_path)
     # trainer = Trainer(resume_from_checkpoint=args.weights_path)
     # except Exception:
     #     warnings.warn('Using randomized weights...')
@@ -52,14 +52,14 @@ def main(args):
             limit_train_batches=0.7,
             limit_val_batches=0.4,
             default_root_dir=model.hparams.root,
-            max_epochs=model.hparams.n_epochs,
+            max_epochs=model.hparams.n_epochs*2,
             # log_gpu_memory='min_max',
             sync_batchnorm=True,
             # precision=16,
             accumulate_grad_batches={200:2, 400:4},#2, # changing this parameter affects outputs
             callbacks=[checkpoint_callback],
             # checkpoint_callback=checkpoint_callback)# < 1.4.0
-            resume_from_checkpoint="/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_04_24_172930/lightning_logs/version_8646102/checkpoints/last.ckpt")
+            resume_from_checkpoint="/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_04_24_172930/lightning_logs/version_8650725/checkpoints/last.ckpt")
 
     # ------------------------
     # 3 START TRAINING
