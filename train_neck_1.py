@@ -58,7 +58,7 @@ def main(args):
             # precision=16,
             accumulate_grad_batches={200:2, 400:4},#2, # changing this parameter affects outputs
             callbacks=[checkpoint_callback],
-            resume_from_checkpoint="/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_04_24_172930/lightning_logs/version_8646424/checkpoints/last.ckpt")
+            resume_from_checkpoint="/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_04_24_172930/lightning_logs/version_8784783/checkpoints/last.ckpt")
             # checkpoint_callback=checkpoint_callback)# < 1.4.0
             # resume_from_checkpoint="/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_04_24_172930/lightning_logs/version_8642000/checkpoints/last.ckpt")
 
