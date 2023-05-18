@@ -59,7 +59,7 @@ def main(args):
             accumulate_grad_batches={200:2, 400:4},#2, # changing this parameter affects outputs
             callbacks=[checkpoint_callback],
             # checkpoint_callback=checkpoint_callback)# < 1.4.0
-            resume_from_checkpoint="/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_04_24_172930/lightning_logs/version_8784782/checkpoints/last.ckpt")
+            resume_from_checkpoint="/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_04_24_172930/lightning_logs/version_8784782/checkpoints/WOLNET-epoch508-val_loss0.00.ckpt")
 
     # ------------------------
     # 3 START TRAINING
