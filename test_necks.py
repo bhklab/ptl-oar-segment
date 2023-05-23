@@ -45,11 +45,13 @@ def main(args):
     # assert args.weights_path is not None
     warnings.warn('Using presaved weights...')
     # inference for custom model...
-    weights_path = "/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_04_12_141555/neckTEST/" # "/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_01_31_190855/weights_NECKLEVELS/"
-    checkpoints = glob.glob(weights_path + "*.ckpt")
+    weights_path = "/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_04_24_172930/neckTEST/" # "/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_01_31_190855/weights_NECKLEVELS/"
+    os.mkdir(weights_path)
+    path_ = "/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_04_24_172930/lightning_logs/version_8892253/checkpoints/last.ckpt"
+    # checkpoints = glob.glob(weights_path + "*.ckpt")
     # hparams = glob.glob(weights_path + "*.yaml")
     model = SegmentationModule(args)
-    trainer = Trainer(gpus=1, default_root_dir=model.hparams.root, resume_from_checkpoint=checkpoints[0])
+    trainer = Trainer(gpus=1, default_root_dir=model.hparams.root, resume_from_checkpoint=path_)#checkpoints[0])
     trainer.test(model)
     
     # checkpoints.sort()
