@@ -2,6 +2,13 @@
 
 Original Repo for "[Evaluating clinical acceptability of organ-at-risk segmentation In head & neck cancer using a compendium of open-source 3D convolutional neural networks](https://www.medrxiv.org/content/10.1101/2022.01.15.22269276v1.full.pdf)" (Marsilla et. al, 2022). Pre-print of this paper was accepted to MedRxiv on January 25, 2022.
 
+## Update 05/23/2023
+
+1. You can run the ensemble by following the steps ![outlined in this colab notebook](https://colab.research.google.com/drive/1LhwexhQOLM-a1Y-pV-D5u4_R_uKnrEbn?usp=sharing).
+2. The weights for the ensemble can be accessed [here](https://drive.google.com/drive/folders/15yc--RfBaxuxKTEHaQ3OwbPdCqTOZdgH?usp=share_link).
+3. Predictions made by the ensemble on external datasets for each of the 19 OAR(s) can be accessed [here](https://drive.google.com/drive/folders/1rXPRkQjyx4yN_jhZWOEI-WLN50av9_Tr?usp=share_link) (Structured folder has preductions for each OAR in the structures folder coresponding to the patient_id of the original dataset)
+4. Stay tuned to an updated version of this paper*
+
 ## Updates for Vector Challenge
 
 ### Tutorial Video For 2022 CDI Vector Institute Machine Learning Challenge
