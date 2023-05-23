@@ -17,7 +17,10 @@ ROIS = ["External", "GTVp", "LCTVn", "RCTVn", "Brainstem", "Esophagus",
         "CTVn", "BrachialPlex", "Parotid", "Glnd_Lacrimal", "Cochlea", "Spc_Retrophar", 
         "Glnd_Submand", "Lens", "Eye", "Nrv_Optic"]
 
-# this was the original order used for the OG segmentation study...
+# this was the original order used for the OG segmentation study... with original labels...
+# chosen = ['BSTEM','SPCOR','ESOPH','LARYNX','MAND','LPAR','RPAR','LACOU','RACOU','RPLEX','LPLEX','LLENS','RLENS','LEYE','REYE','LOPTIC','ROPTIC','CHIASM','LIPS']
+# correspond to custom_order = [4,19,5,6,20,17,18,23,24,28,29,11,12,13,14,15,16,8,25]
+# random custom order of given OAR(s)
 custom_order = [1,4,5,6,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,28,29,30,32,33,34]
 #################################
 # original ROI standardization/naming...
