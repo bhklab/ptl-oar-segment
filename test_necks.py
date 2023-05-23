@@ -5,7 +5,8 @@ See https://williamfalcon.github.io/pytorch-lightning/
 import os, torch, warnings, glob
 import numpy as np
 from utils import SegmentationModule, config
-from pytorch_lightning import Trainer # , seed_everything
+import lightning.pytorch as pl
+from lightning.pytorch.callbacks import ModelCheckpoint
 # from pytorch_lightning.callbacks import ModelCheckpoint
 
 """
@@ -51,7 +52,7 @@ def main(args):
     # checkpoints = glob.glob(weights_path + "*.ckpt")
     # hparams = glob.glob(weights_path + "*.yaml")
     model = SegmentationModule(args)
-    trainer = Trainer(gpus=1, default_root_dir=model.hparams.root, resume_from_checkpoint=path_)#checkpoints[0])
+    trainer = pl.Trainer(gpus=1, default_root_dir=model.hparams.root, resume_from_checkpoint=path_)#checkpoints[0])
     trainer.test(model)
     
     # checkpoints.sort()
