@@ -965,7 +965,8 @@ class SegmentationModule(pl.LightningModule):
         # usually this will be the amount of voxels given for any OAR class...
         self.class_weights = self.__getWeights()
         self.class_weights = torch.tensor(self.class_weights).float()
-        warnings.warn(f"Using weights {self.class_weights}\nWith voxel information: {self.voxel_info}")
+        warnings.warn(f"Using weights {self.class_weights} \n With voxel information: {self.voxel_info}")
+        print("Weights are:", self.class_weights)
         assert len(self.class_weights) == self.hparams.n_classes + 1
         if self.hparams.loss == "FOCALDSC":
             # binary TOPK loss + DICE + HU

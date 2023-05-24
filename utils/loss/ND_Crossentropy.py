@@ -28,7 +28,7 @@ class CrossentropyND(torch.nn.CrossEntropyLoss):
 
         return super(CrossentropyND, self).forward(inp, target) # , weight=weight)
 
-class TopKLoss(CrossentropyND):
+class TopKLoss(WeightedCrossEntropyLoss):
     """
     Network has to have NO LINEARITY!
     """
@@ -45,11 +45,11 @@ class TopKLoss(CrossentropyND):
         # Adjust the input, not the weight before entering loss...
         # going to have to condition the lost based on the variability of labels present...
         # possible downfall == catastrophic forgetting
-        if mask is not None:
-            mask = mask.type_as(self.weight)
-            for i, val in enumerate(range(len(inp[0,:]))):
-                for j in range(len(mask)): 
-                    inp[j,i] *= mask[j][i]
+        # if mask is not None:
+        #     mask = mask.type_as(self.weight)
+        #     for i, val in enumerate(range(len(inp[0,:]))):
+        #         for j in range(len(mask)): 
+        #             inp[j,i] *= mask[j][i]
                 
         target = target.long() # [:, 0]
         res = super(TopKLoss, self).forward(inp, target)

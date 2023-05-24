@@ -373,15 +373,15 @@ class TverskyLoss(nn.Module):
 
         if self.weight is not None:
             weights = self.weight.clone()
-            if mask is not None:
-                mask = mask.type_as(self.weight)   
-                # we need to take into account all classes..
-                for i, val in enumerate(range(len(tversky[0]))):
-                    for j in range(len(mask)): 
-                        tversky[j,i] *= weights[i]*mask[j][i]
-            else:
-                for i, val in enumerate(range(len(tversky[0]))):
-                    tversky[:,i] *= weights[i] # *mask[:][i]
+            # if mask is not None:
+            #     mask = mask.type_as(self.weight)   
+            #     # we need to take into account all classes..
+            #     for i, val in enumerate(range(len(tversky[0]))):
+            #         for j in range(len(mask)): 
+            #             tversky[j,i] *= weights[i]*mask[j][i]
+            # else:
+            for i, val in enumerate(range(len(tversky[0]))):
+                tversky[:,i] *= weights[i] # *mask[:][i]
 
         if not self.do_bg:
             if self.batch_dice:
@@ -457,16 +457,17 @@ class HD_Loss3D(nn.Module):
 
         out = torch.nan_to_num(out, nan=50., posinf=50)
         
+        # this is no good...
         if self.weight is not None:
             weights = self.weight.clone()
-            if mask is not None:
-                mask = mask.type_as(self.weight)
-                for i, val in enumerate(range(len(net_output[0,:]))):
-                    for j in range(len(mask)): 
-                        out[j,i] *= weights[i]*mask[j][i]
-            else:
-                for i, val in enumerate(range(len(net_output[0,:]))):
-                    out[:,i] *= weights[i] # *mask[0][i]
+            # if mask is not None:
+            #     mask = mask.type_as(self.weight)
+            #     for i, val in enumerate(range(len(net_output[0,:]))):
+            #         for j in range(len(mask)): 
+            #             out[j,i] *= weights[i]*mask[j][i]
+            # else:
+            for i, val in enumerate(range(len(net_output[0,:]))):
+                out[:,i] *= weights[i] # *mask[0][i]
 
         # if mask is not None:
         # # use counts to filter out which metrics to log for set OAR...
