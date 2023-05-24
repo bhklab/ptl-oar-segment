@@ -10,7 +10,7 @@ class CrossentropyND(torch.nn.CrossEntropyLoss):
     """
     Network has to have NO NONLINEARITY!
     """
-    def forward(self, inp, target):
+    def forward(self, inp, target, weight):
         target = target.long()
         num_classes = inp.size()[1]
 
@@ -26,7 +26,7 @@ class CrossentropyND(torch.nn.CrossEntropyLoss):
         inp = inp.view(-1, num_classes)
         target = target.view(-1,)
 
-        return super(CrossentropyND, self).forward(inp, target) # , weight=weight)
+        return super(CrossentropyND, self).forward(inp, target, weight=weight)
 
 class WeightedCrossEntropyLoss(torch.nn.CrossEntropyLoss):
     """
@@ -56,12 +56,12 @@ class WeightedCrossEntropyLoss(torch.nn.CrossEntropyLoss):
 
         return wce_loss(inp, target)
 
-class TopKLoss(WeightedCrossEntropyLoss):
+class TopKLoss(CrossentropyND):
     """
     Network has to have NO LINEARITY!
     """
     def __init__(self, weight=None, ignore_index=-100, k=10):
-        super(TopKLoss, self).__init__(weight, False, ignore_index)#, reduce=False)
+        super(TopKLoss, self).__init__(weight, False, ignore_index, reduce=False)
         self.k = k
         # self.weights = weight
         # self.weight = weight
@@ -80,7 +80,7 @@ class TopKLoss(WeightedCrossEntropyLoss):
         #             inp[j,i] *= mask[j][i]
                 
         target = target.long() # [:, 0]
-        res = super(TopKLoss, self).forward(inp, target)
+        res = super(TopKLoss, self).forward(inp, target, self.weight)
         num_voxels = np.prod(res.shape)
         res, _ = torch.topk(res.view((-1, )), int(num_voxels * self.k / 100), sorted=False)
         # we can run an oblation test determining best position to correct for label variability?
