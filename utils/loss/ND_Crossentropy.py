@@ -28,6 +28,34 @@ class CrossentropyND(torch.nn.CrossEntropyLoss):
 
         return super(CrossentropyND, self).forward(inp, target) # , weight=weight)
 
+class WeightedCrossEntropyLoss(torch.nn.CrossEntropyLoss):
+    """
+    Network has to have NO NONLINEARITY!
+    """
+    def __init__(self, weight=None):
+        super(WeightedCrossEntropyLoss, self).__init__()
+        self.weight = weight
+
+    def forward(self, inp, target):
+        target = target.long()
+        num_classes = inp.size()[1]
+
+        i0 = 1
+        i1 = 2
+
+        while i1 < len(inp.shape): # this is ugly but torch only allows to transpose two axes at once
+            inp = inp.transpose(i0, i1)
+            i0 += 1
+            i1 += 1
+
+        inp = inp.contiguous()
+        inp = inp.view(-1, num_classes)
+
+        target = target.view(-1,)
+        wce_loss = torch.nn.CrossEntropyLoss(weight=self.weight)
+
+        return wce_loss(inp, target)
+
 class TopKLoss(WeightedCrossEntropyLoss):
     """
     Network has to have NO LINEARITY!
@@ -58,33 +86,6 @@ class TopKLoss(WeightedCrossEntropyLoss):
         # we can run an oblation test determining best position to correct for label variability?
         return res.mean()*(torch.sum(torch.ones_like(mask))/torch.sum(mask))
 
-class WeightedCrossEntropyLoss(torch.nn.CrossEntropyLoss):
-    """
-    Network has to have NO NONLINEARITY!
-    """
-    def __init__(self, weight=None):
-        super(WeightedCrossEntropyLoss, self).__init__()
-        self.weight = weight
-
-    def forward(self, inp, target):
-        target = target.long()
-        num_classes = inp.size()[1]
-
-        i0 = 1
-        i1 = 2
-
-        while i1 < len(inp.shape): # this is ugly but torch only allows to transpose two axes at once
-            inp = inp.transpose(i0, i1)
-            i0 += 1
-            i1 += 1
-
-        inp = inp.contiguous()
-        inp = inp.view(-1, num_classes)
-
-        target = target.view(-1,)
-        wce_loss = torch.nn.CrossEntropyLoss(weight=self.weight)
-
-        return wce_loss(inp, target)
 
 class WeightedCrossEntropyLossV2(torch.nn.Module):
     """
