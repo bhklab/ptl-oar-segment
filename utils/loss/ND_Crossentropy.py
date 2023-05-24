@@ -61,7 +61,7 @@ class TopKLoss(WeightedCrossEntropyLoss):
     Network has to have NO LINEARITY!
     """
     def __init__(self, weight=None, ignore_index=-100, k=10):
-        super(TopKLoss, self).__init__(weight, False, ignore_index, reduce=False)
+        super(TopKLoss, self).__init__(weight, False, ignore_index)#, reduce=False)
         self.k = k
         # self.weights = weight
         # self.weight = weight
