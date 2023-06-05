@@ -32,7 +32,7 @@ def main(args):
     #     assert args.weights_path is not None
     #     warnings.warn('Using presaved weights...')
     #     warnings.warn(f'Loading save model from {args.weights_path}.')
-    model = SegmentationModule(args, update_lr=0.0015) # .load_from_checkpoint(args.weights_path)
+    model = SegmentationModule(args, update_lr=0.00015) # .load_from_checkpoint(args.weights_path)
     # trainer = Trainer(resume_from_checkpoint=args.weights_path)
     # except Exception:
     #     warnings.warn('Using randomized weights...')
@@ -50,14 +50,16 @@ def main(args):
             reload_dataloaders_every_n_epochs=1,
             # limit_train_batches=0.2,
             limit_train_batches=0.7,
-            limit_val_batches=0.4,
+            limit_val_batches=0.5,
             default_root_dir=model.hparams.root,
             max_epochs=model.hparams.n_epochs*2,
             # log_gpu_memory='min_max',
             sync_batchnorm=True,
             # precision=16,
             accumulate_grad_batches={200:2, 400:4},#2, # changing this parameter affects outputs
-            callbacks=[checkpoint_callback],)
+            callbacks=[checkpoint_callback],
+            resume_from_checkpoint="/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_05_24_165540/lightning_logs/version_8954852/checkpoints/last.ckpt")
+            # )
             # checkpoint_callback=checkpoint_callback)# < 1.4.0
             # resume_from_checkpoint="/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_04_24_172930/lightning_logs/version_8784782/checkpoints/WOLNET-epoch508-val_loss0.00.ckpt")
 
