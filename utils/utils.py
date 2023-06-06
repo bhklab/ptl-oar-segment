@@ -107,7 +107,7 @@ def getCustomOrder(tag):
         # will load in custom_order in utils.py...
     return custom_order
 
-def getHeaderData(folders, structures=True, tag=None):
+def getHeaderData(folders, structures=True, tag=None, mean_tag="meanHU", std_tag="stdHU"):
     roi_order=getROIOrder(tag)
     assert len(folders) > 1
     voxel_dic = {}
@@ -128,8 +128,8 @@ def getHeaderData(folders, structures=True, tag=None):
                     data = voxel_dic[oar]
                     voxel_dic[oar] = (data + voxels)/2.
                     if i==0:
-                        mean = img_dic["meanHU"]
-                        std = img_dic["stdHU"]
+                        mean = img_dic[mean_tag]
+                        std = img_dic[std_tag]
                         img_dic = {"meanHU":(mean+header["meanHU"])/2.,
                                    "stdHU":(std+header["stdHU"])/2}
                 # can do the same thing if com data was in mask...
