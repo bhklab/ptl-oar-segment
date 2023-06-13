@@ -184,10 +184,10 @@ class SegmentationModule(pl.LightningModule):
         # other values can be loaded in here as well...
         # ideally the data_config would be saved
         # Kfold["means"][fold] # - 300.
-        self.mean = -407.4462155135238
-        self.std = 226.03663728492648
-        # self.mean = self.config["meanHU"]
-        # self.std = self.config["stdHU"]
+        # self.mean = -407.4462155135238
+        # self.std = 226.03663728492648
+        self.mean = self.config["meanHU"]
+        self.std = self.config["stdHU"]
         # setup custom_order, loaded in with utils.py...
         self.config["roi_order"] = self.custom_order
         self.config["order_dic"] = getROIOrder(tag=self.tag, inverse=True)
@@ -855,7 +855,8 @@ class SegmentationModule(pl.LightningModule):
         # we want this to be a list of list(s)
         # contain the paths to the structures for each patient
         folders = [glob.glob(self.hparams.data_path + fold + "/structures/*") for fold in folders]
-        config = getHeaderData(folders, tag=self.tag)
+        config = getHeaderData(folders, tag=self.tag, mean_tag="mean_after_crop", std_tag="std_after_crop")
+        # config = getHeaderData(folders, tag=self.tag)
         # config["IMGINFO"]["VOXINFO"] = voxel_info
         return config # ["IMGINFO"]
     
