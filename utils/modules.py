@@ -223,6 +223,56 @@ class SegmentationModule(pl.LightningModule):
         print( f"Using this weight array to mitigate class imbalance {self.class_weights} \n") if self.hparams.verbose else None
         print(self.train_data.head(), f'There are {len(self.train_data)} training scans, \n{len(self.valid_data)} validation scans and \n{len(self.test_data)} scans for testing.')
 
+    # --------------------------------------------------------
+    #  CONTINUAL SEGMENT
+    # --------------------------------------------------------
+    #  Note: All the implementations are based on the WolyNet. 
+    #        Will need to be updated for other U-Net models.
+    # --------------------------------------------------------
+
+    def freeze_encoder(self,):
+        """
+        Freezes encoder weights, this will error if the the encoder block is named something different
+        """
+        try:    
+            for encoder in self.net.encoders:
+                encoder.requires_grad_(False)
+        except Exception as e:
+            warnings.warn(f"Encoder freezing unsucessful, error: {e}")
+
+    def evaluate_encoder(self, x):
+        """
+        Performs all encoder blocks in the encoder module on the input.
+        Args:
+            x (tensor): input image
+        Returns:
+            tensor: Encoded image
+            list: Skip connections to be used for concatenation in decoding
+        """
+        skip_connections = []
+
+        for encoder in self.net.encoders:
+           x =  encoder(x)
+           skip_connections.append(x)
+        
+        return x, skip_connections
+    
+    def evaluate_decoder(self, x, skip_connections):
+        """
+        Evaluates the decoder from the encoded input x. Note an activation function still needs to be applied to output.
+        Args:
+            x (tensor): Encoded image
+            skip_connections (list): List of encoder outputs to concat in decoder phase.
+        Returns:
+            tensor: Decoded image
+        """
+        for decoder in self.net.decoders:
+            x = decoder(skip_connections.pop(), x)
+        
+        x = self.net.final_conv(x)
+
+        return x
+
     # ------------------
     # Extract Dataframes
     # ------------------
