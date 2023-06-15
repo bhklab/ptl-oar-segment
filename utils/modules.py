@@ -249,13 +249,16 @@ class SegmentationModule(pl.LightningModule):
             tensor: Encoded image
             list: Skip connections to be used for concatenation in decoding
         """
+        if len(x.size()) < 5:
+            x = x.unsqueeze(0)
+
         skip_connections = []
 
         for encoder in self.net.encoders:
            x =  encoder(x)
            skip_connections.append(x)
         
-        return x, skip_connections
+        return x, skip_connections[:-1]
     
     def evaluate_decoder(self, x, skip_connections):
         """
