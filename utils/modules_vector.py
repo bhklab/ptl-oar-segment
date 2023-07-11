@@ -1056,7 +1056,7 @@ class SegmentationModule(pl.LightningModule):
                 NormBabe(mean=self.mean, std=self.std, type=self.hparams.norm),
             ]
         )
-        self.train_data = pd.concatenate([self.train_data, self.train_data])
+        self.train_data = pd.concat([self.train_data, self.train_data])
         return self.get_dataloader(df=self.train_data, mode="train", transform=transform,
                                    resample=False, batch_size=self.hparams.batch_size,)
 
