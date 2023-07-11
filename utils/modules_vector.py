@@ -955,7 +955,9 @@ class SegmentationModule(pl.LightningModule):
         # take the inverse of the absolute log of the weights...
         weights = np.abs(np.log(weights))
         weights[0] = 0.01
+        weights = (weights-np.min(weights))/(np.max(weights)-np.min(weights))
         self.config["weights"] = weights
+        print(weights, "\n(Weights used to mitigate class imbalance...)\n")
         warnings.warn(f"Weights are {weights}")
         return weights
 
