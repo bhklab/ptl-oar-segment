@@ -354,7 +354,7 @@ class RandomCrop3D(MTTransform):
             shape = img.shape
         
         warnings.warn(f"Shape is {str(shape)}")
-        img = img[shape[0]//5:shape[0]-shape[0]//5]
+        img = img[shape[0]//6:shape[0]-shape[0]//6]
         if ismask is False:
             img = self.segment_head(img)
             com_ = measure.center_of_mass(img)
@@ -399,7 +399,7 @@ class RandomCrop3D(MTTransform):
 
         if self.mode == "train":
             assert len(self.center) == 3
-            a = np.arange(-128, 128)
+            a = np.arange(-100, 100)
             startx += np.random.choice(a)
             starty += np.random.choice(a)
 

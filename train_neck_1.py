@@ -50,7 +50,7 @@ def main(args):
             reload_dataloaders_every_n_epochs=1,
             # limit_train_batches=0.2,
             # limit_train_batches=0.9,
-            limit_val_batches=0.6,
+            # limit_val_batches=0.6,
             default_root_dir=model.hparams.root,
             max_epochs=model.hparams.n_epochs*2,
             # log_gpu_memory='min_max',
