@@ -164,6 +164,7 @@ class SegmentationModule(pl.LightningModule):
                         self.valid_data = pd.DataFrame.from_dict({"NEWID": [current[j] for j in test_index]})
                 
                 # select random test div for sitsagiigles
+                self.train_data = pd.concat([self.train_data for i in range(5)])
                 test_csv_path = str(self.hparams.home_path)  + "wolnet-sample/vector_test.csv"
                 self.test_data  = pd.read_csv(test_csv_path)
                 warnings.warn(f"Creating model with {len(oars)} oars which are {oars}.")
@@ -1058,7 +1059,6 @@ class SegmentationModule(pl.LightningModule):
                 NormBabe(mean=self.mean, std=self.std, type=self.hparams.norm),
             ]
         )
-        self.train_data = pd.concat([self.train_data, self.train_data])
         return self.get_dataloader(df=self.train_data, mode="train", transform=transform,
                                    resample=False, batch_size=self.hparams.batch_size,)
 
