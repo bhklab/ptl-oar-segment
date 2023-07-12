@@ -105,7 +105,7 @@ class SegmentationModule(pl.LightningModule):
             config = getJson(path_) # [self.hparams.fold]
             self.train_data = pd.DataFrame.from_dict({"NEWID":config["train_data"]})
             self.train_data = self.train_data[~self.train_data["NEWID"].isin(exclude_)]
-            self.train_data = pd.concat([self.train_data for i in range(6)])
+            self.train_data = pd.concat([self.train_data for i in range(10)])
             # self.train_data = self.train_data[10:]
             self.valid_data = pd.DataFrame.from_dict({"NEWID":config["valid_data"]})
             self.test_data =  pd.DataFrame.from_dict({"NEWID":config["test_data"]})

@@ -48,6 +48,7 @@ def main(args):
             devices=-1, # set to -1 to use all avaliable gpus...
             strategy='ddp', # should be same as args.backend..., # stochastic_weight_avg=True, # pass to callbacks if required...
             reload_dataloaders_every_n_epochs=1,
+            check_val_every_n_epoch=10,
             # limit_train_batches=0.2,
             # limit_train_batches=0.9,
             # limit_val_batches=0.6,
