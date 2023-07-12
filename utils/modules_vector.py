@@ -105,6 +105,7 @@ class SegmentationModule(pl.LightningModule):
             config = getJson(path_) # [self.hparams.fold]
             self.train_data = pd.DataFrame.from_dict({"NEWID":config["train_data"]})
             self.train_data = self.train_data[~self.train_data["NEWID"].isin(exclude_)]
+            self.train_data = pd.concat([self.train_data for i in range(5)])
             # self.train_data = self.train_data[10:]
             self.valid_data = pd.DataFrame.from_dict({"NEWID":config["valid_data"]})
             self.test_data =  pd.DataFrame.from_dict({"NEWID":config["test_data"]})
@@ -164,7 +165,7 @@ class SegmentationModule(pl.LightningModule):
                         self.valid_data = pd.DataFrame.from_dict({"NEWID": [current[j] for j in test_index]})
                 
                 # select random test div for sitsagiigles
-                self.train_data = pd.concat([self.train_data for i in range(5)])
+                
                 test_csv_path = str(self.hparams.home_path)  + "wolnet-sample/vector_test.csv"
                 self.test_data  = pd.read_csv(test_csv_path)
                 warnings.warn(f"Creating model with {len(oars)} oars which are {oars}.")
