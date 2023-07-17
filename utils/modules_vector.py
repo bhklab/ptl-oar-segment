@@ -105,7 +105,7 @@ class SegmentationModule(pl.LightningModule):
             config = getJson(path_) # [self.hparams.fold]
             self.train_data = pd.DataFrame.from_dict({"NEWID":config["train_data"]})
             self.train_data = self.train_data[~self.train_data["NEWID"].isin(exclude_)]
-            self.train_data = pd.concat([self.train_data for i in range(10)])
+            self.train_data = pd.concat([self.train_data for i in range(12)])
             # self.train_data = self.train_data[10:]
             self.valid_data = pd.DataFrame.from_dict({"NEWID":config["valid_data"]})
             self.test_data =  pd.DataFrame.from_dict({"NEWID":config["test_data"]})
@@ -186,10 +186,10 @@ class SegmentationModule(pl.LightningModule):
         # other values can be loaded in here as well...
         # ideally the data_config would be saved
         # Kfold["means"][fold] # - 300.
-        # self.mean = -407.4462155135238
-        # self.std = 226.03663728492648
-        self.mean = self.config["meanHU"]
-        self.std = self.config["stdHU"]
+        self.mean = -407.4462155135238
+        self.std = 226.03663728492648
+        # self.mean = self.config["meanHU"]
+        # self.std = self.config["stdHU"]
         # setup custom_order, loaded in with utils.py...
         self.config["roi_order"] = self.custom_order
         self.config["order_dic"] = getROIOrder(tag=self.tag, inverse=True)
