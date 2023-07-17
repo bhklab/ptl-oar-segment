@@ -1051,7 +1051,7 @@ class SegmentationModule(pl.LightningModule):
 
         transform = Compose(
             [   HistogramClipping(min_hu=self.hparams.clip_min, max_hu=self.hparams.clip_max),
-                RandomFlip3D(), # left and right should be distinguished...
+                RandomFlip3D(label=self.tag), # left and right should be distinguished...
                 RandomRotation3D(p=self.hparams.aug_prob/1.5),
                 ElasticTransform3D(p=self.hparams.aug_prob/1.5),
                 RandomZoom3D(p=self.hparams.aug_prob/1.5),

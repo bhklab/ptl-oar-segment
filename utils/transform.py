@@ -631,10 +631,11 @@ class RandomFlip3D(MTTransform):
     (randomized)
     """
 
-    def __init__(self, axis=2, flip_labels=True):
+    def __init__(self, axis=2, flip_labels=True, label="OAR"):
         self.axis = 2
         # TRUE FOR OAR SEGMENTATION...
         self.flip_labels=flip_labels
+        self.label = "OAR"
 
     def __call__(self, img, mask=None):
 
@@ -651,7 +652,22 @@ class RandomFlip3D(MTTransform):
                 mask_ = np.zeros(mask.shape)
                 # we would also need to flip mask labels...
                 if self.flip_labels is True:
-                    flipped_chosen = [0,1,2,3,4,5,7,6,9,8,11,10,13,12,15,14,17,16,18,19]
+                    # this is for the original OARs...
+                    if self.label == "OAR":
+                        warnings.warn("Flipping labels according to order for OAR segmentation...")
+                        flipped_chosen = [0,1,2,3,4,5,7,6,9,8,11,10,13,12,15,14,17,16,18,19]
+                    elif self.label == "NECKLEVEL":
+                        warnings.warn("Flipping labels acording to order for neck level segmentation...")
+                        flipped_chosen = [0,1.8,9,10,11,12,13,2,3,4,5,6,7]
+                    else:
+                        warnings.warn("Not changing class labels when flipping, please flip labels according to class order...")
+                        flipped_chosen = [0,1]
+                        
+                        # Order of choosen neck levels...
+                        # "LEVEL_IA", "LEVEL_IB_RT", "LEVEL_III_RT", "LEVEL_II_RT", "LEVEL_IV_RT",
+                        # "LEVEL_VIIA_RT","LEVEL_V_RT", "LEVEL_IB_LT","LEVEL_III_LT","LEVEL_II_LT",
+                        # "LEVEL_IV_LT","LEVEL_VIIA_LT","LEVEL_V_LT", 
+                    
                     for i, val in enumerate(flipped_chosen):
                         mask_[mask==i] = val
                 else:
