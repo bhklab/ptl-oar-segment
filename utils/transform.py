@@ -635,7 +635,7 @@ class RandomFlip3D(MTTransform):
         self.axis = 2
         # TRUE FOR OAR SEGMENTATION...
         self.flip_labels=flip_labels
-        self.label = "OAR"
+        self.label = label
 
     def __call__(self, img, mask=None):
 
@@ -658,7 +658,7 @@ class RandomFlip3D(MTTransform):
                         flipped_chosen = [0,1,2,3,4,5,7,6,9,8,11,10,13,12,15,14,17,16,18,19]
                     elif self.label == "NECKLEVEL":
                         warnings.warn("Flipping labels acording to order for neck level segmentation...")
-                        flipped_chosen = [0,1.8,9,10,11,12,13,2,3,4,5,6,7]
+                        flipped_chosen = [0,1,8,9,10,11,12,13,2,3,4,5,6,7]
                     else:
                         warnings.warn("Not changing class labels when flipping, please flip labels according to class order...")
                         flipped_chosen = [0,1]
