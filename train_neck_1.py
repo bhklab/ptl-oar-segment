@@ -58,8 +58,8 @@ def main(args):
             sync_batchnorm=True,
             # precision=16,
             accumulate_grad_batches={500:2, 1000:4, 1500:8}, # changing this parameter affects outputs
-            callbacks=[checkpoint_callback],
-            resume_from_checkpoint="/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_06_06_134050/lightning_logs/version_9259052/checkpoints/last.ckpt")
+            callbacks=[checkpoint_callback],)
+            # resume_from_checkpoint="/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_06_06_134050/lightning_logs/version_9259052/checkpoints/last.ckpt")
             # resume_from_checkpoint="/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_04_24_172930/lightning_logs/version_8784783/checkpoints/WOLNET-epoch448-val_loss0.00.ckpt")
             # checkpoint_callback=checkpoint_callback)# < 1.4.0
             # resume_from_checkpoint="/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_04_24_172930/lightning_logs/version_8642000/checkpoints/last.ckpt")
