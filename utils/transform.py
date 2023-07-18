@@ -399,7 +399,7 @@ class RandomCrop3D(MTTransform):
 
         if self.mode == "train":
             assert len(self.center) == 3
-            a = np.arange(-100, 100)
+            a = np.arange(-128, 128)
             startx += np.random.choice(a)
             starty += np.random.choice(a)
 
@@ -456,7 +456,7 @@ class RandomCrop3D(MTTransform):
                 warnings.warn(f'Cropping images/masks from {shape[0]} to 120.')
                 # self.window = 56 # 64
                 # val_ = shape[0] - self.window
-                a = np.arange(-shape[0]//3, int(shape[0]//3))
+                a = np.arange(-shape[0]//2, int(shape[0]//2))
                 if self.mode == 'train':
                     centerz += np.random.choice(a)
                 end = shape[0] - self.window
