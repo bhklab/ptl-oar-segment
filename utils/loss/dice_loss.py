@@ -474,10 +474,11 @@ class HD_Loss3D(nn.Module):
         # counts = mask[0].cpu().numpy()
         # bool_counts = (counts == 1)
         # counts_ = np.where(bool_counts)[0]
-        hd = torch.pow(out, .25) # hyperparameter, can varry...
+        # COmmented out 072023
+        # hd = torch.pow(out, .25) # hyperparameter, can varry...
         hd = hd[~torch.isnan(hd)]
         # hd = hd[~torch.isinf(hd)]
-        hd_max = hd.max()*.5
+        hd_max = hd.max() # *.5
         # can also implement topK HD loss...
         return hd.mean() , hd_max
 
