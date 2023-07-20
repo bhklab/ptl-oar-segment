@@ -32,7 +32,7 @@ def main(args):
     #     assert args.weights_path is not None
     #     warnings.warn('Using presaved weights...')
     #     warnings.warn(f'Loading save model from {args.weights_path}.')
-    model = SegmentationModule(args, update_lr=0.0015) #.load_from_checkpoint()
+    model = SegmentationModule(args, update_lr=0.0001) #.load_from_checkpoint()
     # trainer = Trainer(resume_from_checkpoint=args.weights_path)
     # except Exception:
     #     warnings.warn('Using randomized weights...')
@@ -59,7 +59,8 @@ def main(args):
             # precision=16,
             accumulate_grad_batches={500:2, 1000:4, 1500:8}, # changing this parameter affects outputs
             callbacks=[checkpoint_callback],
-            resume_from_checkpoint="/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_06_06_134050/lightning_logs/version_9308613/checkpoints/WOLNET-epoch62-val_loss0.00.ckpt"
+            resume_from_checkpoint="/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_06_06_134050/lightning_logs/version_9319787/checkpoints/WOLNET-epoch78-val_loss0.00.ckpt"
+            # resume_from_checkpoint="/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_06_06_134050/lightning_logs/version_9308613/checkpoints/WOLNET-epoch62-val_loss0.00.ckpt"
         )
             # resume_from_checkpoint="/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_06_06_134050/lightning_logs/version_9259052/checkpoints/last.ckpt")
             # resume_from_checkpoint="/cluster/projects/radiomics/Temp/joe/models-1222/WOLNET_2023_04_24_172930/lightning_logs/version_8784783/checkpoints/WOLNET-epoch448-val_loss0.00.ckpt")
