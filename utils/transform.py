@@ -856,6 +856,9 @@ class NormBabe(MTTransform):
         array = np.copy(img)
         if self.type == "standard":
             array = (array - self.mean) / self.std
+            # normalizing between 0 and 1
+            array = 2*((array - min(array)) / ( max(array) - min(array))) - 1
+            # normalizing between -1 and 1
         else:
             array = self.normalize(array)
 
