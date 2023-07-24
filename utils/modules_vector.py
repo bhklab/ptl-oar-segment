@@ -51,6 +51,7 @@ class SegmentationModule(pl.LightningModule):
         # override learning rate (for re-training)
         if update_lr is not None:
             self.hparams.lr = update_lr
+            self.val_loss = torch.tensor([0], dtype=torch.float)
 
     def setup(self, stage=None):
 
