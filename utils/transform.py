@@ -773,7 +773,7 @@ class Clahe(MTTransform):
 
         if not isinstance(img, np.ndarray):
             raise TypeError("Input sample must be a numpy array.")
-
+        
         input = np.copy(img)
 
         if len(input.shape) == 3:
@@ -782,8 +782,7 @@ class Clahe(MTTransform):
                 images.append(
                     skimage.exposure.equalize_adapthist(
                         slice, kernel_size=self.kernel_size, clip_limit=self.clip_limit
-                    )
-                )
+                    ))
             images = np.stack(images)
             return images
 
