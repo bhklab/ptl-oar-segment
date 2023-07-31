@@ -856,13 +856,13 @@ class NormBabe(MTTransform):
         if self.type == "standard":
             array = (array - self.mean) / self.std
             # normalizing between 0 and 1
-            array = 2.*((array - np.min(array)) / ( np.max(array) - np.min(array))) - 1.
+            array = (array - np.min(array)) / ( np.max(array) - np.min(array))
             # normalizing between -1 and 1
+            # array = 2.*((array - np.min(array)) / ( np.max(array) - np.min(array))) - 1.
         else:
             array = self.normalize(array)
 
         if mask is not None:
-
             return array, mask
 
         else:

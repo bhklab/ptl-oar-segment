@@ -32,7 +32,7 @@ def main(args):
     #     assert args.weights_path is not None
     #     warnings.warn('Using presaved weights...')
     #     warnings.warn(f'Loading save model from {args.weights_path}.')
-    model = SegmentationModule(args, update_lr=0.0001) #.load_from_checkpoint()
+    model = SegmentationModule(args, update_lr=0.001) #.load_from_checkpoint()
     # trainer = Trainer(resume_from_checkpoint=args.weights_path)
     # except Exception:
     #     warnings.warn('Using randomized weights...')
