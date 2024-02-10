@@ -139,7 +139,6 @@ dmypy.json
 **/.idea/
 **/__pycache__/
 **.out
-**.txt
 **/OARSFINAL_2020_04_28_115655
 **/vols
 **.nrrd
